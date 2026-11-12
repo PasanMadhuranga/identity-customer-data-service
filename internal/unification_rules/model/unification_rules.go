@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package model defines the unification rule types and the unification rules API request and response types.
 package model
 
 import (

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package models
+package model
 
 // ConsentCategoryRequest is the API input model for creating or updating a consent category.
 //

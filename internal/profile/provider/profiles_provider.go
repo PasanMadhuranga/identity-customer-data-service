@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package provider gives access to the profiles service.
 package provider
 
 import (

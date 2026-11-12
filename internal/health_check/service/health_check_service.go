@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package service checks whether the service is ready to serve requests.
 package service
 
 import (

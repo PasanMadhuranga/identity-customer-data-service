@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package cache provides an in-memory cache with a time-to-live.
 package cache
 
 import (
@@ -26,11 +27,14 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
+// CacheItem is a cached value and the time it expires.
 type CacheItem struct {
 	Value      interface{}
 	Expiration time.Time
 }
 
+// Cache is an in-memory key-value store that gives every entry the same TTL. It is safe for
+// concurrent use.
 type Cache struct {
 	items map[string]CacheItem
 	mutex sync.RWMutex

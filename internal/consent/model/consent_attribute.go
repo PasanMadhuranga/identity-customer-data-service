@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package models
+package model
 
 // ConsentAttribute represents a profile attribute covered by a consent category.
 // Callers provide attribute_name (e.g. "traits.age"). Scope and AttributeID are derived

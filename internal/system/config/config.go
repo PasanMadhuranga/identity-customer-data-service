@@ -16,21 +16,27 @@
  * under the License.
  */
 
+// Package config defines the CDS configuration and holds the configuration of the running server.
 package config
 
+// AddrConfig is the address the server listens on.
 type AddrConfig struct {
 	Port int    `yaml:"port"`
 	Host string `yaml:"host"`
 }
 
+// LogConfig holds the logging settings.
 type LogConfig struct {
 	LogLevel string `yaml:"log_level"`
 }
 
+// AuthConfig holds the settings for cross-origin requests.
 type AuthConfig struct {
 	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
+// AuthServerConfig holds the identity server endpoints and credentials CDS uses, and the scopes each
+// operation requires.
 type AuthServerConfig struct {
 	Host                      string              `yaml:"host"`
 	Port                      string              `yaml:"port"`
@@ -144,6 +150,7 @@ const (
 	ApplicationIdentifierTypeAppID    = "app_id"
 )
 
+// Config is the server configuration read from the deployment file.
 type Config struct {
 	Addr         AddrConfig         `yaml:"addr"`
 	ServerURL    string             `yaml:"server_url"`
@@ -245,6 +252,7 @@ func (c Config) UsesAppIDIdentifier() bool {
 	return c.ApplicationIdentifierType == ApplicationIdentifierTypeAppID
 }
 
+// TLSConfig holds the certificates of the server and whether mutual TLS is on.
 type TLSConfig struct {
 	MTLSEnabled             bool   `yaml:"mtls_enabled"`
 	CertDir                 string `yaml:"cert_dir"`
@@ -254,10 +262,12 @@ type TLSConfig struct {
 	TrustStore              string `yaml:"trust_store"`
 }
 
+// CleanupConfig holds the settings of the background cleanup jobs.
 type CleanupConfig struct {
 	Cookie CookieCleanupConfig `yaml:"cookie"`
 }
 
+// CookieCleanupConfig controls the job that deletes inactive cookies. Interval is in seconds.
 type CookieCleanupConfig struct {
 	Enabled   bool `yaml:"enabled"`
 	Interval  int  `yaml:"interval"` // in seconds

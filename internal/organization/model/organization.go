@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package model defines the organizations that CDS stores and the organization tree sync.
 package model
 
 import (

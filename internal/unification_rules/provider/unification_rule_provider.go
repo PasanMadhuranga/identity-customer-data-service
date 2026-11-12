@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package provider gives access to the unification rule service.
 package provider
 
 import (

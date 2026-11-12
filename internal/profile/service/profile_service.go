@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package service implements the business logic for customer profiles, their consents and cookies.
 package service
 
 import (
@@ -54,6 +55,7 @@ import (
 	UnificationModel "github.com/wso2/identity-customer-data-service/internal/unification_rules/model"
 )
 
+// ProfilesServiceInterface defines the operations on customer profiles, their consents and cookies.
 type ProfilesServiceInterface interface {
 	DeleteProfile(ctx context.Context, profileID string, orgID string) error
 	GetAllProfilesCursor(ctx context.Context,
@@ -92,6 +94,8 @@ func GetProfilesService() ProfilesServiceInterface {
 
 var safeIdentifier = regexp.MustCompile(constants.FilterRegex)
 
+// ConvertAppData converts application data keyed by app ID into ApplicationData entries. It returns a
+// client error if an entry is not an object.
 func ConvertAppData(input map[string]interface{}) ([]profileModel.ApplicationData, error) {
 	appDataList := make([]profileModel.ApplicationData, 0, len(input))
 
@@ -218,6 +222,9 @@ func (ps *ProfilesService) CreateProfile(ctx context.Context,
 	return profileFetched, nil
 }
 
+// ValidateProfileAgainstSchema checks that every identity attribute, trait and application data attribute
+// in the request is defined in the schema and matches its type and mutability; on update, mutability is
+// checked against the existing profile.
 func ValidateProfileAgainstSchema(profile profileModel.ProfileRequest, existingProfile profileModel.Profile,
 	schema model.ProfileSchema, isUpdate bool) error {
 	// Validate identity attributes
@@ -902,6 +909,7 @@ type ProfileUnificationQueue interface {
 	Enqueue(profile profileModel.Profile)
 }
 
+// ConvertAppDataToMap converts ApplicationData entries into a map of application-specific data keyed by app ID.
 func ConvertAppDataToMap(appDataList []profileModel.ApplicationData) map[string]map[string]interface{} {
 	result := make(map[string]map[string]interface{})
 
@@ -1155,7 +1163,7 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 	}
 
 	if profile.ProfileStatus.IsReferenceProfile && len(profile.ProfileStatus.References) > 0 {
-		//get all child profiles and delete
+		// get all child profiles and delete
 		for _, childProfile := range profile.ProfileStatus.References {
 			err = profileStore.DeleteProfile(ctx, childProfile.ProfileID)
 			logger.Info(fmt.Sprintf("Deleting child  profile: %s with of parent: %s",
@@ -1227,6 +1235,8 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 			}
 			//todo: Ensure the need to detach the referer profile from the reference
 			//err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileID, ProfileID)
+			// todo: Ensure the need to detach the referer profile from the reference
+			// err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileId, ProfileId)
 			err = profileStore.DeleteProfile(ctx, ProfileID)
 			if err != nil {
 				errorMsg := fmt.Sprintf("Error while deleting the  profile: %s ", ProfileID)
@@ -1623,6 +1633,7 @@ func (ps *ProfilesService) PatchProfile(ctx context.Context,
 	return ps.UpdateProfile(ctx, profileID, orgID, updatedProfileReq)
 }
 
+// GetProfileCookieByProfileID returns the cookie of a profile, or a not-found client error if it has none.
 func (ps *ProfilesService) GetProfileCookieByProfileID(ctx context.Context,
 	profileID string) (*profileModel.ProfileCookie, error) {
 	cookie, err := profileStore.GetProfileCookieByProfileID(ctx, profileID)
@@ -1648,6 +1659,8 @@ func (ps *ProfilesService) GetProfileCookieByProfileID(ctx context.Context,
 	return cookie, nil
 }
 
+// GetProfileCookieByID returns the profile cookie with the given cookie ID in the organization, or a
+// not-found client error.
 func (ps *ProfilesService) GetProfileCookieByID(ctx context.Context,
 	cookie string, orgID string) (*profileModel.ProfileCookie, error) {
 	cookieObj, err := profileStore.GetProfileCookie(ctx, cookie, orgID)

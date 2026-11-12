@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the admin configuration endpoints.
 package handler
 
 import (

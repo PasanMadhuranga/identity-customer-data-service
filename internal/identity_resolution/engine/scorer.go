@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package engine finds, compares and scores candidate profiles for identity resolution: it builds the
+// blocking keys that narrow the candidates, matches attribute values by type, and scores each candidate.
 package engine
 
 import (

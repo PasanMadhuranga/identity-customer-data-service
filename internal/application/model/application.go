@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package model defines the applications that CDS has registered for an organization.
 package model
 
 // Application holds the information of an application.

@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package service reads and updates the admin configuration of an organization, including the CORS
+// origins it allows.
 package service
 
 import (
@@ -72,6 +74,8 @@ func (a AdminConfigService) IsCDSEnabled(ctx context.Context, orgID string) bool
 	return sharingService.IsSubOrgEnabled(ctx, orgID)
 }
 
+// IsInitialSchemaSyncDone reports whether the initial schema sync of the organization has completed. It
+// returns false when the configuration cannot be read.
 func (a AdminConfigService) IsInitialSchemaSyncDone(ctx context.Context, orgID string) bool {
 	config, err := store.GetAdminConfig(ctx, orgID)
 	if err != nil || config == nil {
@@ -80,6 +84,8 @@ func (a AdminConfigService) IsInitialSchemaSyncDone(ctx context.Context, orgID s
 	return config.InitialSchemaSyncDone
 }
 
+// IsSystemApplication reports whether appID is one of the applications listed in the configuration of
+// the organization.
 func (a AdminConfigService) IsSystemApplication(ctx context.Context, orgID string, appID string) (bool, error) {
 	config, err := store.GetAdminConfig(ctx, orgID)
 	if err != nil {
@@ -115,6 +121,9 @@ func (a AdminConfigService) GetCORSAllowedOrigins(ctx context.Context, orgID, su
 	return corsOrigins.get(ctx, orgID)
 }
 
+// GetAdminConfig returns the configuration of the organization, with defaults for the settings it has
+// not stored. A sub organization takes the CDS enablement, the identity resolution settings and the CORS
+// origins of its primary organization.
 func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgID string) (model.AdminConfig, error) {
 	defaultConfig := model.AdminConfig{
 		OrgID:                 orgID,
@@ -329,6 +338,7 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	return nil
 }
 
+// UpdateInitialSchemaSync records whether the initial schema sync of the organization has completed.
 func (a AdminConfigService) UpdateInitialSchemaSync(ctx context.Context, state bool, orgID string) error {
 	return store.UpdateInitialSchemaSyncConfig(ctx, state, orgID)
 }

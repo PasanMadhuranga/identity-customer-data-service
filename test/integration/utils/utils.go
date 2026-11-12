@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package utils holds helpers for the integration tests.
 package utils
 
 import (
@@ -29,6 +30,7 @@ import (
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 
+// CreateTablesFromFile runs the SQL statements of the file at path against db.
 func CreateTablesFromFile(db *sql.DB, path string) error {
 	schemaBytes, err := os.ReadFile(path)
 	if err != nil {
@@ -43,6 +45,8 @@ func CreateTablesFromFile(db *sql.DB, path string) error {
 	return nil
 }
 
+// GetTestHome returns the project root: the nearest directory, from the working directory up, that holds
+// test/setup/schema.sql. It exits the test binary when there is none.
 func GetTestHome() string {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -68,6 +72,7 @@ func GetSchemaPath() string {
 	return filepath.Join(GetTestHome(), "test", "setup", "schema.sql")
 }
 
+// ExtractErrorDescription returns the description of a client error, or the message of any other error.
 func ExtractErrorDescription(err error) string {
 	var clientErr *errors2.ClientError
 	if errors.As(err, &clientErr) {

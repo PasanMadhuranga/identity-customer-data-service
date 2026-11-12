@@ -32,6 +32,8 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
+// UpsertBlockingKeys replaces the profile's blocking keys with keys in one transaction. It does nothing when
+// keys is empty, leaving the existing keys in place.
 func UpsertBlockingKeys(ctx context.Context, profileID, orgID string, keys []model.BlockingKey) error {
 	logger := log.GetLogger()
 	if len(keys) == 0 {
@@ -109,6 +111,7 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgID string, keys []mod
 	return nil
 }
 
+// DeleteBlockingKeys removes all blocking keys of the profile.
 func DeleteBlockingKeys(ctx context.Context, orgID, profileID string) error {
 	logger := log.GetLogger()
 
@@ -306,6 +309,9 @@ func flattenBlockingKeyRows(perProfileKeys map[string][]model.BlockingKey) []blo
 	return rows
 }
 
+// FindCandidateIDsByKeys returns the IDs of the organization's profiles indexed under any of keyValues for
+// attributeName, leaving out excludeProfileID. When more than maxResults profiles match, the value is too
+// common to identify anyone and it returns nil with no error.
 func FindCandidateIDsByKeys(ctx context.Context,
 	orgID, attributeName string,
 	keyValues []string,
@@ -380,6 +386,8 @@ func FindCandidateIDsByKeys(ctx context.Context,
 	return profileIDs, nil
 }
 
+// GetProfilesByIDs loads the profiles with the given IDs for scoring. A row that cannot be read is logged and
+// left out.
 func GetProfilesByIDs(ctx context.Context, profileIDs []string) ([]model.ProfileData, error) {
 	logger := log.GetLogger()
 

@@ -27,6 +27,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
+// Thresholds are an organization's settings that turn a candidate's score into a merge decision.
 type Thresholds struct {
 	AutoMergeEnabled bool
 	AutoMerge        float64
@@ -37,6 +38,7 @@ type Thresholds struct {
 	DeterministicMatchDecisive bool
 }
 
+// DefaultThresholds returns the thresholds used when an organization has not set its own.
 func DefaultThresholds() Thresholds {
 	return Thresholds{
 		AutoMergeEnabled:           true,
@@ -46,6 +48,9 @@ func DefaultThresholds() Thresholds {
 	}
 }
 
+// LoadThresholds returns the organization's thresholds from its admin config, taken from the primary
+// organization for a sub organization. It falls back to the defaults when the config cannot be loaded, and
+// keeps the default for any threshold that is not set.
 func LoadThresholds(ctx context.Context, orgID string) Thresholds {
 	logger := log.GetLogger()
 	defaults := DefaultThresholds()
@@ -74,6 +79,8 @@ func LoadThresholds(ctx context.Context, orgID string) Thresholds {
 	return defaults
 }
 
+// Decide returns DecisionAutoMerge when auto-merge is enabled and score reaches the auto-merge threshold,
+// DecisionManualReview when score reaches the manual review threshold, and DecisionUnique otherwise.
 func Decide(score float64, thresholds Thresholds) string {
 	if thresholds.AutoMergeEnabled && score >= thresholds.AutoMerge {
 		return constants.DecisionAutoMerge

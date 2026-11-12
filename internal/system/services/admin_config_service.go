@@ -26,11 +26,13 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
+// AdminConfigService registers the admin config endpoints.
 type AdminConfigService struct {
 	handler *handler.AdminConfigHandler
 	mux     *http.ServeMux
 }
 
+// NewAdminConfigService registers the admin config routes on mux and returns the service.
 func NewAdminConfigService(mux *http.ServeMux) *AdminConfigService {
 	s := &AdminConfigService{
 		handler: handler.NewAdminConfigHandler(),

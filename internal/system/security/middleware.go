@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package security authenticates and authorizes the requests to the CDS APIs.
 package security
 
 import (

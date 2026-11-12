@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the unification rules REST API endpoints.
 package handler
 
 import (
@@ -42,11 +43,13 @@ import (
 	shareHandler "github.com/wso2/identity-customer-data-service/internal/sharing/handler"
 )
 
+// UnificationRulesHandler handles HTTP requests for unification rules.
 type UnificationRulesHandler struct {
 	store map[string]model.UnificationRule
 	mu    *sync.RWMutex
 }
 
+// NewUnificationRulesHandler creates a UnificationRulesHandler.
 func NewUnificationRulesHandler() *UnificationRulesHandler {
 	return &UnificationRulesHandler{
 		store: make(map[string]model.UnificationRule),

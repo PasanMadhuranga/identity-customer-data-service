@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package service validates applications against the identity server and registers them.
 package service
 
 import (

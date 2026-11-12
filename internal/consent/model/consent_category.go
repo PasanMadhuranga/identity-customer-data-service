@@ -16,7 +16,8 @@
  * under the License.
  */
 
-package models
+// Package model defines the consent categories of an organization and their API requests and responses.
+package model
 
 // ConsentCategory represents a category of user consent
 type ConsentCategory struct {

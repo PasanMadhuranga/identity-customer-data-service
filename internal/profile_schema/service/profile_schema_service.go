@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package service implements the business logic for the profile schema and its sharing policies.
 package service
 
 import (
@@ -42,6 +43,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
+// ProfileSchemaServiceInterface defines the operations on the profile schema and its sharing policies.
 type ProfileSchemaServiceInterface interface {
 	GetProfileSchema(ctx context.Context, orgId string) (map[string]interface{}, error)
 	DeleteProfileSchema(ctx context.Context, orgId string) error
@@ -353,6 +355,8 @@ func defaultValidateApplicationIdentifier(ctx context.Context, appIdentifier str
 	return nil, len(res.Applications) == 1
 }
 
+// GetProfileSchemaAttributeByID returns the schema attribute with the given ID, whether the organization owns
+// it, it is shared with the organization, or the organization inherits it.
 func (s *ProfileSchemaService) GetProfileSchemaAttributeByID(ctx context.Context,
 	orgId string, attributeId string) (model.ProfileSchemaAttribute, error) {
 	attr, err := psstr.GetProfileSchemaAttributeByID(ctx, orgId, attributeId)
@@ -415,6 +419,7 @@ func getOwnedShareableAttribute(ctx context.Context, orgId string, scope,
 	return attr, isShareableAttribute(ctx, orgId, attr)
 }
 
+// GetProfileSchemaAttributeByName returns the organization's own schema attribute with the given name.
 func (s *ProfileSchemaService) GetProfileSchemaAttributeByName(ctx context.Context,
 	attributeName string, orgId string) (*model.ProfileSchemaAttribute, error) {
 	return psstr.GetProfileSchemaAttributeByName(ctx, orgId, attributeName)
@@ -644,6 +649,8 @@ func (s *ProfileSchemaService) DeleteProfileSchemaAttributeByID(ctx context.Cont
 	return sharingService.DeletePoliciesOfResource(ctx, model.SharingResourceType, attributeId)
 }
 
+// DeleteProfileSchemaAttributesByScope deletes the organization's schema attributes in the scope. Sub
+// organizations cannot delete them.
 func (s *ProfileSchemaService) DeleteProfileSchemaAttributesByScope(ctx context.Context, orgId string, scope string) error {
 	if err := suborg.RejectWrite(ctx, orgId); err != nil {
 		return err
@@ -727,6 +734,7 @@ func (s *ProfileSchemaService) GetProfileSchema(ctx context.Context, orgId strin
 	return profileSchema, nil
 }
 
+// DeleteProfileSchema deletes the organization's profile schema. Sub organizations cannot delete it.
 func (s *ProfileSchemaService) DeleteProfileSchema(ctx context.Context, orgId string) error {
 	if err := suborg.RejectWrite(ctx, orgId); err != nil {
 		return err
@@ -745,6 +753,8 @@ func keysOf(m map[string]bool) []string {
 	return keys
 }
 
+// GetProfileSchemaAttributesWithFilter returns the organization's effective schema attributes that match all
+// filters, each in the form "field op value".
 func GetProfileSchemaAttributesWithFilter(ctx context.Context,
 	orgId string, filters []string) ([]model.ProfileSchemaAttribute, error) {
 	allAttrs, err := GetEffectiveProfileSchemaAttributes(ctx, orgId)
@@ -810,6 +820,9 @@ func matches(attr model.ProfileSchemaAttribute, field, op, val string) bool {
 	return false
 }
 
+// SyncProfileSchema fetches the organization's identity attributes from the identity server and stores them,
+// keeping the IDs of attributes already stored. It fails for an organization that inherits its identity
+// attributes.
 func (s *ProfileSchemaService) SyncProfileSchema(ctx context.Context, orgId string) error {
 	if source, inherits := identitysource.IsInherited(ctx, orgId); inherits {
 		return errors2.NewClientError(errors2.ErrorMessage{
@@ -858,6 +871,8 @@ func (s *ProfileSchemaService) SyncProfileSchema(ctx context.Context, orgId stri
 	return nil
 }
 
+// GetProfileSchemaAttributesByScopeAndFilter validates the filters and returns the visible schema attributes
+// that match them. Application data attributes are grouped by application identifier.
 func (s *ProfileSchemaService) GetProfileSchemaAttributesByScopeAndFilter(ctx context.Context,
 	orgId string, scope string, filters []string) (interface{}, error) {
 	validatedFilters := make([]string, 0, len(filters))

@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package authz checks the scopes granted to a request against the scopes an operation requires.
 package authz
 
 import (

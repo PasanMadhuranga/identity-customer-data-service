@@ -43,6 +43,8 @@ var (
 	cookieCleanupDone chan struct{}
 )
 
+// StartCookieCleanupWorker starts a goroutine that deletes inactive cookies in batches at each interval.
+// An unset interval defaults to 24 hours and an unset batch size to 500. StopCookieCleanupWorker stops it.
 func StartCookieCleanupWorker(cfg config.CookieCleanupConfig) {
 	logger := log.GetLogger()
 

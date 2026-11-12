@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package main starts the customer data service: it loads the configuration, sets up the database and
+// the workers, and serves the HTTP API until it is told to shut down.
 package main
 
 import (

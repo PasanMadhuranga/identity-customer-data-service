@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package managers registers the HTTP services of CDS on the server mux.
 package managers
 
 import (
@@ -27,10 +28,12 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
+// ServiceManagerInterface registers the HTTP services of CDS.
 type ServiceManagerInterface interface {
 	RegisterServices() error
 }
 
+// ServiceManager registers the services on an HTTP mux.
 type ServiceManager struct {
 	mux *http.ServeMux
 }
@@ -42,6 +45,8 @@ func NewServiceManager(mux *http.ServeMux) ServiceManagerInterface {
 	}
 }
 
+// RegisterServices mounts the health services under /cds/ and the other services under the tenant path
+// /t/{tenant}/. The organization service is mounted only when organization management is enabled.
 func (sm *ServiceManager) RegisterServices() error {
 	// Non-tenanted root services (health, ready)
 	rootMux := http.NewServeMux()
@@ -50,7 +55,7 @@ func (sm *ServiceManager) RegisterServices() error {
 
 	// Initialize services with the shared tenant routes mux so they don't create their own mux
 	routesMux := http.NewServeMux()
-	//_ = services.NewHealthService(routesMux)
+	// _ = services.NewHealthService(routesMux)
 	_ = services.NewProfileService(routesMux)
 	_ = services.NewProfileSchemaService(routesMux)
 	_ = services.NewUnificationRulesService(routesMux)

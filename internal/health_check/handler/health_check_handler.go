@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the health and readiness endpoints.
 package handler
 
 import (

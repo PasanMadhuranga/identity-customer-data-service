@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package service implements the business logic for unification rules and their sharing policies.
 package service
 
 import (
@@ -40,6 +41,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/unification_rules/store"
 )
 
+// UnificationRuleServiceInterface defines the operations on unification rules and their sharing policies.
 type UnificationRuleServiceInterface interface {
 	AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgID string) error
 	GetUnificationRules(ctx context.Context, orgID string) ([]model.UnificationRule, error)

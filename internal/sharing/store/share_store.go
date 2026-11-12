@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package store persists sharing policies and their targets.
 package store
 
 import (

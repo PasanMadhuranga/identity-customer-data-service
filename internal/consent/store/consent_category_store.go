@@ -15,6 +15,7 @@
  * under the License.
  */
 
+// Package store persists consent categories and the profile attributes they cover.
 package store
 
 import (
@@ -24,7 +25,7 @@ import (
 
 	"github.com/google/uuid"
 
-	model "github.com/wso2/identity-customer-data-service/internal/consent/model"
+	"github.com/wso2/identity-customer-data-service/internal/consent/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/client"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
@@ -347,6 +348,7 @@ func UpdateConsentCategory(ctx context.Context, orgID string, category model.Con
 	return tx.Commit()
 }
 
+// DeleteConsentCategory deletes the consent category of the organization.
 func DeleteConsentCategory(ctx context.Context, categoryID string, orgID string) error {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()

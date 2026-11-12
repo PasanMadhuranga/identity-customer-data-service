@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package workers runs the background jobs of CDS: profile unification, schema sync and cookie
+// cleanup.
 package workers
 
 import (
@@ -310,7 +312,7 @@ func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID st
 // MergeMatchedProfiles handles all merge scenarios for two matched profiles.
 // It determines the master/child relationship based on permanent (has userId) vs temporary,
 // and whether the existing profile already has child references.
-
+//
 // It returns the profile that survives as the master. Which of the two inputs that is
 // depends on the merge shape: a permanent profile wins over a temporary one, and two
 // temporary profiles are both demoted under a newly created neutral master. Callers that
@@ -753,6 +755,8 @@ func collectUnificationStrings(value interface{}, path []string, result *[]strin
 	}
 }
 
+// MergeAttributeValue merges an incoming attribute value into the existing one by the merge strategy:
+// overwrite, ignore, or combine. An unknown strategy takes the incoming value.
 func MergeAttributeValue(existing interface{}, incoming interface{}, strategy string, valueType string, multiValued bool) interface{} {
 	switch strings.ToLower(strategy) {
 	case "overwrite":

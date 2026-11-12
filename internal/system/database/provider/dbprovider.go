@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package provider opens and validates the CDS datasource, owns the shared connection pool, and
+// hands out database clients.
 package provider
 
 import (

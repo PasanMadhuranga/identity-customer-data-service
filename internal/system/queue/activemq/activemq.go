@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package activemq provides the queues backed by an ActiveMQ broker over STOMP. It registers itself as
+// the activemq provider of the queue package.
 package activemq
 
 import (
@@ -367,6 +369,7 @@ type ProfileQueue struct {
 	destination string
 }
 
+// NewProfileQueue connects to the broker and returns a ProfileQueue that sends to the destination.
 func NewProfileQueue(addr, username, password, destination string, tlsCfg config.TLSConfig) (*ProfileQueue, error) {
 	mc, err := newManagedConn(addr, username, password, tlsCfg)
 	if err != nil {
@@ -514,6 +517,7 @@ type SchemaSyncQueue struct {
 	destination string
 }
 
+// NewSchemaSyncQueue connects to the broker and returns a SchemaSyncQueue that sends to the destination.
 func NewSchemaSyncQueue(addr, username, password, destination string, tlsCfg config.TLSConfig) (*SchemaSyncQueue, error) {
 	mc, err := newManagedConn(addr, username, password, tlsCfg)
 	if err != nil {

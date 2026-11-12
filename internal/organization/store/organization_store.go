@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package store persists organizations and the state of the organization tree sync.
 package store
 
 import (

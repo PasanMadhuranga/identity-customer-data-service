@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package store persists the admin configuration of an organization as one row per setting.
 package store
 
 import (
@@ -24,7 +25,7 @@ import (
 	"fmt"
 	"strconv"
 
-	model "github.com/wso2/identity-customer-data-service/internal/admin_config/model"
+	"github.com/wso2/identity-customer-data-service/internal/admin_config/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/scripts"
@@ -32,6 +33,8 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
+// GetAdminConfig reads the configuration of the organization. A setting that the organization has not
+// stored takes its default.
 func GetAdminConfig(ctx context.Context, orgID string) (*model.AdminConfig, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()

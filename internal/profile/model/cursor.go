@@ -25,6 +25,7 @@ import (
 	"time"
 )
 
+// EncodeProfileCursor encodes the cursor as an opaque URL-safe string; an empty direction defaults to "next".
 func EncodeProfileCursor(c ProfileCursor) string {
 	dir := strings.TrimSpace(c.Direction)
 	if dir == "" {
@@ -40,6 +41,8 @@ func EncodeProfileCursor(c ProfileCursor) string {
 	return base64.RawURLEncoding.EncodeToString([]byte(raw))
 }
 
+// DecodeProfileCursor parses a cursor made by EncodeProfileCursor. It returns nil and no error for an
+// empty string.
 func DecodeProfileCursor(s string) (*ProfileCursor, error) {
 	if strings.TrimSpace(s) == "" {
 		return nil, nil

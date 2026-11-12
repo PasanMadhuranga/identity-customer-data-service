@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package store persists the registered applications of an organization.
 package store
 
 import (

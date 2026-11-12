@@ -90,6 +90,8 @@ func (a *WSO2ISAdapter) IntrospectToken(ctx context.Context, token, orgHandle,
 	return a.client.IntrospectToken(token, primaryHandle)
 }
 
+// GetPrimaryOrganization returns the primary organization with the handle, with no parent set. A handle
+// the identity server does not know is a not-found client error.
 func (a *WSO2ISAdapter) GetPrimaryOrganization(_ context.Context, primaryHandle string) (Organization, error) {
 	// Only a primary organization answers the self call on its own tenant path. A primary
 	// organization can still have a parent, such as the super organization.
@@ -111,6 +113,8 @@ func (a *WSO2ISAdapter) GetPrimaryOrganization(_ context.Context, primaryHandle 
 	return primary, nil
 }
 
+// ListDescendants returns all organizations below the primary organization. It reads each organization
+// to get its parent, and skips any that no longer exist.
 func (a *WSO2ISAdapter) ListDescendants(_ context.Context, primaryHandle string) ([]Organization, error) {
 	listed, err := a.client.ListDescendantOrganizations(primaryHandle)
 	if err != nil {
@@ -131,6 +135,8 @@ func (a *WSO2ISAdapter) ListDescendants(_ context.Context, primaryHandle string)
 	return result, nil
 }
 
+// GetOrganization returns one organization below the primary organization, or nil when it does not
+// exist.
 func (a *WSO2ISAdapter) GetOrganization(_ context.Context, primaryHandle, orgID string) (*Organization, error) {
 	org, found, err := a.client.GetOrganization(primaryHandle, orgID)
 	if err != nil || !found {

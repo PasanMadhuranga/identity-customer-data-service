@@ -46,6 +46,8 @@ type TestPostgres struct {
 	Database  string
 }
 
+// SetupTestPostgres starts a PostgreSQL container and returns it once it answers a query. The caller
+// terminates the container.
 func SetupTestPostgres(ctx context.Context) (*TestPostgres, error) {
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15-alpine",

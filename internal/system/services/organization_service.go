@@ -33,6 +33,8 @@ type OrganizationService struct {
 	mux           *http.ServeMux
 }
 
+// NewOrganizationService registers the organization routes on mux, sets the sub-organization path resolvers
+// in utils, and returns the service.
 func NewOrganizationService(mux *http.ServeMux) *OrganizationService {
 	s := &OrganizationService{
 		organizations: orgHandler.NewOrganizationHandler(),

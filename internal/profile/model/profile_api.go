@@ -24,6 +24,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/pagination"
 )
 
+// ProfileResponse is the API representation of a single profile.
 type ProfileResponse struct {
 	ProfileID               string                            `json:"profile_id" bson:"profile_id"`
 	UserID                  string                            `json:"user_id,omitempty" bson:"user_id,omitempty"`
@@ -36,6 +37,7 @@ type ProfileResponse struct {
 	MergedFrom              []Reference                       `json:"merged_from,omitempty" bson:"merged_from,omitempty"`
 }
 
+// ProfileListResponse is the API representation of a profile in a list, with a match score for fuzzy searches.
 type ProfileListResponse struct {
 	ProfileID          string                            `json:"profile_id" bson:"profile_id"`
 	UserID             string                            `json:"user_id,omitempty" bson:"user_id,omitempty"`
@@ -48,12 +50,14 @@ type ProfileListResponse struct {
 	ScoreBreakdown     map[string]float64                `json:"score_breakdown,omitempty" bson:"score_breakdown,omitempty"`
 }
 
+// Meta holds a profile's creation and update times and its resource location.
 type Meta struct {
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 	Location  string    `json:"location" bson:"location"`
 }
 
+// ProfileRequest is the request body for creating or updating a profile.
 type ProfileRequest struct {
 	UserID             string                 `json:"user_id" bson:"user_id"`
 	IdentityAttributes map[string]interface{} `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
@@ -61,16 +65,20 @@ type ProfileRequest struct {
 	ApplicationData    map[string]interface{} `json:"application_data"`
 }
 
+// ProfileLinkRequest is the request body for linking a profile to a user.
 type ProfileLinkRequest struct {
 	ProfileID string `json:"profile_id" bson:"profile_id"`
 	UserID    string `json:"user_id" bson:"user_id"`
 }
 
+// ProfileLinkResponse is the response body for a profile link request.
 type ProfileLinkResponse struct {
 	ProfileID string `json:"profile_id" bson:"profile_id"`
 	UserID    string `json:"user_id" bson:"user_id"`
 }
 
+// ProfileSync is a user event, such as a user add, update, delete, login or logout, sent by the identity
+// server to keep profiles in sync.
 type ProfileSync struct {
 	UserID        string                 `json:"userId" bson:"userId"`
 	ProfileCookie string                 `json:"profileCookie,omitempty" bson:"profileCookie,omitempty"`
@@ -80,6 +88,7 @@ type ProfileSync struct {
 	OrgHandle     string                 `json:"orgHandle,omitempty" bson:"orgHandle,omitempty"`
 }
 
+// ProfileListAPIResponse is the paginated response body for listing profiles.
 type ProfileListAPIResponse struct {
 	Pagination pagination.Pagination `json:"pagination"`
 	Items      []ProfileListResponse `json:"profiles"`

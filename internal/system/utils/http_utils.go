@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package utils holds helpers shared across CDS: HTTP and tenant path handling, error
+// responses, panic recovery, and the CDS home directory.
 package utils
 
 import (
@@ -82,6 +84,8 @@ func IsValidOrgHandle(orgHandle string) bool {
 	return orgHandlePattern.MatchString(orgHandle) && orgHandle != "." && orgHandle != ".."
 }
 
+// ExtractOrgHandleFromPath returns the tenant that MountTenantDispatcher put in the request context,
+// or carbon.super when it is empty. It panics when the context holds no tenant.
 func ExtractOrgHandleFromPath(r *http.Request) string {
 	tenant := r.Context().Value(constants.TenantContextKey).(string)
 	if tenant == "" {
@@ -101,6 +105,7 @@ func ExtractPrimaryOrgHandle(r *http.Request) string {
 	return ExtractOrgHandleFromPath(r)
 }
 
+// StripTenantPrefix returns the path after the /t/{tenant} prefix, or "/" when nothing follows it.
 func StripTenantPrefix(path string) string {
 	parts := strings.SplitN(path, "/", 4)
 	if len(parts) < 4 {
@@ -109,6 +114,7 @@ func StripTenantPrefix(path string) string {
 	return "/" + parts[3]
 }
 
+// WriteErrorResponse writes the error message as JSON with the status of the client error.
 func WriteErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.StatusCode)
@@ -116,6 +122,7 @@ func WriteErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
 	_ = json.NewEncoder(w).Encode(err.ErrorMessage)
 }
 
+// WriteBadRequestErrorResponse writes a 400 response with a fixed message. The error is not used.
 func WriteBadRequestErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)

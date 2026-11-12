@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the consent category endpoints.
 package handler
 
 import (
@@ -30,8 +31,10 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
+// ConsentCategoryHandler handles the consent category endpoints.
 type ConsentCategoryHandler struct{}
 
+// NewConsentCategoryHandler returns a new ConsentCategoryHandler instance.
 func NewConsentCategoryHandler() *ConsentCategoryHandler {
 	return &ConsentCategoryHandler{}
 }

@@ -27,11 +27,14 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
+// ProfileSchemaService registers the profile schema endpoints.
 type ProfileSchemaService struct {
 	handler *handler.ProfileSchemaHandler
 	mux     *http.ServeMux
 }
 
+// NewProfileSchemaService registers the profile schema routes on mux and returns the service. The sharing
+// policy routes are registered only when organization management is enabled.
 func NewProfileSchemaService(mux *http.ServeMux) *ProfileSchemaService {
 	s := &ProfileSchemaService{
 		handler: handler.NewProfileSchemaHandler(),

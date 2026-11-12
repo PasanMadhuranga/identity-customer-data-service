@@ -20,6 +20,7 @@ package errors
 
 const errorPrefix = "CDS-"
 
+// The error messages of CDS. Server errors use 15xxx codes and client errors use the 1xxxx ranges below.
 var (
 
 	// Server (15xxx) sub-grouping

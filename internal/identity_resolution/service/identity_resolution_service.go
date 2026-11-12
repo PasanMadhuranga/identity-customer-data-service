@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package service implements the identity resolution review task operations: listing pending tasks and
+// resolving them by merging or rejecting the pair.
 package service
 
 import (
@@ -36,6 +38,7 @@ import (
 	urService "github.com/wso2/identity-customer-data-service/internal/unification_rules/service"
 )
 
+// IdentityResolutionServiceInterface lists and resolves identity resolution review tasks.
 type IdentityResolutionServiceInterface interface {
 	GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) (*model.ReviewTaskListResponse, error)
 
@@ -46,12 +49,15 @@ type IdentityResolutionServiceInterface interface {
 		resolvedBy string, notes string) error
 }
 
+// IdentityResolutionService implements IdentityResolutionServiceInterface.
 type IdentityResolutionService struct{}
 
+// GetIdentityResolutionService returns a new IdentityResolutionService.
 func GetIdentityResolutionService() IdentityResolutionServiceInterface {
 	return &IdentityResolutionService{}
 }
 
+// GetPendingReviewTasks returns a page of the organization's pending review tasks with their total count.
 func (s *IdentityResolutionService) GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) (*model.ReviewTaskListResponse, error) {
 	tasks, totalCount, err := irStore.GetPendingReviewTasks(ctx, orgID, pageSize)
 	if err != nil {
@@ -67,6 +73,8 @@ func (s *IdentityResolutionService) GetPendingReviewTasks(ctx context.Context, o
 	}, nil
 }
 
+// GetPendingReviewTasksByProfile returns a page of the pending review tasks raised for the profile, with the
+// total count of pending tasks that involve it.
 func (s *IdentityResolutionService) GetPendingReviewTasksByProfile(ctx context.Context, orgID string, profileID string, pageSize int) (*model.ReviewTaskListResponse, error) {
 	tasks, totalCount, err := irStore.GetPendingReviewTasksByProfile(ctx, orgID, profileID, pageSize)
 	if err != nil {

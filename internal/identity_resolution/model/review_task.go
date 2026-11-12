@@ -20,6 +20,7 @@ package model
 
 import "github.com/wso2/identity-customer-data-service/internal/system/pagination"
 
+// ReviewTask is a candidate pair of profiles held for an administrator to merge or reject.
 type ReviewTask struct {
 	ID                 string `json:"id"`
 	OrgID              string `json:"-"` // For the owner check only
@@ -39,6 +40,7 @@ type ReviewTask struct {
 	Notes       string            `json:"notes,omitempty"`
 }
 
+// ReviewTaskListResponse is a page of review tasks.
 type ReviewTaskListResponse struct {
 	Pagination pagination.Pagination `json:"pagination"`
 	Tasks      []ReviewTask          `json:"tasks"`

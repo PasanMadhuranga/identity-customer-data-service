@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package provider supplies the application service.
 package provider
 
 import (

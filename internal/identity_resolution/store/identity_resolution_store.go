@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package store persists identity resolution data: the blocking key index used to find candidate profiles,
+// merge review tasks, and rejected profile pairs.
 package store
 
 import (
@@ -112,6 +114,8 @@ func scanProfileData(row map[string]interface{}) (model.ProfileData, error) {
 	return pd, nil
 }
 
+// InsertReviewTask stores a pending review task. If the reverse pair already has a pending task, that task is
+// flipped to this direction and updated with the new score and explanation instead.
 func InsertReviewTask(ctx context.Context, orgID string, task model.ReviewTask) error {
 	logger := log.GetLogger()
 
@@ -228,6 +232,7 @@ func CancelRelatedReviewTasks(ctx context.Context, excludeTaskID, IncomingProfil
 	return affectedIncomingIDs, nil
 }
 
+// GetReviewTaskByID returns the review task with the given ID, or nil without an error when there is none.
 func GetReviewTaskByID(ctx context.Context, taskID string) (*model.ReviewTask, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
@@ -257,6 +262,8 @@ func GetReviewTaskByID(ctx context.Context, taskID string) (*model.ReviewTask, e
 	return &task, nil
 }
 
+// GetPendingReviewTasks returns up to pageSize of the organization's pending review tasks, newest first, and
+// the total number of pending tasks.
 func GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) ([]model.ReviewTask, int, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
@@ -308,6 +315,8 @@ func GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) ([]m
 	return tasks, totalCount, nil
 }
 
+// GetPendingReviewTasksByProfile returns up to pageSize pending review tasks whose incoming profile is
+// profileID, highest match score first, and the total number of pending tasks that involve the profile.
 func GetPendingReviewTasksByProfile(ctx context.Context, orgID, profileID string, pageSize int) ([]model.ReviewTask, int, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
@@ -359,6 +368,8 @@ func GetPendingReviewTasksByProfile(ctx context.Context, orgID, profileID string
 	return tasks, totalCount, nil
 }
 
+// UpdateReviewTaskStatus sets a review task's status, records who resolved it with their notes, and stamps
+// the resolution time.
 func UpdateReviewTaskStatus(ctx context.Context, taskID string, status string, resolvedBy string, notes string) error {
 	logger := log.GetLogger()
 
@@ -559,7 +570,6 @@ func DeleteRejectionPairsForProfile(ctx context.Context, orgID, profileID string
 	return nil
 }
 
-// GetRejectedProfileIDs returns the set of profile IDs that have been rejected against the given profileID.
 // GetRejectionsForProfile returns every rejection involving the profile, keyed by the
 // profile on the other side of the pair, with the evidence each decision was made against.
 func GetRejectionsForProfile(ctx context.Context, orgID, profileID string) (map[string]model.Rejection, error) {

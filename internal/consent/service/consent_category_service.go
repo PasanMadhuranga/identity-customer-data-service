@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package service manages the consent categories of an organization.
 package service
 
 import (
@@ -26,7 +27,7 @@ import (
 
 	"github.com/google/uuid"
 
-	model "github.com/wso2/identity-customer-data-service/internal/consent/model"
+	"github.com/wso2/identity-customer-data-service/internal/consent/model"
 	"github.com/wso2/identity-customer-data-service/internal/consent/store"
 	"github.com/wso2/identity-customer-data-service/internal/organization/suborg"
 	schemaService "github.com/wso2/identity-customer-data-service/internal/profile_schema/service"

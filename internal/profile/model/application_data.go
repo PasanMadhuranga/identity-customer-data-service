@@ -26,6 +26,7 @@ type ApplicationData struct {
 	AppSpecificData map[string]interface{} `json:"app_specific_data,omitempty" bson:"app_specific_data,omitempty"`
 }
 
+// MarshalJSON writes the application-specific data as top-level fields next to application_id.
 func (a ApplicationData) MarshalJSON() ([]byte, error) {
 	base := map[string]interface{}{
 		"application_id": a.AppID,

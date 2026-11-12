@@ -1,3 +1,4 @@
+// Package store persists customer profiles, their application data, consents, cookies and references.
 package store
 
 import (
@@ -182,6 +183,7 @@ func InsertProfile(ctx context.Context, orgID string, profile model.Profile) err
 	return nil
 }
 
+// InsertApplicationData stores each application's data for the profile, merging it into any existing data.
 func InsertApplicationData(ctx context.Context, profileID string, apps []model.ApplicationData) error {
 	for _, app := range apps {
 		// Construct the update map
@@ -341,6 +343,7 @@ func GetProfileConsents(ctx context.Context, profileID, orgID string) ([]model.C
 	return profileConsents, nil
 }
 
+// FetchApplicationData returns the data of every application stored for the profile.
 func FetchApplicationData(ctx context.Context, profileID string) ([]model.ApplicationData, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
@@ -399,6 +402,7 @@ func FetchApplicationData(ctx context.Context, profileID string) ([]model.Applic
 	return apps, nil
 }
 
+// FetchApplicationDataWithAppID returns the profile's data for one application.
 func FetchApplicationDataWithAppID(ctx context.Context, profileID string, appID string) (model.ApplicationData, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
@@ -645,6 +649,7 @@ func GetAllProfiles(ctx context.Context,
 	return profiles, hasMore, nil
 }
 
+// FetchApplicationDataBatch returns the application data of several profiles in one query, keyed by profile ID.
 func FetchApplicationDataBatch(ctx context.Context, profileIDs []string) (map[string][]model.ApplicationData, error) {
 	result := make(map[string][]model.ApplicationData)
 	if len(profileIDs) == 0 {
@@ -747,10 +752,10 @@ func DeleteProfile(ctx context.Context, profileID string) error {
 	}
 
 	// Step 2: Delete child relationships where this is a parent (optional safety, ON DELETE CASCADE already exists)
-	//:todo: Need to decide if its needed
-	//_, err = dbClient.ExecuteQueryContext(ctx,
+	// :todo: Need to decide if its needed
+	// _, err = dbClient.ExecuteQueryContext(ctx,
 	//	`DELETE FROM profiles WHERE reference_profile_id = $1`, profileId)
-	//if err != nil {
+	// if err != nil {
 	//	errorMsg := fmt.Sprintf("failed to delete child profile links for profile: %s", profileId)
 	//	logger.Debug(errorMsg, log.Error(err))
 	//	serverError := errors2.NewServerError(errors2.ErrorMessage{
@@ -759,7 +764,7 @@ func DeleteProfile(ctx context.Context, profileID string) error {
 	//		Description: errorMsg,
 	//	}, err)
 	//	return serverError
-	//}
+	// }
 
 	// Step 3: Delete the profile itself
 	result, err := dbClient.ExecuteQueryContext(ctx, scripts.DeleteProfile, profileID)
@@ -787,6 +792,8 @@ func DeleteProfile(ctx context.Context, profileID string) error {
 	return nil
 }
 
+// UpsertAppDatum merges the updates into the profile's data for one application and saves it. List values
+// are appended without duplicates and scalar values are overwritten.
 func UpsertAppDatum(ctx context.Context, profileID string, appID string, updates map[string]interface{}) error {
 	// Fetch existing application_data for the given app
 	appData, err := FetchApplicationDataWithAppID(ctx, profileID, appID)
@@ -1636,6 +1643,8 @@ func UpdateProfileReferences(ctx context.Context, parentProfile model.Profile, c
 	return tx.Commit()
 }
 
+// FetchReferencedProfiles returns the profiles that point at the given reference profile, with the reason
+// for each link.
 func FetchReferencedProfiles(ctx context.Context, referenceProfileID string) ([]model.Reference, error) {
 	logger := log.GetLogger()
 	logger.Info(fmt.Sprintf("Fetching referenced profiles for profile: %s", referenceProfileID))
@@ -1808,6 +1817,8 @@ func toInt(val interface{}) (int, bool) {
 	return 0, false
 }
 
+// GetProfileWithUserID returns the organization's profile for the user, with its application data, or nil
+// if there is none.
 func GetProfileWithUserID(ctx context.Context, userID, orgID string) (*model.Profile, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 

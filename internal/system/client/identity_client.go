@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package client calls the identity server APIs that CDS depends on: tokens, claims and
+// organizations.
 package client
 
 import (
@@ -67,6 +69,7 @@ func (e *tokenEndpointStatusError) Error() string {
 	return fmt.Sprintf("token endpoint non-200: %d", e.StatusCode)
 }
 
+// IdentityClient calls the identity server APIs. NewIdentityClient builds one from the configuration.
 type IdentityClient struct {
 	BaseURL    string
 	HTTPClient *http.Client
@@ -611,6 +614,9 @@ func (c *IdentityClient) introspect(introspectionEndpoint, clientID, clientSecre
 	return result, nil
 }
 
+// GetProfileSchema builds the identity attributes of an org's profile schema from the SCIM dialects
+// of the identity server. A dialect whose claims cannot be fetched is skipped, and a parent attribute
+// that only appears through its sub-attributes is added as a complex attribute.
 func (c *IdentityClient) GetProfileSchema(orgHandle string) ([]model.ProfileSchemaAttribute, error) {
 
 	logger := log.GetLogger()
@@ -704,6 +710,7 @@ func (c *IdentityClient) GetProfileSchema(orgHandle string) ([]model.ProfileSche
 	return result, nil
 }
 
+// GetAllDialects returns every claim dialect of an org.
 func (c *IdentityClient) GetAllDialects(orgHandle string) ([]map[string]interface{}, error) {
 	endpoint, err := orgEndpoint(c.BaseURL, orgHandle, c.orgAPIPathPrefix(orgHandle)+"/api/server/v1/claim-dialects")
 	if err != nil {
@@ -751,6 +758,7 @@ func (c *IdentityClient) GetAllDialects(orgHandle string) ([]map[string]interfac
 	return dialects, err
 }
 
+// GetClaimsByDialect returns the claims of one claim dialect of an org.
 func (c *IdentityClient) GetClaimsByDialect(dialectID, orgId string) ([]map[string]interface{}, error) {
 	endpoint, err := orgEndpoint(c.BaseURL, orgId,
 		c.orgAPIPathPrefix(orgId)+"/api/server/v1/claim-dialects/"+url.PathEscape(dialectID)+"/claims")
@@ -798,6 +806,7 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgId string) ([]map[stri
 	return claims, err
 }
 
+// GetLocalClaimsMap returns the local claims of an org, keyed by claim URI.
 func (c *IdentityClient) GetLocalClaimsMap(orgId string) (map[string]map[string]interface{}, error) {
 
 	endpoint, err := orgEndpoint(c.BaseURL, orgId, c.orgAPIPathPrefix(orgId)+"/api/server/v1/claim-dialects/local/claims")
@@ -868,6 +877,9 @@ func extractClaimKeyFromLocalURI(localURI string) string {
 	return parts[len(parts)-1]
 }
 
+// ConvertSCIMClaimWithLocal builds a schema attribute from a SCIM claim and the local claim it maps
+// to. When the claim is a sub-attribute, it also returns the sub-attribute and the name of its parent;
+// otherwise those are nil and empty.
 func ConvertSCIMClaimWithLocal(
 	scim map[string]interface{},
 	local map[string]interface{},

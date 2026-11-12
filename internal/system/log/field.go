@@ -39,6 +39,7 @@ func Any(key string, value interface{}) Field {
 	return Field{Key: key, Value: value}
 }
 
+// Error creates a Field with an error value under the key "error".
 func Error(value error) Field {
 	return Field{Key: "error", Value: value}
 }

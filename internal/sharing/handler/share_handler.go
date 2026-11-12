@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler holds the request helpers shared by the endpoints that manage sharing policies.
 package handler
 
 import (

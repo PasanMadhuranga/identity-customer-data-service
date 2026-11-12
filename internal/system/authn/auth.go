@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package authn validates the bearer tokens of incoming requests against the identity server.
 package authn
 
 import (

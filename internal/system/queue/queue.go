@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package queue defines the queues that carry profile unification and schema sync jobs, and selects
+// the configured provider.
 package queue
 
 import (

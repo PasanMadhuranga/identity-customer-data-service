@@ -28,11 +28,14 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
+// UnificationRulesService registers the unification rule endpoints.
 type UnificationRulesService struct {
 	unificationRulesHandler *handler.UnificationRulesHandler
 	mux                     *http.ServeMux
 }
 
+// NewUnificationRulesService registers the unification rule routes on mux and returns the service. The
+// sharing policy routes are registered only when organization management is enabled.
 func NewUnificationRulesService(mux *http.ServeMux) *UnificationRulesService {
 	s := &UnificationRulesService{
 		unificationRulesHandler: handler.NewUnificationRulesHandler(),

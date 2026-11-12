@@ -18,11 +18,15 @@
 
 package service
 
+// ApplicationDataFilterParams controls which application data is returned with a profile.
 type ApplicationDataFilterParams struct {
 	IncludeAppData  bool     // Whether to include application data
 	RequestedAppIDs []string // Specific app IDs to include, or "*" for all
 }
 
+// FilterApplicationData returns the application data the caller may see. It returns nothing unless
+// IncludeAppData is set. A privileged caller gets the requested app IDs, or all data when none or "*"
+// is requested; any other caller gets only its own application's data.
 func FilterApplicationData(
 	appData map[string]map[string]interface{},
 	callerAppID string,

@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package worker runs identity resolution in the background: it indexes profiles, scores their candidates,
+// and merges each pair or raises a review task for it.
 package worker
 
 import (
@@ -405,6 +407,9 @@ func (sc scoredCandidate) withReason(code string) scoredCandidate {
 	return sc
 }
 
+// ReindexAfterMerge moves the index from a merged-away profile to the master: it deletes the merged-away
+// profile's blocking keys, repoints its rejections to the master, and re-indexes the master from the merged
+// profile. Failures are logged, not returned.
 func ReindexAfterMerge(ctx context.Context, masterProfileID string, triggerProfileID string, orgID string,
 	mergedProfile profileModel.Profile) {
 	logger := log.GetLogger()

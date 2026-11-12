@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package handler serves the organization endpoints: lifecycle events, the organization tree sync and
+// the organization access policies.
 package handler
 
 import (
@@ -41,6 +43,7 @@ const (
 // OrganizationHandler handles the organization endpoints.
 type OrganizationHandler struct{}
 
+// NewOrganizationHandler returns a new OrganizationHandler instance.
 func NewOrganizationHandler() *OrganizationHandler {
 	return &OrganizationHandler{}
 }
@@ -100,6 +103,7 @@ func (h *OrganizationHandler) GetTreeSync(w http.ResponseWriter, r *http.Request
 
 // Organization access endpoints.
 
+// CreateOrgAccess creates the organization access policy of the primary organization.
 func (h *OrganizationHandler) CreateOrgAccess(w http.ResponseWriter, r *http.Request) {
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {
@@ -117,6 +121,7 @@ func (h *OrganizationHandler) CreateOrgAccess(w http.ResponseWriter, r *http.Req
 	utils.RespondJSON(w, http.StatusCreated, resp, orgAccessResource)
 }
 
+// ListOrgAccess returns the organization access policies of the primary organization.
 func (h *OrganizationHandler) ListOrgAccess(w http.ResponseWriter, r *http.Request) {
 	primary, ok := primaryOf(w, r, "organization:view")
 	if !ok {
@@ -130,6 +135,7 @@ func (h *OrganizationHandler) ListOrgAccess(w http.ResponseWriter, r *http.Reque
 	utils.RespondJSON(w, http.StatusOK, resp, orgAccessResource)
 }
 
+// GetOrgAccess returns the organization access policy that the orgPolicyId path value names.
 func (h *OrganizationHandler) GetOrgAccess(w http.ResponseWriter, r *http.Request) {
 	primary, ok := primaryOf(w, r, "organization:view")
 	if !ok {
@@ -143,6 +149,8 @@ func (h *OrganizationHandler) GetOrgAccess(w http.ResponseWriter, r *http.Reques
 	utils.RespondJSON(w, http.StatusOK, resp, orgAccessResource)
 }
 
+// UpdateOrgAccess replaces the selected organizations of the organization access policy that the
+// orgPolicyId path value names.
 func (h *OrganizationHandler) UpdateOrgAccess(w http.ResponseWriter, r *http.Request) {
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {
@@ -160,6 +168,7 @@ func (h *OrganizationHandler) UpdateOrgAccess(w http.ResponseWriter, r *http.Req
 	utils.RespondJSON(w, http.StatusOK, resp, orgAccessResource)
 }
 
+// DeleteOrgAccess deletes the organization access policy that the orgPolicyId path value names.
 func (h *OrganizationHandler) DeleteOrgAccess(w http.ResponseWriter, r *http.Request) {
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {

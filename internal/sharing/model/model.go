@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package model defines sharing policies, which share a resource of an organization with the
+// organizations below it, and their API requests and responses.
 package model
 
 // The organization access policy selects the sub organizations that can use CDS. Each shareable

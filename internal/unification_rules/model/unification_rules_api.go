@@ -18,6 +18,7 @@
 
 package model
 
+// UnificationRuleAPIRequest is the request body for creating a unification rule.
 type UnificationRuleAPIRequest struct {
 	RuleName          string `json:"rule_name" bson:"rule_name" binding:"required"`
 	PropertyName      string `json:"property_name" bson:"property_name" binding:"required"`
@@ -70,6 +71,8 @@ func ToAPIResponse(rule UnificationRule) UnificationRuleAPIResponse {
 	}
 }
 
+// UnificationRuleUpdateRequest is the request body for updating a unification rule. Only the fields that are
+// set are changed.
 type UnificationRuleUpdateRequest struct {
 	RuleName          *string `json:"rule_name" bson:"rule_name"`
 	Priority          *int    `json:"priority" bson:"priority"`

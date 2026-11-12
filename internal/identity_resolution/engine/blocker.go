@@ -30,8 +30,12 @@ import (
 	urModel "github.com/wso2/identity-customer-data-service/internal/unification_rules/model"
 )
 
+// CandidateLookupFunc returns up to maxResults IDs of the profiles in the organization that are indexed under
+// any of keyValues for attributeName, leaving out excludeProfileID.
 type CandidateLookupFunc func(orgHandle, attributeName string, keyValues []string, excludeProfileID string, maxResults int) ([]string, error)
 
+// FindCandidatesByIndex returns the deduplicated IDs of the profiles that share a blocking key with keys,
+// narrowest key kind first. A lookup that fails is logged and skipped, so the result may be partial.
 func FindCandidatesByIndex(
 	keys []model.BlockingKey,
 	orgHandle string,

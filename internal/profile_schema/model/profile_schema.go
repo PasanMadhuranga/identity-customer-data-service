@@ -16,10 +16,13 @@
  * under the License.
  */
 
+// Package model defines the profile schema types.
 package model
 
 import "github.com/wso2/identity-customer-data-service/internal/system/constants"
 
+// ProfileSchemaAttribute defines an attribute of the profile schema: its scope, value type, merge strategy
+// and mutability.
 type ProfileSchemaAttribute struct {
 	OrgID                 string           `json:"org_id,omitempty" bson:"org_id,omitempty"`
 	AttributeID           string           `json:"attribute_id" bson:"attribute_id"`
@@ -39,22 +42,26 @@ type ProfileSchemaAttribute struct {
 	OwnerOrgID string `json:"-" bson:"-"`                // The owner org of a shared attribute, for the owner check
 }
 
+// SubAttribute is a reference to an attribute nested in an object-type attribute.
 type SubAttribute struct {
 	AttributeID   string `json:"attribute_id" bson:"attribute_id" binding:"required"`
 	AttributeName string `json:"attribute_name" bson:"attribute_name" binding:"required"`
 }
 
+// CanonicalValue is one allowed value of an attribute, with its display label.
 type CanonicalValue struct {
 	Value string `json:"value" bson:"value"`
 	Label string `json:"label" bson:"label"`
 }
 
+// Meta holds creation and update times and the resource location.
 type Meta struct {
 	CreatedAt int    `json:"created_at" bson:"created_at"`
 	UpdatedAt int    `json:"updated_at" bson:"updated_at"`
 	Location  string `json:"location" bson:"location"`
 }
 
+// ProfileSchema is an organization's full profile schema: the core fields and the attributes of each scope.
 type ProfileSchema struct {
 	ProfileID          map[string]string                   `json:"profile_id" bson:"profile_id"`
 	UserID             map[string]string                   `json:"user_id" bson:"user_id"`
@@ -64,6 +71,7 @@ type ProfileSchema struct {
 	ApplicationData    map[string][]ProfileSchemaAttribute `json:"application_data" bson:"application_data"`
 }
 
+// CoreSchema gives the value type and mutability of the built-in profile fields.
 var CoreSchema = map[string]map[string]string{
 	"profile_id": {
 		"value_type": constants.StringDataType,

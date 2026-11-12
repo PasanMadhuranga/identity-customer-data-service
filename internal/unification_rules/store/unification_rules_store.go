@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package store persists unification rules.
 package store
 
 import (
@@ -90,6 +91,7 @@ func invalidateRulesCache() {
 	rulesCache.Clear()
 }
 
+// GetUnificationRules returns the organization's unification rules and caches them per organization.
 func GetUnificationRules(ctx context.Context, orgID string) ([]model.UnificationRule, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 

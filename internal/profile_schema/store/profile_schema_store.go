@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package store persists the profile schema attributes.
 package store
 
 import (
@@ -500,6 +501,8 @@ func DeleteProfileSchemaAttributes(ctx context.Context, orgID, scope string) err
 	return nil
 }
 
+// PatchProfileSchemaAttributesForScope updates the given attributes of the scope, matched by ID, in one
+// transaction.
 func PatchProfileSchemaAttributesForScope(ctx context.Context,
 	orgID string, scope string, updates []model.ProfileSchemaAttribute) error {
 	// An organization that CDS does not know gets an empty key, which matches no row.
@@ -672,6 +675,9 @@ func mapRowToProfileAttribute(row map[string]interface{}) model.ProfileSchemaAtt
 	}
 }
 
+// UpsertIdentityAttributes replaces the organization's identity attributes with the given ones in one
+// transaction: it updates existing rows in place, so their IDs and dependent rows stay, inserts new ones and
+// deletes the attributes that are no longer present.
 func UpsertIdentityAttributes(ctx context.Context, orgID string, attrs []model.ProfileSchemaAttribute) error {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
@@ -794,6 +800,9 @@ func extractClaimKeyFromURI(uri string) string {
 	return parts[len(parts)-1]
 }
 
+// GetProfileSchemaAttributesByScopeAndFilter returns the organization's schema attributes that match all
+// filters. Filters in the form "field op value" with op eq, co or sw are applied and others are skipped. The
+// field is put into the SQL as is, so callers must validate it. The scope is used only in error messages.
 func GetProfileSchemaAttributesByScopeAndFilter(ctx context.Context,
 	orgID, scope string, filters []string) ([]model.ProfileSchemaAttribute, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.

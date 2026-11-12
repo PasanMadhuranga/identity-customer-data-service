@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the profile REST API endpoints.
 package handler
 
 import (
@@ -45,11 +46,13 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
+// ProfileHandler handles HTTP requests for customer profiles.
 type ProfileHandler struct {
 	store map[string]model.Profile
 	mu    *sync.RWMutex
 }
 
+// NewProfileHandler creates a ProfileHandler.
 func NewProfileHandler() *ProfileHandler {
 	return &ProfileHandler{
 		store: make(map[string]model.Profile),
@@ -288,6 +291,8 @@ func (ph *ProfileHandler) DeleteProfile(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetAllProfiles lists the organization's profiles with cursor pagination, applying the filter and
+// fuzzyFilter query parameters when present.
 func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -721,6 +726,7 @@ func resolveDomain() string {
 	return authServerConfig.CookieDomain
 }
 
+// UpdateProfile updates a profile from the request body and responds with the updated profile.
 func (ph *ProfileHandler) UpdateProfile(writer http.ResponseWriter, request *http.Request) {
 	ctx := request.Context()
 
@@ -1105,8 +1111,8 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 	orgHandle := profileSync.OrgHandle
 
 	if orgHandle == "" {
-		//orgHandle = utils.ExtractOrgHandleFromPath(request)
-		//todo: should we expect orgHandle in the path or as body param
+		// orgHandle = utils.ExtractOrgHandleFromPath(request)
+		// todo: should we expect orgHandle in the path or as body param
 		errMsg := fmt.Sprintf("Organization handle cannot be empty in profile sync event: %s", profileSync.Event)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.UpdateProfile.Code,

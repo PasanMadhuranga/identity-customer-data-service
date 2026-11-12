@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package client runs statements against the CDS datasource, PostgreSQL or the inbuilt SQLite
+// database, and returns the rows in the same Go types for both.
 package client
 
 import (

@@ -16,10 +16,13 @@
  * under the License.
  */
 
+// Package model defines the customer profile types and the profile API request and response types.
 package model
 
 import "time"
 
+// ProfileStatus holds a profile's unification state: whether it is a reference profile, which profile it
+// is merged into, and the profiles merged into it.
 type ProfileStatus struct {
 	ReferenceProfileID string `json:"reference_profile_id,omitempty" bson:"reference_profile_id,omitempty"`
 	IsReferenceProfile bool   `json:"is_reference_profile,omitempty" bson:"is_reference_profile,omitempty"`
@@ -33,11 +36,13 @@ type ProfileStatus struct {
 	References      []Reference `json:"references,omitempty" bson:"references,omitempty"`
 }
 
+// Reference points to another profile and the reason the two are linked.
 type Reference struct {
 	ProfileID string `json:"profile_id,omitempty" bson:"profile_id,omitempty"`
 	Reason    string `json:"reason,omitempty" bson:"rule_name,omitempty"`
 }
 
+// Profile is a stored customer profile of an organization.
 type Profile struct {
 	ProfileID          string                 `json:"profile_id" bson:"profile_id"`
 	UserID             string                 `json:"user_id" bson:"user_id"`
@@ -50,6 +55,7 @@ type Profile struct {
 	ProfileStatus      *ProfileStatus         `json:"profile_status,omitempty" bson:"profile_status,omitempty"`
 }
 
+// ProfileCookie maps a profile cookie ID to the profile it identifies.
 type ProfileCookie struct {
 	ProfileID string `json:"profile_id" bson:"profile_id"`
 	CookieID  string `json:"cookie_id" bson:"cookie_id"`
@@ -73,6 +79,7 @@ type ProfileConsentResponse struct {
 	Consents []ConsentRecord `json:"consents"`
 }
 
+// ProfileCursor marks the position and direction of a page in a cursor-paginated profile listing.
 type ProfileCursor struct {
 	CreatedAt time.Time `json:"created_at"`
 	ProfileID string    `json:"profile_id"`

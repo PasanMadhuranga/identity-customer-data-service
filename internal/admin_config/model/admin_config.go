@@ -16,8 +16,10 @@
  * under the License.
  */
 
+// Package model defines the admin configuration of an organization, as stored and in the API.
 package model
 
+// AdminConfig is the configuration of an organization as stored.
 type AdminConfig struct {
 	OrgID                 string   `json:"org_id" bson:"org_id"`
 	CDSEnabled            bool     `json:"cds_enabled" bson:"cds_enabled"`
@@ -34,6 +36,7 @@ type AdminConfig struct {
 	CORSAllowedOrigins []string `json:"cors_allowed_origins" bson:"cors_allowed_origins"`
 }
 
+// AdminConfigAPI is the configuration of an organization in the API responses.
 type AdminConfigAPI struct {
 	CDSEnabled                 bool     `json:"cds_enabled" bson:"cds_enabled"`
 	SystemApplications         []string `json:"system_applications,omitempty" bson:"system_applications,omitempty"`
@@ -44,6 +47,7 @@ type AdminConfigAPI struct {
 	CORSAllowedOrigins         []string `json:"cors_allowed_origins,omitempty" bson:"cors_allowed_origins,omitempty"`
 }
 
+// AdminConfigUpdateAPI is the body of a configuration update. A nil field leaves the setting unchanged.
 type AdminConfigUpdateAPI struct {
 	CDSEnabled                 *bool    `json:"cds_enabled" bson:"cds_enabled"`
 	SystemApplications         []string `json:"system_applications,omitempty"`

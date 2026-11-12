@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the profile schema REST API endpoints.
 package handler
 
 import (
@@ -43,11 +44,13 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
+// ProfileSchemaHandler handles HTTP requests for the profile schema.
 type ProfileSchemaHandler struct {
 	store map[string]model.ProfileSchemaAttribute
 	mu    *sync.RWMutex
 }
 
+// NewProfileSchemaHandler creates a ProfileSchemaHandler.
 func NewProfileSchemaHandler() *ProfileSchemaHandler {
 	return &ProfileSchemaHandler{
 		store: make(map[string]model.ProfileSchemaAttribute),
@@ -457,6 +460,8 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeByID(w http.Respons
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// DeleteProfileSchemaAttributeForScope deletes all schema attributes in the scope given in the path. Identity
+// attributes cannot be deleted through it.
 func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -512,6 +517,8 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.Res
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// SyncProfileSchema accepts an attribute change event from the identity server, authenticated with admin
+// credentials, and queues a sync of the organization's identity attributes.
 func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

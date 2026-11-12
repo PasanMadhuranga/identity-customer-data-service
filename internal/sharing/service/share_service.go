@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package service manages sharing policies and the organization access policy, and resolves the
+// resources that an organization receives from its ancestors.
 package service
 
 import (

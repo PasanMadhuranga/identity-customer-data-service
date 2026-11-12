@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package service resolves organizations by handle or ID and keeps the stored organization tree in
+// sync with the identity provider.
 package service
 
 import (

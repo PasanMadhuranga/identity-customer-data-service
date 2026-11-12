@@ -51,7 +51,6 @@ type ProfileHandler struct {
 }
 
 func NewProfileHandler() *ProfileHandler {
-
 	return &ProfileHandler{
 		store: make(map[string]model.Profile),
 		mu:    &sync.RWMutex{},
@@ -60,7 +59,6 @@ func NewProfileHandler() *ProfileHandler {
 
 // GetProfile handles profile retrieval requests
 func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile:view")
@@ -141,7 +139,6 @@ func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 // GetCurrentUserProfile handles retrieval of the current user's profile
 func (ph *ProfileHandler) GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	if err := security.AuthnAndAuthz(r, "profile:view"); err != nil {
@@ -250,7 +247,6 @@ func (ph *ProfileHandler) GetCurrentUserProfile(w http.ResponseWriter, r *http.R
 
 // DeleteProfile handles profile deletion
 func (ph *ProfileHandler) DeleteProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile:delete")
@@ -293,7 +289,6 @@ func (ph *ProfileHandler) DeleteProfile(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	if err := security.AuthnAndAuthz(r, "profile:view"); err != nil {
@@ -489,7 +484,6 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 }
 
 func buildProfileListResponse(profiles []model.ProfileResponse, requestedAttrs map[string][]string) []model.ProfileListResponse {
-
 	result := make([]model.ProfileListResponse, 0, len(profiles))
 
 	for _, profile := range profiles {
@@ -596,7 +590,6 @@ func parseRequestedAttributes(r *http.Request) map[string][]string {
 
 // InitProfile initializes a new profile based on the request body and sets a cookie
 func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile:create")
@@ -685,7 +678,6 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 // Handles existing cookie logic, returns true if response was already written
 func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Request, orgId string,
 	cookieVal string) bool {
-
 	ctx := r.Context()
 
 	profilesProvider := provider.NewProfilesProvider()
@@ -730,7 +722,6 @@ func resolveDomain() string {
 }
 
 func (ph *ProfileHandler) UpdateProfile(writer http.ResponseWriter, request *http.Request) {
-
 	ctx := request.Context()
 
 	err := security.AuthnAndAuthz(request, "profile:update")
@@ -797,7 +788,6 @@ func (ph *ProfileHandler) UpdateProfile(writer http.ResponseWriter, request *htt
 
 // PatchProfile handles partial updates to a profile
 func (ph *ProfileHandler) PatchProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile:update")
@@ -860,7 +850,6 @@ func (ph *ProfileHandler) PatchProfile(w http.ResponseWriter, r *http.Request) {
 
 // LinkProfile links an anonymous profile to a user
 func (ph *ProfileHandler) LinkProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile:link")
@@ -970,7 +959,6 @@ func (ph *ProfileHandler) LinkProfile(w http.ResponseWriter, r *http.Request) {
 
 // PatchCurrentUserProfile handles partial updates to the current user's profile
 func (ph *ProfileHandler) PatchCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	logger := log.GetLogger()
@@ -1088,7 +1076,6 @@ func (ph *ProfileHandler) PatchCurrentUserProfile(w http.ResponseWriter, r *http
 }
 
 func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.Request) {
-
 	ctx := request.Context()
 
 	err := security.AuthnWithAdminCredentials(request)
@@ -1274,7 +1261,6 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 					return
 				}
 				return
-
 			} else {
 				// Update identity attributes based on claim URIs
 				if existingProfile.IdentityAttributes == nil {
@@ -1376,7 +1362,6 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 					logger.Debug("Anonymous and user profile are the same: " +
 						existingUserProfile.ProfileId + ". No action needed.")
 				}
-
 			} else if anonymousProfile != nil && existingUserProfile == nil {
 				// Only anonymous profile exists. Attach userId and make it into a permanent profile.
 				logger.Info("Attaching user id: " + profileSync.UserId +
@@ -1394,7 +1379,6 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 					utils.HandleError(writer, err)
 					return
 				}
-
 			} else {
 				// Cookie was stale or invalid. No anonymous session data to recover.
 				logger.Debug("Cookie was stale or invalid for user id: " + profileSync.UserId +
@@ -1463,7 +1447,6 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 
 // GetProfileConsents handles retrieving consents for a specific profile
 func (ph *ProfileHandler) GetProfileConsents(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	profileId := r.PathValue("profileId")
@@ -1516,7 +1499,6 @@ func (ph *ProfileHandler) GetProfileConsents(w http.ResponseWriter, r *http.Requ
 
 // UpdateProfileConsents handles updating consents for a specific profile
 func (ph *ProfileHandler) UpdateProfileConsents(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	profileId := r.PathValue("profileId")

@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -32,6 +31,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wso2/identity-customer-data-service/test/setup"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,6 @@ import (
 const linkTestScope = "internal_cds_profile_link"
 
 func Test_ProfileLink(t *testing.T) {
-
 	org := setup.TestOrg(t, fmt.Sprintf("carbon.super-link-%d", time.Now().UnixNano()))
 	profileSvc := profileService.GetProfilesService()
 	profileSchemaSvc := schemaService.GetProfileSchemaService()
@@ -224,7 +224,6 @@ func Test_ProfileLink(t *testing.T) {
 // newLinkRouter mounts the profile service behind the tenant dispatcher so tests
 // exercise the registered route and the full /t/{org}/cds/api/v1/... path.
 func newLinkRouter() *http.ServeMux {
-
 	root := http.NewServeMux()
 	profileMux := http.NewServeMux()
 	profileSvc := services.NewProfileService(profileMux)
@@ -233,12 +232,10 @@ func newLinkRouter() *http.ServeMux {
 }
 
 func linkBody(profileId, userId string) string {
-
 	return fmt.Sprintf(`{"profile_id":%q,"user_id":%q}`, profileId, userId)
 }
 
 func doLink(t *testing.T, router *http.ServeMux, org, body string) (int, []byte) {
-
 	t.Helper()
 
 	target := fmt.Sprintf("/t/%s%s/v1/profiles/link", org, constants.ApiBasePath)
@@ -257,7 +254,6 @@ const linkTestToken = "opaque-link-test-token"
 // linkTestToken with the profile:link scope, so AuthnAndAuthz runs unmodified.
 // It returns a function that restores the previous runtime configuration.
 func setUpLinkAuth(t *testing.T) func() {
-
 	t.Helper()
 
 	introspection := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -307,7 +303,6 @@ func setUpLinkAuth(t *testing.T) func() {
 // requiredScopesFromDeploymentConfig reads the shipped deployment configuration so
 // the test fails if profile:link is dropped from it.
 func requiredScopesFromDeploymentConfig(t *testing.T) map[string][]string {
-
 	t.Helper()
 
 	path := filepath.Join(utils.GetTestHome(), "config", "repository", "conf", "deployment.yaml")

@@ -55,7 +55,6 @@ func (failingIdP) IdentityAttributeSourceHandle(orgHandle, _ string) string {
 // An enable after a disable that cannot store the primary organization leaves CDS disabled, so
 // the next enable stores it.
 func TestEnableKeepsCDSDisabledWhenThePrimaryOrganizationIsNotStored(t *testing.T) {
-
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
 	}

@@ -27,7 +27,6 @@ import (
 )
 
 func Test_newQuery(t *testing.T) {
-
 	t.Run("without an override both dialects share the statement", func(t *testing.T) {
 		query := newQuery("CDS-TST-01", `SELECT 1`)
 		if query.ID != "CDS-TST-01" {
@@ -67,7 +66,6 @@ func Test_newQuery(t *testing.T) {
 }
 
 func Test_LikeOperator(t *testing.T) {
-
 	if operator := LikeOperator(database.TypeSQLite); operator != "LIKE" {
 		t.Errorf("expected LIKE for the inbuilt database, got %q", operator)
 	}
@@ -77,7 +75,6 @@ func Test_LikeOperator(t *testing.T) {
 }
 
 func Test_ValidateJSONKey(t *testing.T) {
-
 	valid := []string{"email", "app_specific_data", "ui.mode", "a-b", "A1"}
 	for _, key := range valid {
 		if err := ValidateJSONKey(key); err != nil {
@@ -94,7 +91,6 @@ func Test_ValidateJSONKey(t *testing.T) {
 }
 
 func Test_JSONEqCondition(t *testing.T) {
-
 	t.Run("sqlite extracts the value and binds it directly", func(t *testing.T) {
 		condition, arg, err := JSONEqCondition(database.TypeSQLite, "p.traits", []string{"email"}, "a@b.com", 3)
 		if err != nil {
@@ -159,7 +155,6 @@ func Test_JSONEqCondition(t *testing.T) {
 }
 
 func Test_JSONLikeCondition(t *testing.T) {
-
 	t.Run("sqlite", func(t *testing.T) {
 		condition, err := JSONLikeCondition(database.TypeSQLite, "a.application_data",
 			[]string{"app_specific_data", "email"}, 4)
@@ -192,7 +187,6 @@ func Test_JSONLikeCondition(t *testing.T) {
 }
 
 func Test_KeysetCondition(t *testing.T) {
-
 	if actual := KeysetCondition(database.TypeSQLite, "<", 2, 3); actual !=
 		`(p.created_at, p.profile_id) < ($2, $3)` {
 		t.Errorf("unexpected SQLite condition: %q", actual)
@@ -204,7 +198,6 @@ func Test_KeysetCondition(t *testing.T) {
 }
 
 func Test_EncodeStringArray(t *testing.T) {
-
 	t.Run("sqlite stores a JSON array", func(t *testing.T) {
 		if encoded := EncodeStringArray(database.TypeSQLite, []string{"a", "b"}); encoded != `["a","b"]` {
 			t.Errorf("expected a JSON array, got %#v", encoded)
@@ -231,7 +224,6 @@ func Test_EncodeStringArray(t *testing.T) {
 }
 
 func Test_DecodeStringArray(t *testing.T) {
-
 	testCases := []struct {
 		name     string
 		raw      interface{}
@@ -262,7 +254,6 @@ func Test_DecodeStringArray(t *testing.T) {
 // Test_EncodeDecodeStringArrayRoundTrip checks that what is stored is what is
 // read back.
 func Test_EncodeDecodeStringArrayRoundTrip(t *testing.T) {
-
 	values := []string{"crm", "marketing-tool", "a,b"}
 
 	encoded, ok := EncodeStringArray(database.TypeSQLite, values).(string)

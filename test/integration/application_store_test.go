@@ -33,7 +33,6 @@ import (
 )
 
 func Test_ApplicationStore(t *testing.T) {
-
 	org := setup.TestOrg(t, fmt.Sprintf("carbon.super-app-%d", time.Now().UnixNano()))
 	otherOrg := setup.TestOrg(t, fmt.Sprintf("other-app-%d", time.Now().UnixNano()))
 	appService := appProvider.NewApplicationProvider().GetApplicationService()

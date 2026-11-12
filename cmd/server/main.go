@@ -32,6 +32,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+
 	adminConfigProvider "github.com/wso2/identity-customer-data-service/internal/admin_config/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/cors"
@@ -49,7 +50,6 @@ import (
 )
 
 func initDatabaseFromConfig(cdsConfig *config.Config) error {
-
 	if err := provider.ValidateDataSource(cdsConfig.DataSource); err != nil {
 		return err
 	}
@@ -68,7 +68,6 @@ func initDatabaseFromConfig(cdsConfig *config.Config) error {
 }
 
 func main() {
-
 	cdsHome := resolveCDSHome()
 	utils.SetCDSHome(cdsHome)
 	const configFile = "/repository/conf/deployment.yaml"
@@ -244,7 +243,6 @@ func main() {
 
 // initMultiplexer initializes the HTTP multiplexer and registers the services.
 func initMultiplexer() *http.ServeMux {
-
 	mux := http.NewServeMux()
 	serviceManager := managers.NewServiceManager(mux)
 	logger := log.GetLogger()
@@ -261,7 +259,6 @@ func initMultiplexer() *http.ServeMux {
 // resolved per organisation from the admin configuration, falling back to the
 // deployment-wide auth.cors_allowed_origins list.
 func newCORSMiddleware(handler http.Handler) http.Handler {
-
 	adminConfigService := adminConfigProvider.NewAdminConfigProvider().GetAdminConfigService()
 
 	return cors.Middleware(handler,

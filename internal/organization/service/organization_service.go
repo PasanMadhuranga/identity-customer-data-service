@@ -46,7 +46,6 @@ var syncLocks sync.Map
 
 // EnsurePrimary stores the primary organization.
 func EnsurePrimary(ctx context.Context, primaryHandle string) (*model.Organization, error) {
-
 	primaryInfo, err := idp.GetAdapter().GetPrimaryOrganization(ctx, primaryHandle)
 	if err != nil {
 		return nil, err
@@ -73,7 +72,6 @@ func StorePrimary(ctx context.Context, primaryHandle string, primaryInfo idp.Org
 // GetOrStoreOrganization returns the stored organization of the handle. When the handle has no row,
 // it reads the primary organization from the identity provider and stores it.
 func GetOrStoreOrganization(ctx context.Context, orgHandle string) (*model.Organization, error) {
-
 	org, err := store.GetOrganizationByHandle(ctx, orgHandle)
 	if err != nil || org != nil {
 		return org, err
@@ -94,7 +92,6 @@ var (
 
 // StartTreeSync starts a background sync of the organization tree and returns the sync state.
 func StartTreeSync(ctx context.Context, primary model.Ref) (*model.TreeSyncStatus, error) {
-
 	if _, err := EnsurePrimary(ctx, primary.Handle); err != nil {
 		return nil, err
 	}
@@ -120,7 +117,6 @@ func StartTreeSync(ctx context.Context, primary model.Ref) (*model.TreeSyncStatu
 
 // ResetTreeSync clears the tree sync state of the primary organization.
 func ResetTreeSync(ctx context.Context, primaryId string) error {
-
 	treeSyncMu.Lock()
 	defer treeSyncMu.Unlock()
 	if run, running := treeSyncRuns[primaryId]; running {
@@ -154,7 +150,6 @@ func GetTreeSyncStatus(ctx context.Context, primaryId string) (*model.TreeSyncSt
 
 // scheduleLocked starts the sync goroutine. The caller holds treeSyncMu.
 func scheduleLocked(primary model.Ref) {
-
 	if run, running := treeSyncRuns[primary.ID]; running {
 		run.again = true
 		return
@@ -192,7 +187,6 @@ func markSyncing(ctx context.Context, primaryId string) error {
 
 // runTreeSync syncs the organization tree and stores the end state.
 func runTreeSync(ctx context.Context, primary model.Ref) {
-
 	logger := log.GetLogger()
 	values := map[string]string{}
 	_, err := func() (result *syncResult, err error) {
@@ -232,7 +226,6 @@ func runTreeSync(ctx context.Context, primary model.Ref) {
 
 // syncTree makes the stored organizations of a tree match the source tree.
 func syncTree(ctx context.Context, primaryHandle string) (*syncResult, error) {
-
 	lock, _ := syncLocks.LoadOrStore(primaryHandle, &sync.Mutex{})
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
@@ -293,7 +286,6 @@ func syncTree(ctx context.Context, primaryHandle string) (*syncResult, error) {
 // buildTree orders the organizations so that each parent comes before its children. Organizations
 // that are not connected to the primary organization are left out.
 func buildTree(primary model.Organization, descendants []idp.Organization) []model.Organization {
-
 	byId := map[string]idp.Organization{}
 	for _, d := range descendants {
 		byId[d.Id] = d
@@ -351,7 +343,6 @@ func buildTree(primary model.Organization, descendants []idp.Organization) []mod
 // HandleSyncEvent applies an organization lifecycle event. Events are ignored until the first tree
 // sync of the primary organization starts.
 func HandleSyncEvent(ctx context.Context, pathHandle string, event model.SyncEvent) error {
-
 	switch event.Event {
 	case model.EventOrgCreated, model.EventOrgUpdated, model.EventOrgDeleted:
 	default:
@@ -428,7 +419,6 @@ func HandleSyncEvent(ctx context.Context, pathHandle string, event model.SyncEve
 
 // enabledPrimary returns the primary organization when CDS is enabled for it.
 func enabledPrimary(ctx context.Context, orgHandle string) (*model.Organization, error) {
-
 	org, err := store.GetOrganizationByHandle(ctx, orgHandle)
 	if err != nil {
 		return nil, err
@@ -457,7 +447,6 @@ func enabledPrimary(ctx context.Context, orgHandle string) (*model.Organization,
 }
 
 func cdsNotEnabled() error {
-
 	return errors2.NewClientError(errors2.ErrorMessage{
 		Code:        errors2.CDS_NOT_ENABLED.Code,
 		Message:     errors2.CDS_NOT_ENABLED.Message,
@@ -468,7 +457,6 @@ func cdsNotEnabled() error {
 // PrimaryOf returns the primary organization of the organization with the org ID. The bool is
 // false when the organization is not stored or not active.
 func PrimaryOf(ctx context.Context, orgId string) (model.Ref, bool) {
-
 	org, err := store.GetOrganizationById(ctx, orgId)
 	if err != nil || org == nil {
 		return model.Ref{}, false
@@ -488,7 +476,6 @@ func PrimaryOf(ctx context.Context, orgId string) (model.Ref, bool) {
 
 // SubOrgHandleOf returns the handle of a sub organization in the tree of the primary organization.
 func SubOrgHandleOf(ctx context.Context, primaryHandle, orgId string) (string, error) {
-
 	org, err := store.GetOrganizationById(ctx, orgId)
 	if err != nil {
 		return "", err
@@ -514,7 +501,6 @@ func SubOrgHandleOf(ctx context.Context, primaryHandle, orgId string) (string, e
 
 // IsSubOrgHandle reports whether the handle belongs to a stored sub organization.
 func IsSubOrgHandle(ctx context.Context, orgHandle string) (bool, error) {
-
 	org, err := store.GetOrganizationByHandle(ctx, orgHandle)
 	if err != nil {
 		return false, err
@@ -540,7 +526,6 @@ func GetOrganizationsByIds(ctx context.Context, orgIds []string) ([]model.Organi
 // GetAncestors returns the ancestors of the organization, the parent first. The result is empty
 // for a primary organization.
 func GetAncestors(ctx context.Context, org model.Organization) ([]model.Ancestor, error) {
-
 	if org.IsPrimary() {
 		return nil, nil
 	}

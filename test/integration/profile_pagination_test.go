@@ -21,11 +21,13 @@ package integration
 import (
 	"context"
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"testing"
 	"time"
 
+	"github.com/wso2/identity-customer-data-service/test/setup"
+
 	"github.com/stretchr/testify/require"
+
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileService "github.com/wso2/identity-customer-data-service/internal/profile/service"
 	dbmodel "github.com/wso2/identity-customer-data-service/internal/system/database/model"
@@ -36,7 +38,6 @@ import (
 // the data access layer most sensitive to how a datasource stores and compares
 // timestamps. It runs against whichever datasource CDS_TEST_DB selects.
 func Test_ProfileCursorPagination(t *testing.T) {
-
 	const (
 		totalProfiles = 7
 		pageSize      = 3
@@ -156,7 +157,6 @@ func Test_ProfileCursorPagination(t *testing.T) {
 // forceSharedCreatedAt gives the oldest count profiles of an organization the same
 // creation time, and returns their ids.
 func forceSharedCreatedAt(t *testing.T, orgId string, count int) []string {
-
 	t.Helper()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -192,7 +192,6 @@ func forceSharedCreatedAt(t *testing.T, orgId string, count int) []string {
 // requireDescending asserts that a page is ordered newest first, with the
 // profile id breaking ties.
 func requireDescending(t *testing.T, profiles []profileModel.ProfileResponse) {
-
 	t.Helper()
 
 	for i := 1; i < len(profiles); i++ {
@@ -208,7 +207,6 @@ func requireDescending(t *testing.T, profiles []profileModel.ProfileResponse) {
 }
 
 func profileIds(profiles []profileModel.ProfileResponse) []string {
-
 	ids := make([]string, 0, len(profiles))
 	for _, profile := range profiles {
 		ids = append(ids, profile.ProfileId)

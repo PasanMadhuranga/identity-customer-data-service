@@ -35,7 +35,6 @@ import (
 
 // AuthnWithAdminCredentials performs authentication using admin credentials from the request.
 func AuthnWithAdminCredentials(r *http.Request) error {
-
 	authHeader := r.Header.Get("Authorization")
 	logger := log.GetLogger()
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Basic ") {
@@ -63,7 +62,6 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 }
 
 func validateAdminCredentials(token string) (bool, error) {
-
 	authServerConfig := config.GetCDSRuntime().Config.AuthServer
 	username := strings.TrimSpace(authServerConfig.AdminUsername)
 	password := strings.TrimSpace(authServerConfig.AdminPassword)
@@ -87,7 +85,6 @@ func validateAdminCredentials(token string) (bool, error) {
 // AuthnAndAuthz performs authentication and authorization for the given HTTP request and operation.
 // In a sub organization, the `org:` form of the operation is authorized.
 func AuthnAndAuthz(r *http.Request, operation string) error {
-
 	claims, err := authenticate(r)
 	if err != nil {
 		return err
@@ -98,7 +95,6 @@ func AuthnAndAuthz(r *http.Request, operation string) error {
 // AuthnAndAuthzPrimary authenticates the request and authorizes an operation that only a primary
 // organization can run. A request in a sub organization is refused.
 func AuthnAndAuthzPrimary(r *http.Request, operation string) error {
-
 	claims, err := authenticate(r)
 	if err != nil {
 		return err
@@ -108,7 +104,6 @@ func AuthnAndAuthzPrimary(r *http.Request, operation string) error {
 
 // authenticate validates the bearer token for the organization of the path and returns its claims.
 func authenticate(r *http.Request) (map[string]interface{}, error) {
-
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") || authHeader == "" {
 		clientError := errors.NewClientError(errors.ErrorMessage{
@@ -138,7 +133,6 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 
 // authorize checks the scopes of the claims against the operation.
 func authorize(r *http.Request, claims map[string]interface{}, operation string) error {
-
 	//  Validate authorization
 	scope, ok := claims["scope"].(string)
 	if !ok {
@@ -164,7 +158,6 @@ func authorize(r *http.Request, claims map[string]interface{}, operation string)
 // authorizePrimary refuses the operation in a sub organization, and authorizes it in a primary
 // organization.
 func authorizePrimary(r *http.Request, claims map[string]interface{}, operation string) error {
-
 	if pathOrgIdOf(r) != "" {
 		return errors.NewClientError(errors.ErrorMessage{
 			Code:        errors.SUB_ORG_CONFIG_NOT_ALLOWED.Code,
@@ -178,7 +171,6 @@ func authorizePrimary(r *http.Request, claims map[string]interface{}, operation 
 // pathOrgIdOf returns the organization ID of a sub organization path, or empty for a primary
 // organization path.
 func pathOrgIdOf(r *http.Request) string {
-
 	pathOrgId, _ := r.Context().Value(constants.OrgIdContextKey).(string)
 	return pathOrgId
 }

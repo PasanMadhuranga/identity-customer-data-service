@@ -31,6 +31,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/workers"
 
 	"github.com/google/uuid"
+
 	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
 	"github.com/wso2/identity-customer-data-service/internal/profile_schema/identitysource"
 	"github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -48,7 +49,6 @@ type ProfileSchemaHandler struct {
 }
 
 func NewProfileSchemaHandler() *ProfileSchemaHandler {
-
 	return &ProfileSchemaHandler{
 		store: make(map[string]model.ProfileSchemaAttribute),
 		mu:    &sync.RWMutex{},
@@ -57,7 +57,6 @@ func NewProfileSchemaHandler() *ProfileSchemaHandler {
 
 // AddProfileSchemaAttributesForScope handles adding a new profile schema attribute.
 func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	scope := r.PathValue("scope")
@@ -162,7 +161,6 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 
 // GetProfileSchema handles fetching the entire profile schema.
 func (psh *ProfileSchemaHandler) GetProfileSchema(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile_schema:view")
@@ -197,7 +195,6 @@ func (psh *ProfileSchemaHandler) GetProfileSchema(w http.ResponseWriter, r *http
 
 // GetProfileSchemaAttributeById handles fetching the entire profile schema.
 func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeById(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	scope := r.PathValue("scope")
@@ -245,7 +242,6 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeById(w http.ResponseWr
 
 // GetProfileSchemaAttributeForScope handles fetching the entire profile schema for the scope.
 func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeForScope(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	scope := r.PathValue("scope")
@@ -314,7 +310,6 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeForScope(w http.Respon
 
 // PatchProfileSchemaAttributeById updates a profile schema attribute.
 func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	attributeId := r.PathValue("attrID")
@@ -381,7 +376,6 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.Response
 
 // DeleteProfileSchema removes the entire profile schema.
 func (psh *ProfileSchemaHandler) DeleteProfileSchema(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile_schema:delete")
@@ -418,7 +412,6 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchema(w http.ResponseWriter, r *h
 
 // DeleteProfileSchemaAttributeById removes a profile schema attribute.
 func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	attributeId := r.PathValue("attrID")
@@ -465,7 +458,6 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.Respons
 }
 
 func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile_schema:delete")
@@ -521,7 +513,6 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.Res
 }
 
 func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnWithAdminCredentials(r)
@@ -610,7 +601,6 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNotFound)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "Unknown sync event."})
-
 }
 
 // isCDSEnabled checks if CDS is enabled for the given organization
@@ -620,7 +610,6 @@ func isCDSEnabled(ctx context.Context, orgId string) bool {
 
 // CreateSharingPolicy shares an attribute of the organization.
 func (h *ProfileSchemaHandler) CreateSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_update")
 	if !ok {
 		return
@@ -642,7 +631,6 @@ func (h *ProfileSchemaHandler) CreateSharingPolicy(w http.ResponseWriter, r *htt
 
 // ListSharingPolicies returns the sharing policies of an attribute of the organization.
 func (h *ProfileSchemaHandler) ListSharingPolicies(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_view")
 	if !ok {
 		return
@@ -660,7 +648,6 @@ func (h *ProfileSchemaHandler) ListSharingPolicies(w http.ResponseWriter, r *htt
 
 // GetSharingPolicy returns a sharing policy of an attribute of the organization.
 func (h *ProfileSchemaHandler) GetSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_view")
 	if !ok {
 		return
@@ -678,7 +665,6 @@ func (h *ProfileSchemaHandler) GetSharingPolicy(w http.ResponseWriter, r *http.R
 
 // UpdateSharingPolicy replaces a sharing policy of an attribute of the organization.
 func (h *ProfileSchemaHandler) UpdateSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_update")
 	if !ok {
 		return
@@ -700,7 +686,6 @@ func (h *ProfileSchemaHandler) UpdateSharingPolicy(w http.ResponseWriter, r *htt
 
 // DeleteSharingPolicy removes a sharing policy of an attribute of the organization.
 func (h *ProfileSchemaHandler) DeleteSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_update")
 	if !ok {
 		return

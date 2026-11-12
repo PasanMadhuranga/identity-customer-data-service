@@ -40,7 +40,6 @@ func serverError(description string, err error) error {
 }
 
 func query(ctx context.Context, q dbmodel.DBQuery, args ...interface{}) ([]map[string]interface{}, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, serverError("Failed to get a database client for sharing.", err)
@@ -56,7 +55,6 @@ func query(ctx context.Context, q dbmodel.DBQuery, args ...interface{}) ([]map[s
 
 // inTx runs the statements of fn in one transaction.
 func inTx(ctx context.Context, description string, fn func(tx *dbmodel.Tx) error) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return serverError("Failed to get a database client for sharing.", err)
@@ -79,7 +77,6 @@ func inTx(ctx context.Context, description string, fn func(tx *dbmodel.Tx) error
 
 // CreatePolicy stores a new policy with its targets.
 func CreatePolicy(ctx context.Context, p model.Policy) error {
-
 	return inTx(ctx, "create a share policy", func(tx *dbmodel.Tx) error {
 		if _, err := tx.ExecContext(ctx, scripts.InsertSharePolicy, p.PolicyId, p.ResourceType, p.ResourceId,
 			p.OwningOrgId, p.InitiatingOrgId); err != nil {
@@ -91,7 +88,6 @@ func CreatePolicy(ctx context.Context, p model.Policy) error {
 
 // ReplaceTargets replaces the targets of a policy.
 func ReplaceTargets(ctx context.Context, policyId string, targets []model.Target) error {
-
 	return inTx(ctx, "replace the share policy targets", func(tx *dbmodel.Tx) error {
 		if _, err := tx.ExecContext(ctx, scripts.DeleteSharePolicyTargets, policyId); err != nil {
 			return serverError("Failed to replace the share policy targets.", err)
@@ -104,7 +100,6 @@ func ReplaceTargets(ctx context.Context, policyId string, targets []model.Target
 const targetBatchSize = 1000
 
 func insertTargets(ctx context.Context, tx *dbmodel.Tx, policyId string, targets []model.Target) error {
-
 	for start := 0; start < len(targets); start += targetBatchSize {
 		batch := targets[start:min(start+targetBatchSize, len(targets))]
 		values := make([]string, len(batch))
@@ -136,7 +131,6 @@ func targetOf(row map[string]interface{}) model.Target {
 }
 
 func withTargets(ctx context.Context, results []map[string]interface{}) (*model.Policy, error) {
-
 	if len(results) == 0 {
 		return nil, nil
 	}
@@ -153,7 +147,6 @@ func withTargets(ctx context.Context, results []map[string]interface{}) (*model.
 
 // GetPolicyById returns the policy with its targets, or nil.
 func GetPolicyById(ctx context.Context, policyId string) (*model.Policy, error) {
-
 	results, err := query(ctx, scripts.GetSharePolicyById, policyId)
 	if err != nil {
 		return nil, err
@@ -164,7 +157,6 @@ func GetPolicyById(ctx context.Context, policyId string) (*model.Policy, error) 
 // GetPolicy returns the policy of the initiating organization for the resource, with its targets,
 // or nil.
 func GetPolicy(ctx context.Context, resourceType, resourceId, initiatingOrgId string) (*model.Policy, error) {
-
 	results, err := query(ctx, scripts.GetSharePolicy, resourceType, resourceId, initiatingOrgId)
 	if err != nil {
 		return nil, err
@@ -175,7 +167,6 @@ func GetPolicy(ctx context.Context, resourceType, resourceId, initiatingOrgId st
 // GetPoliciesByOwners returns the policies of the resource type that the organizations own, with
 // their targets.
 func GetPoliciesByOwners(ctx context.Context, resourceType string, ownerOrgIds []string) ([]model.Policy, error) {
-
 	if len(ownerOrgIds) == 0 {
 		return nil, nil
 	}
@@ -207,7 +198,6 @@ func GetPoliciesByOwners(ctx context.Context, resourceType string, ownerOrgIds [
 
 // DeletePolicy deletes the policy with its targets.
 func DeletePolicy(ctx context.Context, policyId string) error {
-
 	return inTx(ctx, "delete a share policy", func(tx *dbmodel.Tx) error {
 		return deletePolicy(ctx, tx, policyId)
 	})
@@ -215,7 +205,6 @@ func DeletePolicy(ctx context.Context, policyId string) error {
 
 // DeletePoliciesOfResource deletes all policies of the resource.
 func DeletePoliciesOfResource(ctx context.Context, resourceType, resourceId string) error {
-
 	results, err := query(ctx, scripts.GetSharePolicyIdsByResource, resourceType, resourceId)
 	if err != nil || len(results) == 0 {
 		return err
@@ -231,7 +220,6 @@ func DeletePoliciesOfResource(ctx context.Context, resourceType, resourceId stri
 }
 
 func deletePolicy(ctx context.Context, tx *dbmodel.Tx, policyId string) error {
-
 	for _, q := range []dbmodel.DBQuery{scripts.DeleteSharePolicyTargets, scripts.DeleteSharePolicy} {
 		if _, err := tx.ExecContext(ctx, q, policyId); err != nil {
 			return serverError(fmt.Sprintf("Failed to run the sharing statement %s.", q.ID), err)

@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/go-stomp/stomp/v3"
+
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
@@ -249,7 +250,6 @@ func (mc *managedConn) isShuttingDown() bool {
 // closeWithin stops the consumer goroutines and disconnects from the broker
 // inside ctx. It is safe to call more than once.
 func (mc *managedConn) closeWithin(ctx context.Context) error {
-
 	mc.closeOnce.Do(func() { mc.closeErr = mc.disconnectWithin(ctx) })
 	return mc.closeErr
 }
@@ -260,7 +260,6 @@ func (mc *managedConn) closeWithin(ctx context.Context) error {
 //
 // The connection itself is kept, so a late Enqueue reports a send error.
 func (mc *managedConn) disconnectWithin(ctx context.Context) error {
-
 	mc.shutdown()
 
 	mc.mu.RLock()

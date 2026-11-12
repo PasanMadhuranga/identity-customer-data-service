@@ -25,9 +25,10 @@ import (
 	"strings"
 
 	_ "github.com/lib/pq"
+	_ "modernc.org/sqlite"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/database"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/model"
-	_ "modernc.org/sqlite"
 )
 
 // DBClientInterface defines the interface for database operations.
@@ -66,7 +67,6 @@ type DBClient struct {
 // NewSharedDBClient creates a client over the connection pool the process
 // owns. Close is a no-op, so the pool outlives the client.
 func NewSharedDBClient(db *sql.DB, dbType string) DBClientInterface {
-
 	return &DBClient{
 		db:     db,
 		dbType: dbType,
@@ -79,7 +79,6 @@ func NewSharedDBClient(db *sql.DB, dbType string) DBClientInterface {
 // free connection without a limit, and cannot be ended by its caller.
 func (client *DBClient) ExecuteQuery(query model.DBQuery, args ...interface{}) (
 	[]map[string]interface{}, error) {
-
 	return client.ExecuteQueryContext(context.Background(), query, args...)
 }
 
@@ -88,7 +87,6 @@ func (client *DBClient) ExecuteQuery(query model.DBQuery, args ...interface{}) (
 // context covers the whole call.
 func (client *DBClient) ExecuteQueryContext(ctx context.Context, query model.DBQuery, args ...interface{}) (
 	[]map[string]interface{}, error) {
-
 	isSQLite := client.dbType == database.TypeSQLite
 	if isSQLite {
 		args = database.NormalizeSQLiteArgs(args)
@@ -155,7 +153,6 @@ func (client *DBClient) ExecuteQueryContext(ctx context.Context, query model.DBQ
 // A transaction holds its connection until it ends. When the context ends
 // first, database/sql rolls the transaction back and returns that connection.
 func (client *DBClient) BeginTxContext(ctx context.Context) (*model.Tx, error) {
-
 	tx, err := client.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -168,19 +165,16 @@ func (client *DBClient) BeginTxContext(ctx context.Context) (*model.Tx, error) {
 // Deprecated: use BeginTxContext. A transaction without a context holds its
 // connection until some code ends it.
 func (client *DBClient) BeginTx() (*model.Tx, error) {
-
 	return client.BeginTxContext(context.Background())
 }
 
 // DBType returns the datasource type this client is connected to.
 func (client *DBClient) DBType() string {
-
 	return client.dbType
 }
 
 // Close is a no-op. The pool belongs to the process, which closes it at
 // shutdown through provider.CloseDB.
 func (client *DBClient) Close() error {
-
 	return nil
 }

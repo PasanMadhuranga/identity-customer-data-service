@@ -21,12 +21,14 @@ package workers
 import (
 	"context"
 	"fmt"
-	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
 	"strings"
 	"sync"
 	"time"
 
+	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
+
 	"github.com/google/uuid"
+
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -175,7 +177,6 @@ func StopProfileWorker(ctx context.Context) error {
 
 // unifyProfiles unifies profiles based on the configured unification rules.
 func unifyProfiles(ctx context.Context, orgId string, newProfile profileModel.Profile) {
-
 	logger := log.GetLogger()
 	// A queued profile can have become a child while it waited. Leave its
 	// hierarchy intact; moving children or joining masters is a separate policy.
@@ -320,7 +321,6 @@ func mergeUnificationCandidate(ctx context.Context, orgId string, candidateID st
 // Returns an error when the merge cannot proceed safely.
 func MergeMatchedProfiles(ctx context.Context, orgId string, existingMasterProfile profileModel.Profile,
 	newProfile profileModel.Profile, reason string) (*profileModel.Profile, error) {
-
 	logger := log.GetLogger()
 
 	// Fetch references for the existing master.
@@ -541,7 +541,6 @@ func mergeSameKindProfiles(ctx context.Context, orgId string,
 // to the master profile. Returns an error on the first persistence failure.
 func persistMergedProfileData(ctx context.Context, orgId string, masterProfile profileModel.Profile,
 	triggerProfileId string) error {
-
 	logger := log.GetLogger()
 
 	for _, appCtx := range masterProfile.ApplicationData {
@@ -611,7 +610,6 @@ func buildSchemaRuleMap(rules []schemaModel.ProfileSchemaAttribute) map[string]s
 
 func mergeNamespaceMap(existingMap, incomingMap map[string]interface{}, namespace string,
 	ruleMap map[string]schemaModel.ProfileSchemaAttribute) map[string]interface{} {
-
 	if existingMap == nil && incomingMap == nil {
 		return nil
 	}
@@ -633,7 +631,6 @@ func mergeNamespaceMap(existingMap, incomingMap map[string]interface{}, namespac
 
 func mergeByPath(existing, incoming interface{}, currentPath string,
 	ruleMap map[string]schemaModel.ProfileSchemaAttribute) interface{} {
-
 	if rule, ok := ruleMap[currentPath]; ok {
 		if strings.EqualFold(rule.ValueType, constants.ComplexDataType) && !rule.MultiValued {
 			existingMap, okE := toStringKeyedMap(existing)
@@ -757,7 +754,6 @@ func collectUnificationStrings(value interface{}, path []string, result *[]strin
 }
 
 func MergeAttributeValue(existing interface{}, incoming interface{}, strategy string, valueType string, multiValued bool) interface{} {
-
 	switch strings.ToLower(strategy) {
 	case "overwrite":
 		if isEmptyValue(incoming) {
@@ -1053,7 +1049,6 @@ func combineUniqueBools(a, b []bool) []bool {
 
 func mergeAppData(existingAppData, incomingAppData []profileModel.ApplicationData,
 	appRuleMap map[string]map[string]schemaModel.ProfileSchemaAttribute) []profileModel.ApplicationData {
-
 	logger := log.GetLogger()
 	mergedMap := make(map[string]profileModel.ApplicationData)
 

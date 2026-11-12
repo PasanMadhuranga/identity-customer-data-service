@@ -48,7 +48,6 @@ const providerPoolLimit = 3
 // handle is published, the reuse of one pool and the shutdown all run. The rest of the suite installs the container's own handle with SetTestDB
 // and bypasses them.
 func useProductionProvider(t *testing.T) {
-
 	t.Helper()
 
 	if suiteDBType != database.TypePostgres || suitePostgres == nil {
@@ -85,7 +84,6 @@ func useProductionProvider(t *testing.T) {
 // queryBackendPID runs one statement and returns the server process that
 // answered it.
 func queryBackendPID(t *testing.T, dbClient client.DBClientInterface) string {
-
 	t.Helper()
 
 	rows, err := dbClient.ExecuteQueryContext(context.Background(), backendPID)
@@ -106,7 +104,6 @@ func queryBackendPID(t *testing.T, dbClient client.DBClientInterface) string {
 // for good. Nothing reopens a pool after shutdown, because the server does
 // not.
 func Test_ProductionProvider(t *testing.T) {
-
 	useProductionProvider(t)
 
 	// The configuration has to pass the same check the server runs at start.

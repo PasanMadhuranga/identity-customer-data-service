@@ -29,7 +29,6 @@ import (
 
 // Of returns the ID of the organization that holds the identity attributes of the given organization.
 func Of(ctx context.Context, orgId string) string {
-
 	stored, err := orgStore.GetOrganizationById(ctx, orgId)
 	if err != nil || stored == nil || stored.IsPrimary() {
 		return orgId
@@ -47,7 +46,6 @@ func Of(ctx context.Context, orgId string) string {
 // IsInherited reports whether the organization inherits its identity attributes, and returns the ID
 // of the source organization.
 func IsInherited(ctx context.Context, orgId string) (string, bool) {
-
 	source := Of(ctx, orgId)
 	return source, source != orgId
 }

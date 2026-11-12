@@ -57,5 +57,4 @@ func DefaultConfig() Config {
 			TriggerType: constants.SyncProfileOnUpdate,
 		},
 	}
-
 }

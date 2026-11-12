@@ -22,13 +22,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"testing"
 	"time"
 
+	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
+	"github.com/wso2/identity-customer-data-service/test/setup"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileService "github.com/wso2/identity-customer-data-service/internal/profile/service"
 	profileSchema "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -38,7 +40,6 @@ import (
 )
 
 func Test_Profile(t *testing.T) {
-
 	SuperTenantOrg := setup.TestOrg(t, fmt.Sprintf("carbon.super-%d", time.Now().UnixNano()))
 	profileSvc := profileService.GetProfilesService()
 	profileSchemaSvc := schemaService.GetProfileSchemaService()
@@ -49,7 +50,6 @@ func Test_Profile(t *testing.T) {
 	defer restore()
 
 	t.Run("PreRequisite_AddProfileSchemaAttributes", func(t *testing.T) {
-
 		identityAttributes := []profileSchema.ProfileSchemaAttribute{
 			{
 				OrgId:         SuperTenantOrg.ID,

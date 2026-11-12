@@ -116,7 +116,6 @@ func (a AdminConfigService) GetCORSAllowedOrigins(ctx context.Context, orgId, su
 }
 
 func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgId string) (model.AdminConfig, error) {
-
 	defaultConfig := model.AdminConfig{
 		OrgId:                 orgId,
 		CDSEnabled:            false,
@@ -331,7 +330,6 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 }
 
 func (a AdminConfigService) UpdateInitialSchemaSync(ctx context.Context, state bool, orgId string) error {
-
 	return store.UpdateInitialSchemaSyncConfig(ctx, state, orgId)
 }
 

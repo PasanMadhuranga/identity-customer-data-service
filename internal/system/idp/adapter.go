@@ -78,7 +78,6 @@ var (
 
 // GetAdapter returns the configured adapter.
 func GetAdapter() Adapter {
-
 	adapterMu.RLock()
 	a := adapter
 	adapterMu.RUnlock()
@@ -96,7 +95,6 @@ const (
 // NewAdapter returns the adapter of the identity provider type. An empty type selects the default
 // adapter.
 func NewAdapter(idpType string) (Adapter, error) {
-
 	switch strings.ToLower(strings.TrimSpace(idpType)) {
 	case "", TypeWSO2IS:
 		return NewWSO2ISAdapter(), nil
@@ -107,7 +105,6 @@ func NewAdapter(idpType string) (Adapter, error) {
 
 // SetAdapter replaces the adapter.
 func SetAdapter(a Adapter) {
-
 	adapterMu.Lock()
 	adapter = a
 	adapterMu.Unlock()

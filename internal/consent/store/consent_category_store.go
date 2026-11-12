@@ -20,7 +20,10 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
+
 	model "github.com/wso2/identity-customer-data-service/internal/consent/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/client"
@@ -29,12 +32,10 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/database/scripts"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
-	"strings"
 )
 
 // AddConsentCategory inserts a new consent category into the database.
 func AddConsentCategory(ctx context.Context, orgId string, category model.ConsentCategory) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -103,7 +104,6 @@ func AddConsentCategory(ctx context.Context, orgId string, category model.Consen
 
 // GetAllConsentCategories retrieves all consent categories of the given org from the database.
 func GetAllConsentCategories(ctx context.Context, orgId string) ([]model.ConsentCategory, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -175,7 +175,6 @@ func GetAllConsentCategories(ctx context.Context, orgId string) ([]model.Consent
 
 // GetConsentCategoryByID retrieves a consent category by its ID.
 func GetConsentCategoryByID(ctx context.Context, id string, orgId string) (*model.ConsentCategory, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -234,7 +233,6 @@ func GetConsentCategoryByID(ctx context.Context, id string, orgId string) (*mode
 
 // GetConsentCategoryByName retrieves a consent category by name within an org.
 func GetConsentCategoryByName(ctx context.Context, name string, orgId string) (*model.ConsentCategory, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -278,7 +276,6 @@ func GetConsentCategoryByName(ctx context.Context, name string, orgId string) (*
 
 // UpdateConsentCategory updates an existing consent category in the database.
 func UpdateConsentCategory(ctx context.Context, orgId string, category model.ConsentCategory) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -351,7 +348,6 @@ func UpdateConsentCategory(ctx context.Context, orgId string, category model.Con
 }
 
 func DeleteConsentCategory(ctx context.Context, categoryId string, orgId string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -397,7 +393,6 @@ func DeleteConsentCategory(ctx context.Context, categoryId string, orgId string)
 // Attributes are not stored in consent_category_attributes — they are resolved dynamically from
 // profile_schema at query time so they stay in sync with schema changes automatically.
 func SeedDefaultIdentityDataCategory(ctx context.Context, orgId string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -434,7 +429,6 @@ func SeedDefaultIdentityDataCategory(ctx context.Context, orgId string) error {
 // query time, so the GET response always reflects the current schema state.
 func resolveMandatoryAttributes(ctx context.Context, dbClient client.DBClientInterface, orgId string) (
 	[]model.ConsentAttribute, error) {
-
 	query := scripts.GetProfileSchemaAttributeByScope
 	rows, err := dbClient.ExecuteQueryContext(ctx, query, orgId, constants.IdentityAttributes)
 	if err != nil {
@@ -452,7 +446,6 @@ func resolveMandatoryAttributes(ctx context.Context, dbClient client.DBClientInt
 
 // GetMandatoryConsentCategoryIds returns the identifiers of all mandatory consent categories for an org.
 func GetMandatoryConsentCategoryIds(ctx context.Context, orgId string) ([]string, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -487,7 +480,6 @@ func GetMandatoryConsentCategoryIds(ctx context.Context, orgId string) ([]string
 
 // GetConsentCategoryIds returns the IDs of all consent categories of the org.
 func GetConsentCategoryIds(ctx context.Context, orgId string) ([]string, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -525,7 +517,6 @@ func GetConsentCategoryIds(ctx context.Context, orgId string) ([]string, error) 
 // Mandatory categories are always included regardless of profile consent records.
 func GetConsentedCategoryAttributesByProfileId(ctx context.Context,
 	profileId string, orgId string, categoryIds []string) (map[string][]model.ConsentAttribute, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {

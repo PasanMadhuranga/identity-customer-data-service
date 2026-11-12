@@ -27,7 +27,6 @@ import (
 // policyReachesOrg reports whether a target of the policy reaches the organization. The ancestors
 // of the organization are in order, the parent first.
 func policyReachesOrg(p model.Policy, org orgModel.Organization, ancestors []orgModel.Ancestor) bool {
-
 	for _, target := range p.Targets {
 		switch target.Scope {
 		case model.ScopeAllChildren:
@@ -53,7 +52,6 @@ func policyReachesOrg(p model.Policy, org orgModel.Organization, ancestors []org
 }
 
 func isAncestor(orgId string, ancestors []orgModel.Ancestor) bool {
-
 	for _, a := range ancestors {
 		if a.OrgId == orgId {
 			return true
@@ -67,7 +65,6 @@ func isAncestor(orgId string, ancestors []orgModel.Ancestor) bool {
 // result is empty when the targets are valid.
 func targetProblems(initiator orgModel.Organization, targetOrgs []orgModel.Organization,
 	targets []model.Target) []string {
-
 	byId := make(map[string]orgModel.Organization, len(targetOrgs))
 	for _, o := range targetOrgs {
 		byId[o.OrgId] = o

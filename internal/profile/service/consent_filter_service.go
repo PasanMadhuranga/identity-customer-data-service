@@ -38,7 +38,6 @@ import (
 // If consentCategoryIds is empty, only mandatory identity fields are returned.
 func FilterProfileByConsent(ctx context.Context, response model.ProfileResponse, profileId string, orgId string,
 	consentIds []string) (model.ProfileResponse, error) {
-
 	filtered := model.ProfileResponse{
 		ProfileId:  response.ProfileId,
 		UserId:     response.UserId,
@@ -189,7 +188,6 @@ func FilterProfileByConsent(ctx context.Context, response model.ProfileResponse,
 
 // consentCategoryIdSet returns the IDs of all consent categories of the org.
 func consentCategoryIdSet(ctx context.Context, orgId string) (map[string]bool, error) {
-
 	ids, err := consentStore.GetConsentCategoryIds(ctx, orgId)
 	if err != nil {
 		return nil, err

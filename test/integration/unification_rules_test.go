@@ -3,15 +3,18 @@ package integration
 import (
 	"context"
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"testing"
 	"time"
 
+	"github.com/wso2/identity-customer-data-service/test/setup"
+
 	"github.com/google/uuid"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/test/integration/utils"
 
 	"github.com/stretchr/testify/require"
+
 	profileSchema "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
 	schemaService "github.com/wso2/identity-customer-data-service/internal/profile_schema/service"
 	"github.com/wso2/identity-customer-data-service/internal/unification_rules/model"
@@ -19,7 +22,6 @@ import (
 )
 
 func Test_UnificationRule(t *testing.T) {
-
 	SuperTenantOrg := setup.TestOrg(t, fmt.Sprintf("carbon.super-%d", time.Now().UnixNano()))
 	profileSchemaService := schemaService.GetProfileSchemaService()
 	restore := schemaService.OverrideValidateApplicationIdentifierForTest(

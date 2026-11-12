@@ -25,7 +25,6 @@ import (
 )
 
 func TestToTargets(t *testing.T) {
-
 	selected := func(orgs ...model.ChildOrg) *model.ChildOrgs {
 		return &model.ChildOrgs{Mode: model.ChildOrgsModeSelected, Orgs: orgs}
 	}

@@ -29,7 +29,6 @@ func FilterApplicationData(
 	isSystemApp bool,
 	params ApplicationDataFilterParams,
 ) map[string]map[string]interface{} {
-
 	if !params.IncludeAppData {
 		return make(map[string]map[string]interface{})
 	}

@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
 	cdsErrors "github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 

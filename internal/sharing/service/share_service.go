@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
 	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
 	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
 	"github.com/wso2/identity-customer-data-service/internal/organization/suborg"
@@ -40,7 +41,6 @@ import (
 // organization owns.
 func GetSharedResources(ctx context.Context, resourceType string,
 	org orgModel.Organization) ([]model.SharedResource, error) {
-
 	if org.IsPrimary() || !org.IsActive() {
 		return nil, nil
 	}
@@ -59,7 +59,6 @@ func GetSharedResources(ctx context.Context, resourceType string,
 // organization, or nil.
 func GetSharedResource(ctx context.Context, resourceType, resourceId string,
 	org orgModel.Organization) (*model.SharedResource, error) {
-
 	shared, err := GetSharedResources(ctx, resourceType, org)
 	if err != nil {
 		return nil, err
@@ -76,7 +75,6 @@ func GetSharedResource(ctx context.Context, resourceType, resourceId string,
 // with the organization.
 func sharedResources(ctx context.Context, resourceType string, org orgModel.Organization,
 	ancestors []orgModel.Ancestor) ([]model.SharedResource, error) {
-
 	ownerIds := make([]string, 0, len(ancestors))
 	byId := make(map[string]orgModel.Ancestor, len(ancestors))
 	for _, a := range ancestors {
@@ -113,7 +111,6 @@ func sharedResources(ctx context.Context, resourceType string, org orgModel.Orga
 // CreatePolicy creates the policy of the initiating organization for a resource that it owns.
 func CreatePolicy(ctx context.Context, resourceType, resourceId string, initiator orgModel.Organization,
 	req model.PolicyRequest) (*model.PolicyResponse, error) {
-
 	if !initiator.IsPrimary() {
 		return nil, suborg.WriteNotAllowed()
 	}
@@ -149,7 +146,6 @@ func CreatePolicy(ctx context.Context, resourceType, resourceId string, initiato
 // ListPolicies returns the policies of the initiating organization for the resource.
 func ListPolicies(ctx context.Context, resourceType, resourceId string,
 	initiator orgModel.Organization) (*model.PolicyList, error) {
-
 	list := &model.PolicyList{Policies: []model.PolicyResponse{}}
 	p, err := store.GetPolicy(ctx, resourceType, resourceId, initiator.OrgId)
 	if err != nil {
@@ -165,7 +161,6 @@ func ListPolicies(ctx context.Context, resourceType, resourceId string,
 // GetPolicy returns the policy.
 func GetPolicy(ctx context.Context, resourceType, resourceId, policyId string,
 	initiator orgModel.Organization) (*model.PolicyResponse, error) {
-
 	p, err := policyOf(ctx, resourceType, resourceId, policyId, initiator)
 	if err != nil {
 		return nil, err
@@ -177,7 +172,6 @@ func GetPolicy(ctx context.Context, resourceType, resourceId, policyId string,
 // UpdatePolicy replaces the targets of the policy.
 func UpdatePolicy(ctx context.Context, resourceType, resourceId, policyId string, initiator orgModel.Organization,
 	req model.PolicyRequest) (*model.PolicyResponse, error) {
-
 	if !initiator.IsPrimary() {
 		return nil, suborg.WriteNotAllowed()
 	}
@@ -203,7 +197,6 @@ func UpdatePolicy(ctx context.Context, resourceType, resourceId, policyId string
 // DeletePolicy deletes the policy.
 func DeletePolicy(ctx context.Context, resourceType, resourceId, policyId string,
 	initiator orgModel.Organization) error {
-
 	if !initiator.IsPrimary() {
 		return suborg.WriteNotAllowed()
 	}
@@ -227,7 +220,6 @@ func DeletePoliciesOfResource(ctx context.Context, resourceType, resourceId stri
 // organization.
 func policyOf(ctx context.Context, resourceType, resourceId, policyId string,
 	initiator orgModel.Organization) (*model.Policy, error) {
-
 	p, err := store.GetPolicyById(ctx, policyId)
 	if err != nil {
 		return nil, err
@@ -242,7 +234,6 @@ func policyOf(ctx context.Context, resourceType, resourceId, policyId string,
 // ValidateTargets checks the targets of the policy against the initiating organization and the
 // target organizations.
 func ValidateTargets(ctx context.Context, initiator orgModel.Organization, p model.Policy) error {
-
 	var targetOrgs []orgModel.Organization
 	if !IsAllChildren(p.Targets) {
 		ids := make([]string, 0, len(p.Targets))
@@ -264,7 +255,6 @@ func ValidateTargets(ctx context.Context, initiator orgModel.Organization, p mod
 // ToTargets maps the child_orgs of a request to stored targets, and returns the problems of the
 // request.
 func ToTargets(childOrgs *model.ChildOrgs, initiatingOrgId string) ([]model.Target, []string) {
-
 	if childOrgs == nil {
 		return nil, []string{"child_orgs is required"}
 	}
@@ -325,7 +315,6 @@ func ToTargets(childOrgs *model.ChildOrgs, initiatingOrgId string) ([]model.Targ
 
 // ToChildOrgs maps the stored targets to the child_orgs of a response.
 func ToChildOrgs(targets []model.Target) model.ChildOrgs {
-
 	if IsAllChildren(targets) {
 		return model.ChildOrgs{Mode: model.ChildOrgsModeAll}
 	}
@@ -343,7 +332,6 @@ func ToChildOrgs(targets []model.Target) model.ChildOrgs {
 
 // IsAllChildren reports whether the targets have the ALL_CHILDREN scope.
 func IsAllChildren(targets []model.Target) bool {
-
 	for _, t := range targets {
 		if t.Scope == model.ScopeAllChildren {
 			return true

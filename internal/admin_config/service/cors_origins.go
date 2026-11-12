@@ -81,7 +81,6 @@ type corsOrgIdResolver struct {
 // It neither stores the organization nor asks the identity provider, as the request is not
 // authenticated yet.
 func (r *corsOrgIdResolver) resolve(ctx context.Context, orgHandle string) (string, bool, error) {
-
 	if _, unknown := r.unknown.Get(orgHandle); unknown {
 		return "", false, nil
 	}
@@ -104,7 +103,6 @@ func (r *corsOrgIdResolver) forget(orgHandle string) {
 
 // get returns the origins the organisation has configured, or nil if it has none.
 func (c *corsOriginsCache) get(ctx context.Context, orgId string) ([]string, error) {
-
 	if cached, ok := c.entries.Get(orgId); ok {
 		if origins, ok := cached.([]string); ok {
 			return origins, nil
@@ -124,7 +122,6 @@ func (c *corsOriginsCache) get(ctx context.Context, orgId string) ([]string, err
 // invalidate drops the cached origins of the organisation, so that this process serves an
 // update at once.
 func (c *corsOriginsCache) invalidate(orgId string) {
-
 	c.generation.Add(1)
 	c.entries.Delete(orgId)
 }
@@ -133,7 +130,6 @@ func (c *corsOriginsCache) invalidate(orgId string) {
 // a browser-supplied Origin header, which is already normalized that way, is reliable.
 // The port is left as given.
 func normalizeOrigin(origin string) string {
-
 	trimmed := strings.TrimSpace(origin)
 	scheme, rest, found := strings.Cut(trimmed, "://")
 	if !found {
@@ -153,7 +149,6 @@ func normalizeOrigin(origin string) string {
 // Access-Control-Allow-Credentials, which a browser rejects alongside "*", so accepting
 // one here would only produce an origin that never matches.
 func validateCORSOrigins(origins []string) ([]string, error) {
-
 	normalized := make([]string, 0, len(origins))
 	seen := make(map[string]bool, len(origins))
 
@@ -210,7 +205,6 @@ func validateCORSOrigins(origins []string) ([]string, error) {
 }
 
 func newCORSOriginError(description string) error {
-
 	return errors.NewClientError(errors.ErrorMessage{
 		Code:        errors.UPDATE_CONFIG_BAD_REQUEST.Code,
 		Message:     errors.UPDATE_CONFIG_BAD_REQUEST.Message,

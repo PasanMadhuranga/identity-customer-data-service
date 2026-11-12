@@ -54,7 +54,6 @@ func serveRecorded(t *testing.T, path string) (*httptest.ResponseRecorder, strin
 }
 
 func TestTenantDispatcherOrgPath(t *testing.T) {
-
 	defer func(resolver func(context.Context, string, string) (string, error), isSub func(context.Context,
 		string) (bool, error)) {
 		SubOrgResolver, IsSubOrgHandle = resolver, isSub
@@ -110,7 +109,6 @@ func TestTenantDispatcherPrimaryOrgHandle(t *testing.T) {
 }
 
 func TestTenantDispatcherSubOrgHandleOnPrimaryOrgPath(t *testing.T) {
-
 	defer func(isSub func(context.Context, string) (bool, error)) { IsSubOrgHandle = isSub }(IsSubOrgHandle)
 	IsSubOrgHandle = func(_ context.Context, orgHandle string) (bool, error) { return orgHandle == "region1", nil }
 
@@ -155,7 +153,6 @@ func TestTenantDispatcherSubOrgHandleOnPrimaryOrgPath(t *testing.T) {
 }
 
 func TestTenantDispatcherLookupFailure(t *testing.T) {
-
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to initialize the logger: %v", err)
 	}
@@ -187,7 +184,6 @@ func TestTenantDispatcherLookupFailure(t *testing.T) {
 }
 
 func TestTenantDispatcherOrgBasePath(t *testing.T) {
-
 	defer func(resolver func(context.Context, string, string) (string, error), isSub func(context.Context,
 		string) (bool, error)) {
 		SubOrgResolver, IsSubOrgHandle = resolver, isSub
@@ -213,14 +209,12 @@ func TestTenantDispatcherOrgBasePath(t *testing.T) {
 }
 
 func TestTenantDispatcherDoesNotServeOrgRootPath(t *testing.T) {
-
 	if code, org, _ := serve(t, "/o/4f088c20/cds/api/v1/config"); code != http.StatusNotFound || org != "" {
 		t.Errorf("expected 404 without the handler, got %d %q", code, org)
 	}
 }
 
 func TestTenantDispatcherRejectsMalformedOrgHandle(t *testing.T) {
-
 	for _, path := range []string{"/t/a%3Fb/cds/api/v1/config", "/t/a%23b/cds/api/v1/config",
 		"/t/a%40b/cds/api/v1/config"} {
 		if code, org, _ := serve(t, path); code != http.StatusBadRequest || org != "" {
@@ -230,7 +224,6 @@ func TestTenantDispatcherRejectsMalformedOrgHandle(t *testing.T) {
 }
 
 func TestIsValidOrgHandle(t *testing.T) {
-
 	for _, handle := range []string{"carbon.super", "wso2.com", "region_1-a", "10084a8d-113f-4211-a0d5-efe36b082211"} {
 		if !IsValidOrgHandle(handle) {
 			t.Errorf("expected %q to be valid", handle)

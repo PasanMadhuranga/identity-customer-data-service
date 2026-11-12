@@ -32,7 +32,6 @@ import (
 // disabled.
 
 func setUpDB(t *testing.T) *setup.SQLiteTestDB {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -50,7 +49,6 @@ func setUpDB(t *testing.T) *setup.SQLiteTestDB {
 }
 
 func TestLookupsReadNoTableWhenOrganizationManagementIsDisabled(t *testing.T) {
-
 	testDB := setUpDB(t)
 	for _, table := range []string{"resource_sharing_policy_target", "resource_sharing_policy", "organizations"} {
 		if _, err := testDB.DB.Exec("DROP TABLE " + table); err != nil {

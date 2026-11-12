@@ -26,6 +26,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
 	adminModel "github.com/wso2/identity-customer-data-service/internal/admin_config/model"
 	adminStore "github.com/wso2/identity-customer-data-service/internal/admin_config/store"
 	identityResolutionService "github.com/wso2/identity-customer-data-service/internal/identity_resolution/service"
@@ -42,7 +43,6 @@ import (
 // Test_Complex_Unification_Scenarios tests complex profile unification scenarios
 // that go beyond basic unification to test edge cases and complex merge hierarchies.
 func Test_Complex_Unification_Scenarios(t *testing.T) {
-
 	PhoneBased := "phone_based"
 	EmailBased := "email_based"
 	UserIdBased := "user_id_based"

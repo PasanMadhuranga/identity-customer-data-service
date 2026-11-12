@@ -42,14 +42,12 @@ type ApplicationService struct{}
 
 // GetApplicationService creates a new instance of ApplicationService.
 func GetApplicationService() ApplicationServiceInterface {
-
 	return &ApplicationService{}
 }
 
 // ResolveAndRegisterApplication validates the application in the identity server and persists its clientId.
 func (as *ApplicationService) ResolveAndRegisterApplication(ctx context.Context,
 	appIdentifier string, orgId string) (bool, error) {
-
 	logger := log.GetLogger()
 	cfg := config.GetCDSRuntime().Config
 	identityClient := client.NewIdentityClient(cfg)
@@ -86,7 +84,6 @@ func (as *ApplicationService) ResolveAndRegisterApplication(ctx context.Context,
 // nearest first.
 func (as *ApplicationService) ResolveAppIdentifierByClientID(ctx context.Context,
 	orgId string, clientID string) (string, error) {
-
 	orgIds, err := orgChain(ctx, orgId)
 	if err != nil {
 		return "", err
@@ -102,7 +99,6 @@ func (as *ApplicationService) ResolveAppIdentifierByClientID(ctx context.Context
 
 // orgChain returns the IDs of the organization and its ancestors, nearest first.
 func orgChain(ctx context.Context, orgId string) ([]string, error) {
-
 	org, err := orgStore.GetOrganizationById(ctx, orgId)
 	if err != nil {
 		return nil, err

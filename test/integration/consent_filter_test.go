@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	consentModel "github.com/wso2/identity-customer-data-service/internal/consent/model"
 	consentService "github.com/wso2/identity-customer-data-service/internal/consent/service"
 	consentStore "github.com/wso2/identity-customer-data-service/internal/consent/store"

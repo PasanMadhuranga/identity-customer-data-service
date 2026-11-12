@@ -68,7 +68,6 @@ func (s *IdentityResolutionService) GetPendingReviewTasks(ctx context.Context, o
 }
 
 func (s *IdentityResolutionService) GetPendingReviewTasksByProfile(ctx context.Context, orgId string, profileID string, pageSize int) (*model.ReviewTaskListResponse, error) {
-
 	tasks, totalCount, err := irStore.GetPendingReviewTasksByProfile(ctx, orgId, profileID, pageSize)
 	if err != nil {
 		return nil, err

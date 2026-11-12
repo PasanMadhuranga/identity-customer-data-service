@@ -29,7 +29,6 @@ import (
 // the suite runs on, which is PostgreSQL by default. The unit tests cover the
 // SQLite text.
 func Test_QueriesPrepare(t *testing.T) {
-
 	for name, query := range scripts.AllQueries() {
 		t.Run(name, func(t *testing.T) {
 			statement := setup.CompleteStatement(name, query.GetQuery(suiteDBType))

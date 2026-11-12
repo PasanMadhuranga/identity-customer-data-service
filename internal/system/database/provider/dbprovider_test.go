@@ -31,7 +31,6 @@ import (
 // postgresDataSource is the configuration of an existing PostgreSQL
 // deployment, with no sqlite block.
 func postgresDataSource(dbType string) config.Config {
-
 	return config.Config{
 		DataSource: config.DataSourceConfig{
 			Type:     dbType,
@@ -48,7 +47,6 @@ func postgresDataSource(dbType string) config.Config {
 // Test_getDBConfig_postgres pins the PostgreSQL DSN, which the inbuilt database
 // must not change.
 func Test_getDBConfig_postgres(t *testing.T) {
-
 	expectedDSN := "host=localhost port=5432 user=cdsuser password=cdspwd dbname=cdsdb sslmode=disable" +
 		" connect_timeout=10"
 
@@ -80,7 +78,6 @@ func Test_getDBConfig_postgres(t *testing.T) {
 }
 
 func Test_getDBConfig_sqlite(t *testing.T) {
-
 	config.OverrideCDSRuntime(config.Config{})
 	home := config.GetCDSRuntime().CDSHome
 
@@ -138,7 +135,6 @@ func Test_getDBConfig_sqlite(t *testing.T) {
 // no type runs on the inbuilt database, even when PostgreSQL settings are
 // present. The startup check is what refuses that combination.
 func Test_unsetTypeUsesTheInbuiltDatabase(t *testing.T) {
-
 	config.OverrideCDSRuntime(config.Config{})
 
 	dbConfig, err := getDBConfig(postgresDataSource(""))
@@ -151,7 +147,6 @@ func Test_unsetTypeUsesTheInbuiltDatabase(t *testing.T) {
 }
 
 func Test_ensureSQLiteDir(t *testing.T) {
-
 	config.OverrideCDSRuntime(config.Config{})
 
 	path := filepath.Join(t.TempDir(), "nested", "deeper", "cds.db")
@@ -166,7 +161,6 @@ func Test_ensureSQLiteDir(t *testing.T) {
 }
 
 func Test_ValidateDataSource(t *testing.T) {
-
 	postgres := postgresDataSource("postgres").DataSource
 
 	// withoutSetting returns the PostgreSQL configuration with one setting
@@ -226,7 +220,6 @@ func Test_ValidateDataSource(t *testing.T) {
 // pool nothing would close. A test opens a pool after it closes one, so it
 // clears that mark at both ends of the test.
 func resetPools(t *testing.T) {
-
 	t.Helper()
 
 	if err := CloseDB(); err != nil {
@@ -241,7 +234,6 @@ func resetPools(t *testing.T) {
 // isolatePools gives the test a process that holds no pool, and leaves one
 // behind for the next test.
 func isolatePools(t *testing.T) {
-
 	t.Helper()
 
 	resetPools(t)
@@ -254,7 +246,6 @@ func isolatePools(t *testing.T) {
 // A test that checks what happens to an already published handle supplies that
 // handle instead. Only the pointer matters here, so the pool is an inbuilt one.
 func seedPostgresHandle(t *testing.T) *sql.DB {
-
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "cds.db")
@@ -275,7 +266,6 @@ func seedPostgresHandle(t *testing.T) *sql.DB {
 // Test_getPostgresDB_reusesOnePool checks that the process opens one PostgreSQL
 // pool and hands it to every caller.
 func Test_getPostgresDB_reusesOnePool(t *testing.T) {
-
 	config.OverrideCDSRuntime(postgresDataSource("postgres"))
 	seeded := seedPostgresHandle(t)
 
@@ -314,7 +304,6 @@ func Test_getPostgresDB_reusesOnePool(t *testing.T) {
 // Test_applyPostgresPoolSettings_boundsThePool checks that the resolved limits
 // reach the pool.
 func Test_applyPostgresPoolSettings_boundsThePool(t *testing.T) {
-
 	path := filepath.Join(t.TempDir(), "cds.db")
 	db, err := sql.Open(database.DriverSQLite, path+"?"+database.DefaultSQLiteOptions)
 	if err != nil {
@@ -337,7 +326,6 @@ func Test_applyPostgresPoolSettings_boundsThePool(t *testing.T) {
 // Test_CloseDB_releasesThePool checks that shutdown drops the handle, so a
 // later call builds a new pool rather than one that is closed.
 func Test_CloseDB_releasesThePool(t *testing.T) {
-
 	config.OverrideCDSRuntime(postgresDataSource("postgres"))
 	seedPostgresHandle(t)
 
@@ -355,7 +343,6 @@ func Test_CloseDB_releasesThePool(t *testing.T) {
 }
 
 func Test_resolvePostgresPoolSettings(t *testing.T) {
-
 	testCases := []struct {
 		name     string
 		cfg      config.PostgresConfig

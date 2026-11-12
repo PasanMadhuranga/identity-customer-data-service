@@ -22,11 +22,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
 	"testing"
 	"time"
 
+	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
+
 	"github.com/stretchr/testify/require"
+
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"

@@ -43,7 +43,6 @@ func attributeIds(attrs []model.ProfileSchemaAttribute) []string {
 // An owned attribute with the same name wins. Among shared attributes, the attribute of the
 // nearest owner wins.
 func TestSelectActiveSharedAttributesConflicts(t *testing.T) {
-
 	attrs := []model.ProfileSchemaAttribute{
 		sharedAttribute("primary-tier", "r", "traits.tier", ""),
 		sharedAttribute("a-tier", "a", "traits.tier", ""),
@@ -70,7 +69,6 @@ func TestSelectActiveSharedAttributesConflicts(t *testing.T) {
 // Two applications can use the same application data attribute name. A name conflicts only in one
 // application.
 func TestSelectActiveSharedAttributesScopesAppDataNamesToTheApp(t *testing.T) {
-
 	attrs := []model.ProfileSchemaAttribute{sharedAttribute("shop-cart", "r", "application_data.cart", "shop")}
 	shared := []shareModel.SharedResource{{ResourceId: "shop-cart", OwnerOrgId: "r", OwnerDepth: 1}}
 

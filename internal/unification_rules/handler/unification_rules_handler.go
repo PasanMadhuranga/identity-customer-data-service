@@ -38,6 +38,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/unification_rules/provider"
 
 	"github.com/google/uuid"
+
 	shareHandler "github.com/wso2/identity-customer-data-service/internal/sharing/handler"
 )
 
@@ -47,7 +48,6 @@ type UnificationRulesHandler struct {
 }
 
 func NewUnificationRulesHandler() *UnificationRulesHandler {
-
 	return &UnificationRulesHandler{
 		store: make(map[string]model.UnificationRule),
 		mu:    &sync.RWMutex{},
@@ -56,7 +56,6 @@ func NewUnificationRulesHandler() *UnificationRulesHandler {
 
 // AddUnificationRule handles adding a new rule
 func (urh *UnificationRulesHandler) AddUnificationRule(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "unification_rules:create")
@@ -213,7 +212,6 @@ func (urh *UnificationRulesHandler) AddUnificationRule(w http.ResponseWriter, r 
 
 // GetUnificationRules handles fetching all rules
 func (urh *UnificationRulesHandler) GetUnificationRules(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "unification_rules:view")
@@ -252,7 +250,6 @@ func (urh *UnificationRulesHandler) GetUnificationRules(w http.ResponseWriter, r
 
 // GetUnificationRule Fetches a specific resolution rule.
 func (urh *UnificationRulesHandler) GetUnificationRule(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "unification_rules:view")
@@ -296,7 +293,6 @@ func (urh *UnificationRulesHandler) GetUnificationRule(w http.ResponseWriter, r 
 
 // PatchUnificationRule applies partial updates to a unification rule.
 func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "unification_rules:update")
@@ -462,7 +458,6 @@ func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, 
 
 // DeleteUnificationRule removes a resolution rule.
 func (urh *UnificationRulesHandler) DeleteUnificationRule(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "unification_rules:delete")
@@ -536,7 +531,6 @@ func isCDSEnabled(ctx context.Context, orgId string) bool {
 
 // CreateSharingPolicy shares a rule of the organization.
 func (h *UnificationRulesHandler) CreateSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "unification_rules:share_update")
 	if !ok {
 		return
@@ -557,7 +551,6 @@ func (h *UnificationRulesHandler) CreateSharingPolicy(w http.ResponseWriter, r *
 
 // ListSharingPolicies returns the sharing policies of a rule of the organization.
 func (h *UnificationRulesHandler) ListSharingPolicies(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "unification_rules:share_view")
 	if !ok {
 		return
@@ -574,7 +567,6 @@ func (h *UnificationRulesHandler) ListSharingPolicies(w http.ResponseWriter, r *
 
 // GetSharingPolicy returns a sharing policy of a rule of the organization.
 func (h *UnificationRulesHandler) GetSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "unification_rules:share_view")
 	if !ok {
 		return
@@ -592,7 +584,6 @@ func (h *UnificationRulesHandler) GetSharingPolicy(w http.ResponseWriter, r *htt
 
 // UpdateSharingPolicy replaces a sharing policy of a rule of the organization.
 func (h *UnificationRulesHandler) UpdateSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "unification_rules:share_update")
 	if !ok {
 		return
@@ -614,7 +605,6 @@ func (h *UnificationRulesHandler) UpdateSharingPolicy(w http.ResponseWriter, r *
 
 // DeleteSharingPolicy removes a sharing policy of a rule of the organization.
 func (h *UnificationRulesHandler) DeleteSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "unification_rules:share_update")
 	if !ok {
 		return

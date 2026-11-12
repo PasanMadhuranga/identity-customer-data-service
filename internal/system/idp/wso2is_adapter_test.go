@@ -34,7 +34,6 @@ import (
 // An organization that answers the self call on its own tenant path is the primary organization,
 // with or without a parent.
 func TestGetPrimaryOrganizationAcceptsAnyParent(t *testing.T) {
-
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
 	}

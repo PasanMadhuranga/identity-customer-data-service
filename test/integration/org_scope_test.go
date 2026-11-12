@@ -24,8 +24,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -35,6 +33,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
+	"github.com/wso2/identity-customer-data-service/test/setup"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -450,7 +451,6 @@ func (f *orgScopeFixture) setOtherProfileConsent(t *testing.T, categoryId string
 
 func (f *orgScopeFixture) call(t *testing.T, org, token, method, path, body string,
 	cookie *http.Cookie) (int, []byte) {
-
 	t.Helper()
 
 	target := fmt.Sprintf("/t/%s%s/v1%s", org, constants.ApiBasePath, path)
@@ -467,7 +467,6 @@ func (f *orgScopeFixture) call(t *testing.T, org, token, method, path, body stri
 
 // sync sends a profile sync event with the admin credentials. The org is taken from the body.
 func (f *orgScopeFixture) sync(t *testing.T, event map[string]interface{}) {
-
 	t.Helper()
 
 	payload, err := json.Marshal(event)
@@ -484,7 +483,6 @@ func (f *orgScopeFixture) sync(t *testing.T, event map[string]interface{}) {
 
 // orgScopeRequiredScopes reads the required scopes from the shipped deployment configuration.
 func orgScopeRequiredScopes(t *testing.T) map[string][]string {
-
 	t.Helper()
 
 	raw, err := os.ReadFile(filepath.Join(utils.GetTestHome(), "config", "repository", "conf", "deployment.yaml"))
@@ -501,7 +499,6 @@ func orgScopeRequiredScopes(t *testing.T) map[string][]string {
 
 // orgScopeAllScopes returns every scope that the shipped configuration requires.
 func orgScopeAllScopes(t *testing.T) string {
-
 	t.Helper()
 
 	seen := map[string]bool{}
@@ -521,7 +518,6 @@ func orgScopeAllScopes(t *testing.T) string {
 // orgScopeToken returns a JWT for the org. The service reads JWT claims without a
 // signature check and asks the introspection endpoint whether the token is active.
 func orgScopeToken(t *testing.T, org, subject, scopes string) string {
-
 	t.Helper()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -539,7 +535,6 @@ func orgScopeToken(t *testing.T, org, subject, scopes string) string {
 // setUpOrgScopeAuth points the runtime at a stub introspection endpoint that reports
 // every token as active, and sets the admin credentials for profile sync.
 func setUpOrgScopeAuth(t *testing.T) func() {
-
 	t.Helper()
 
 	introspection := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

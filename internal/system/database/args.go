@@ -25,7 +25,6 @@ package database
 // The client and the transaction wrapper both apply it, so a JSON column is
 // stored the same way inside and outside a transaction.
 func NormalizeSQLiteArgs(args []interface{}) []interface{} {
-
 	if len(args) == 0 {
 		return args
 	}

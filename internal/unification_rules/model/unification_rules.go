@@ -57,7 +57,6 @@ type UnificationRule struct {
 // legacy rule silently matches with an empty method and no evidence weights.
 func ApplyDefaults(rule UnificationRule, defaultAttributeType, defaultMethod string,
 	matchDefaults, mismatchDefaults map[string]string) UnificationRule {
-
 	if rule.AttributeType == "" {
 		rule.AttributeType = defaultAttributeType
 	}
@@ -82,7 +81,6 @@ func ApplyDefaults(rule UnificationRule, defaultAttributeType, defaultMethod str
 // search path and the review path disagreeing about which rule was responsible.
 func ActiveSortedByPriority(rules []UnificationRule, defaultAttributeType, defaultMethod string,
 	matchDefaults, mismatchDefaults map[string]string) []UnificationRule {
-
 	active := make([]UnificationRule, 0, len(rules))
 	for _, rule := range rules {
 		// A shared rule runs only in the ACTIVE state. A rule read from the store has no state.
@@ -146,7 +144,6 @@ func AsExactMatching(rules []UnificationRule) []UnificationRule {
 // then the first agreement of any kind.
 func PrimaryRuleName(breakdown map[string]float64, rules []UnificationRule,
 	agreementThreshold float64, deterministicMatchDecisive bool) (string, bool) {
-
 	agreed := func(rule UnificationRule) bool {
 		score, scored := breakdown[rule.PropertyName]
 		return scored && score >= agreementThreshold

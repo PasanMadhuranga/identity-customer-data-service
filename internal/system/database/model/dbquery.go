@@ -42,7 +42,6 @@ type DBQuery struct {
 // GetQuery returns the statement for dbType. A populated DBQuery never resolves
 // to an empty statement.
 func (q DBQuery) GetQuery(dbType string) string {
-
 	if dbType == database.TypeSQLite && q.SQLiteQuery != "" {
 		return q.SQLiteQuery
 	}
@@ -55,7 +54,6 @@ func (q DBQuery) GetQuery(dbType string) string {
 // An absent override stays absent, so the statement keeps falling back to the
 // PostgreSQL text.
 func (q DBQuery) Format(args ...interface{}) DBQuery {
-
 	formatted := DBQuery{
 		ID:    q.ID,
 		Query: fmt.Sprintf(q.Query, args...),
@@ -70,7 +68,6 @@ func (q DBQuery) Format(args ...interface{}) DBQuery {
 // built by concatenation rather than Sprintf. It preserves the fallback the
 // same way Format does.
 func (q DBQuery) Append(suffix string) DBQuery {
-
 	appended := DBQuery{
 		ID:    q.ID,
 		Query: q.Query + suffix,
@@ -85,7 +82,6 @@ func (q DBQuery) Append(suffix string) DBQuery {
 // few statements a store assembles from dialect-specific fragments. The dialect
 // is already applied by then, so there is nothing left to select.
 func (q DBQuery) WithSQL(sqlText string) DBQuery {
-
 	return DBQuery{
 		ID:    q.ID,
 		Query: sqlText,

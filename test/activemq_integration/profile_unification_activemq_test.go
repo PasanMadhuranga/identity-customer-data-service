@@ -22,12 +22,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"testing"
 	"time"
 
+	"github.com/wso2/identity-customer-data-service/test/setup"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileService "github.com/wso2/identity-customer-data-service/internal/profile/service"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"

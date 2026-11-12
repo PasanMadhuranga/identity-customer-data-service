@@ -26,7 +26,6 @@ import "github.com/wso2/identity-customer-data-service/internal/system/database/
 // The list is maintained by hand: add every new statement, or it goes
 // unchecked.
 func AllQueries() map[string]model.DBQuery {
-
 	return map[string]model.DBQuery{
 		"UpsertApplication":                      UpsertApplication,
 		"GetAppIdentifierByClientID":             GetAppIdentifierByClientID,

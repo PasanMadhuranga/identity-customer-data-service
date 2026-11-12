@@ -92,7 +92,6 @@ func scanProfileConsentRow(row map[string]interface{}) (model.ConsentRecord, err
 
 // InsertProfile inserts a new profile into the database
 func InsertProfile(ctx context.Context, orgId string, profile model.Profile) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -184,7 +183,6 @@ func InsertProfile(ctx context.Context, orgId string, profile model.Profile) err
 }
 
 func InsertApplicationData(ctx context.Context, profileId string, apps []model.ApplicationData) error {
-
 	for _, app := range apps {
 		// Construct the update map
 		updateMap := make(map[string]interface{})
@@ -225,7 +223,6 @@ func GetProfile(ctx context.Context, profileId, orgId string) (*model.Profile, e
 // GetProfileWithOptions retrieves a profile by its ID using the supplied loading options.
 func GetProfileWithOptions(ctx context.Context, profileId, orgId string,
 	options GetProfileOptions) (*model.Profile, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -284,7 +281,6 @@ func GetProfileWithOptions(ctx context.Context, profileId, orgId string,
 
 // GetProfileConsents retrieves the consents of a profile by its profileId
 func GetProfileConsents(ctx context.Context, profileId, orgId string) ([]model.ConsentRecord, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -329,7 +325,6 @@ func GetProfileConsents(ctx context.Context, profileId, orgId string) ([]model.C
 	}
 	profileConsents := make([]model.ConsentRecord, 0)
 	for _, row := range results {
-
 		profileConsent, err := scanProfileConsentRow(row)
 		if err != nil {
 			errorMsg := fmt.Sprintf("Failed fetching profile consents with Id: %s", profileId)
@@ -347,7 +342,6 @@ func GetProfileConsents(ctx context.Context, profileId, orgId string) ([]model.C
 }
 
 func FetchApplicationData(ctx context.Context, profileId string) ([]model.ApplicationData, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -406,7 +400,6 @@ func FetchApplicationData(ctx context.Context, profileId string) ([]model.Applic
 }
 
 func FetchApplicationDataWithAppId(ctx context.Context, profileId string, appId string) (model.ApplicationData, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -463,7 +456,6 @@ func FetchApplicationDataWithAppId(ctx context.Context, profileId string, appId 
 
 // UpdateProfile updates the profile
 func UpdateProfile(ctx context.Context, orgId string, profile model.Profile) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -556,7 +548,6 @@ func UpdateProfile(ctx context.Context, orgId string, profile model.Profile) err
 // It returns up to `limit` profiles and a boolean indicating if more records exist.
 func GetAllProfiles(ctx context.Context,
 	orgId string, limit int, cursor *model.ProfileCursor) ([]model.Profile, bool, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -728,7 +719,6 @@ func FetchApplicationDataBatch(ctx context.Context, profileIDs []string) (map[st
 
 // DeleteProfile deletes a profile and its associated data
 func DeleteProfile(ctx context.Context, profileId string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -798,7 +788,6 @@ func DeleteProfile(ctx context.Context, profileId string) error {
 }
 
 func UpsertAppDatum(ctx context.Context, profileId string, appId string, updates map[string]interface{}) error {
-
 	// Fetch existing application_data for the given app
 	appData, err := FetchApplicationDataWithAppId(ctx, profileId, appId)
 	if err != nil {
@@ -817,7 +806,6 @@ func UpsertAppDatum(ctx context.Context, profileId string, appId string, updates
 		existingVal := appData.AppSpecificData[actualKey]
 		log.GetLogger().Info("Merging key: " + actualKey)
 		appData.AppSpecificData[actualKey] = enrichFieldValues(existingVal, incomingVal)
-
 	}
 
 	// Final wrapper for marshaling
@@ -874,7 +862,6 @@ func UpsertAppDatum(ctx context.Context, profileId string, appId string, updates
 
 // DetachRefererProfileFromReference removes a child from a parent's child_profile_ids list
 func DetachRefererProfileFromReference(ctx context.Context, referenceProfileId, profileId string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -913,7 +900,6 @@ func DetachRefererProfileFromReference(ctx context.Context, referenceProfileId, 
 
 // InsertMergedMasterProfileAppData adds or updates application-specific context data.
 func InsertMergedMasterProfileAppData(ctx context.Context, profileId, orgId string, newAppCtx model.ApplicationData) error {
-
 	profile, err := GetProfile(ctx, profileId, orgId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -968,7 +954,6 @@ func InsertMergedMasterProfileAppData(ctx context.Context, profileId, orgId stri
 // InsertMergedMasterProfileTraitData replaces (PUT) the traits data inside Profile
 func InsertMergedMasterProfileTraitData(ctx context.Context,
 	profileId, orgId string, traitsData map[string]interface{}) error {
-
 	profile, err := GetProfile(ctx, profileId, orgId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -998,7 +983,6 @@ func InsertMergedMasterProfileTraitData(ctx context.Context,
 
 // MergeIdentityDataOfProfiles replaces or adds to identity_attributes in Profile
 func MergeIdentityDataOfProfiles(ctx context.Context, profileId, orgId string, identityData map[string]interface{}) error {
-
 	profile, err := GetProfile(ctx, profileId, orgId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -1039,7 +1023,6 @@ func GetAllProfilesWithFilter(ctx context.Context,
 	limit int,
 	cursor *model.ProfileCursor,
 ) ([]model.Profile, bool, error) {
-
 	if err := validateFilterFields(filters); err != nil {
 		return nil, false, err
 	}
@@ -1349,7 +1332,6 @@ func GetAllProfilesWithFilter(ctx context.Context,
 // so pushing it down bounds both the query and the memory it returns.
 func GetProfileIDsWithFilters(ctx context.Context, orgId string, filters []string,
 	restrictTo []string) ([]string, error) {
-
 	if err := validateFilterFields(filters); err != nil {
 		return nil, err
 	}
@@ -1564,7 +1546,6 @@ var filterField = regexp.MustCompile(constants.FilterRegex)
 // service checks the fields too; this check keeps the store safe for a caller that does not. A
 // filter that is not "<field> <operator> <value>" is left to the builder, which handles it.
 func validateFilterFields(filters []string) error {
-
 	for _, f := range filters {
 		parts := strings.SplitN(f, " ", 3)
 		if len(parts) != 3 {
@@ -1598,7 +1579,6 @@ func sanitizeForAlias(input string) string {
 
 // UpdateProfileReferences updates the references of a parent profile with the provided child profiles.
 func UpdateProfileReferences(ctx context.Context, parentProfile model.Profile, children []model.Reference) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -1657,7 +1637,6 @@ func UpdateProfileReferences(ctx context.Context, parentProfile model.Profile, c
 }
 
 func FetchReferencedProfiles(ctx context.Context, referenceProfileId string) ([]model.Reference, error) {
-
 	logger := log.GetLogger()
 	logger.Info(fmt.Sprintf("Fetching referenced profiles for profile: %s", referenceProfileId))
 
@@ -1736,7 +1715,6 @@ func enrichFieldValues(existingVal, incomingVal interface{}) interface{} {
 }
 
 func toStringSlice(val interface{}) []string {
-
 	logger := log.GetLogger()
 	if val == nil {
 		return []string{}
@@ -1761,7 +1739,6 @@ func toStringSlice(val interface{}) []string {
 }
 
 func toIntSlice(val interface{}) []int {
-
 	logger := log.GetLogger()
 	if val == nil {
 		return []int{}
@@ -1832,7 +1809,6 @@ func toInt(val interface{}) (int, bool) {
 }
 
 func GetProfileWithUserId(ctx context.Context, userId, orgId string) (*model.Profile, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -1922,7 +1898,6 @@ func CreateProfileCookie(ctx context.Context, profileCookie model.ProfileCookie)
 
 // GetProfileCookieByProfileId retrieves a profile cookie by profileId
 func GetProfileCookieByProfileId(ctx context.Context, profileId string) (*model.ProfileCookie, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -1969,7 +1944,6 @@ func GetProfileCookieByProfileId(ctx context.Context, profileId string) (*model.
 
 // GetProfileCookie retrieves a profile cookie by profileId
 func GetProfileCookie(ctx context.Context, cookie, orgId string) (*model.ProfileCookie, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -2018,7 +1992,6 @@ func GetProfileCookie(ctx context.Context, cookie, orgId string) (*model.Profile
 
 // UpdateProfileCookieByProfileId updates the status of a profile cookie
 func UpdateProfileCookieByProfileId(ctx context.Context, profileId string, isActive bool) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -2052,7 +2025,6 @@ func UpdateProfileCookieByProfileId(ctx context.Context, profileId string, isAct
 
 // UpdateProfileCookieByCookieId updates the status of a profile cookie
 func UpdateProfileCookieByCookieId(ctx context.Context, cookieId string, isActive bool) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -2119,7 +2091,6 @@ func DeleteProfileCookieByProfile(ctx context.Context, profileId string) error {
 
 // DeleteInactiveCookieProfiles deletes inactive cookie-profile records in batches.
 func DeleteInactiveCookieProfiles(ctx context.Context, batchSize int) (int, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -2203,7 +2174,6 @@ func UpdateProfileConsents(ctx context.Context, profileId string, consents []mod
 	// Insert new consent records
 	insertQuery := scripts.InsertProfileConsentsByProfileId
 	for _, consent := range consents {
-
 		_, err = tx.ExecContext(ctx, insertQuery,
 			profileId,
 			consent.CategoryIdentifier,

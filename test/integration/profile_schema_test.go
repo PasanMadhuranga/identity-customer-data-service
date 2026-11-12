@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
 	"github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
 	schemaService "github.com/wso2/identity-customer-data-service/internal/profile_schema/service"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
@@ -29,7 +30,6 @@ func createAttr(org, name, vType, merge, mut string) model.ProfileSchemaAttribut
 }
 
 func Test_ProfileSchemaService(t *testing.T) {
-
 	SuperTenantOrg := setup.TestOrg(t, fmt.Sprintf("carbon.super-%d", time.Now().UnixNano()))
 	svc := schemaService.GetProfileSchemaService()
 
@@ -39,7 +39,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 	defer restore()
 
 	t.Run("Add Operations", func(t *testing.T) {
-
 		t.Run("Add_ValidAttributes_ShouldSucceed", func(t *testing.T) {
 			// 1. Identity attributes
 			identityAttrs := []model.ProfileSchemaAttribute{
@@ -323,11 +322,9 @@ func Test_ProfileSchemaService(t *testing.T) {
 			//  Everything should pass, proving depth=4 hierarchy works correctly
 			_ = svc.DeleteProfileSchemaAttributesByScope(context.Background(), SuperTenantOrg.ID, constants.Traits)
 		})
-
 	})
 
 	t.Run("Get Operations", func(t *testing.T) {
-
 		identityAttrs := []model.ProfileSchemaAttribute{
 			createAttr(SuperTenantOrg.ID, "identity_attributes.email", constants.StringDataType, "combine", constants.MutabilityReadWrite),
 			createAttr(SuperTenantOrg.ID, "identity_attributes.phone", constants.StringDataType, "combine", constants.MutabilityReadWrite),
@@ -420,7 +417,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 	})
 
 	t.Run("Delete Operations", func(t *testing.T) {
-
 		t.Run("Delete_ProfileSchemaAttribute_ById", func(t *testing.T) {
 			attr := createAttr(SuperTenantOrg.ID, "traits.to_delete", constants.StringDataType, "combine", constants.MutabilityReadWrite)
 			_, err := svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{attr}, constants.Traits, SuperTenantOrg.ID)

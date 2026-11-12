@@ -37,7 +37,6 @@ import (
 
 // AddUnificationRule adds a new unification rule to the database
 func AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgId string) error {
-
 	defer invalidateRulesCache()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -92,7 +91,6 @@ func invalidateRulesCache() {
 }
 
 func GetUnificationRules(ctx context.Context, orgId string) ([]model.UnificationRule, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	if cached, found := rulesCache.Get(orgId); found {
@@ -141,7 +139,6 @@ func GetUnificationRules(ctx context.Context, orgId string) ([]model.Unification
 
 // GetUnificationRule fetches a specific unification rule by its Id
 func GetUnificationRule(ctx context.Context, ruleId, orgId string) (*model.UnificationRule, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -188,7 +185,6 @@ func GetUnificationRule(ctx context.Context, ruleId, orgId string) (*model.Unifi
 
 // GetUnificationRulesByIds returns the rules with the IDs.
 func GetUnificationRulesByIds(ctx context.Context, ruleIds []string) ([]model.UnificationRule, error) {
-
 	if len(ruleIds) == 0 {
 		return nil, nil
 	}
@@ -225,7 +221,6 @@ func GetUnificationRulesByIds(ctx context.Context, ruleIds []string) ([]model.Un
 
 // PatchUnificationRule applies partial updates to a unification rule.
 func PatchUnificationRule(ctx context.Context, ruleId, orgId string, updatedRule model.UnificationRule) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	defer invalidateRulesCache()
@@ -267,7 +262,6 @@ func PatchUnificationRule(ctx context.Context, ruleId, orgId string, updatedRule
 
 // DeleteUnificationRule deletes a unification rule by its Id
 func DeleteUnificationRule(ctx context.Context, ruleId, orgId string) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	defer invalidateRulesCache()

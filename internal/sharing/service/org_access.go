@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
 	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
 	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
 	"github.com/wso2/identity-customer-data-service/internal/sharing/model"
@@ -37,7 +38,6 @@ import (
 // IsSubOrgEnabled reports whether the organization access of the primary organization includes the
 // organization.
 func IsSubOrgEnabled(ctx context.Context, orgId string) bool {
-
 	org, err := orgService.GetOrganizationById(ctx, orgId)
 	if err != nil || org == nil {
 		return false
@@ -49,7 +49,6 @@ func IsSubOrgEnabled(ctx context.Context, orgId string) bool {
 // IsOrgEnabled reports whether the organization access includes the organization. A primary
 // organization is always enabled.
 func IsOrgEnabled(ctx context.Context, org orgModel.Organization) (bool, error) {
-
 	if org.IsPrimary() {
 		return true, nil
 	}
@@ -63,7 +62,6 @@ func IsOrgEnabled(ctx context.Context, org orgModel.Organization) (bool, error) 
 // isOrgEnabled reports whether an organization access policy of an ancestor reaches the active
 // organization.
 func isOrgEnabled(ctx context.Context, org orgModel.Organization, ancestors []orgModel.Ancestor) (bool, error) {
-
 	if !org.IsActive() || len(ancestors) == 0 {
 		return false, nil
 	}
@@ -77,7 +75,6 @@ func isOrgEnabled(ctx context.Context, org orgModel.Organization, ancestors []or
 // CreateOrgAccess creates the organization access of the primary organization.
 func CreateOrgAccess(ctx context.Context, primary orgModel.Organization,
 	req model.PolicyRequest) (*model.OrgAccessResponse, error) {
-
 	if err := requireSyncedTree(ctx, primary); err != nil {
 		return nil, err
 	}
@@ -112,7 +109,6 @@ func CreateOrgAccess(ctx context.Context, primary orgModel.Organization,
 
 // ListOrgAccess returns the organization access policies of the primary organization.
 func ListOrgAccess(ctx context.Context, primary orgModel.Organization) (*model.OrgAccessList, error) {
-
 	list := &model.OrgAccessList{Policies: []model.OrgAccessResponse{}}
 	p, err := orgAccessOf(ctx, primary)
 	if err != nil {
@@ -128,7 +124,6 @@ func ListOrgAccess(ctx context.Context, primary orgModel.Organization) (*model.O
 // GetOrgAccess returns an organization access policy of the primary organization.
 func GetOrgAccess(ctx context.Context, primary orgModel.Organization,
 	policyId string) (*model.OrgAccessResponse, error) {
-
 	p, err := orgAccessById(ctx, primary, policyId)
 	if err != nil {
 		return nil, err
@@ -140,7 +135,6 @@ func GetOrgAccess(ctx context.Context, primary orgModel.Organization,
 // UpdateOrgAccess replaces the selected organizations of an organization access policy.
 func UpdateOrgAccess(ctx context.Context, primary orgModel.Organization, policyId string,
 	req model.PolicyRequest) (*model.OrgAccessResponse, error) {
-
 	if err := requireSyncedTree(ctx, primary); err != nil {
 		return nil, err
 	}
@@ -174,7 +168,6 @@ func UpdateOrgAccess(ctx context.Context, primary orgModel.Organization, policyI
 
 // DeleteOrgAccess deletes the organization access of the primary organization.
 func DeleteOrgAccess(ctx context.Context, primary orgModel.Organization, policyId string) error {
-
 	p, err := orgAccessById(ctx, primary, policyId)
 	if err != nil {
 		return err
@@ -184,7 +177,6 @@ func DeleteOrgAccess(ctx context.Context, primary orgModel.Organization, policyI
 
 // requireSyncedTree returns an error until the organization tree is synced at least once.
 func requireSyncedTree(ctx context.Context, primary orgModel.Organization) error {
-
 	status, err := orgService.GetTreeSyncStatus(ctx, primary.OrgId)
 	if err != nil {
 		return err
@@ -207,7 +199,6 @@ func orgAccessOf(ctx context.Context, primary orgModel.Organization) (*model.Pol
 // orgAccessById returns the organization access policy with the ID when it belongs to the primary
 // organization.
 func orgAccessById(ctx context.Context, primary orgModel.Organization, policyId string) (*model.Policy, error) {
-
 	p, err := store.GetPolicyById(ctx, policyId)
 	if err != nil {
 		return nil, err

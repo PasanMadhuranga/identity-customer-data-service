@@ -21,11 +21,13 @@ package integration
 import (
 	"context"
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"testing"
 	"time"
 
+	"github.com/wso2/identity-customer-data-service/test/setup"
+
 	"github.com/google/uuid"
+
 	irModel "github.com/wso2/identity-customer-data-service/internal/identity_resolution/model"
 	irService "github.com/wso2/identity-customer-data-service/internal/identity_resolution/service"
 	irStore "github.com/wso2/identity-customer-data-service/internal/identity_resolution/store"

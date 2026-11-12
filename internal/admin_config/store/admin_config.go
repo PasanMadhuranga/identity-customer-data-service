@@ -33,7 +33,6 @@ import (
 )
 
 func GetAdminConfig(ctx context.Context, orgId string) (*model.AdminConfig, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -65,7 +64,6 @@ func GetAdminConfig(ctx context.Context, orgId string) (*model.AdminConfig, erro
 // GetCORSAllowedOrigins returns the CORS allowed origins the organization has configured, or nil
 // when it has configured none. It reads the one key, which the (org_id, config) key serves.
 func GetCORSAllowedOrigins(ctx context.Context, orgId string) ([]string, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -106,7 +104,6 @@ func GetCORSAllowedOrigins(ctx context.Context, orgId string) ([]string, error) 
 
 // UpdateAdminConfig updates organization-level admin configuration (e.g., CDS enablement, schema sync flags).
 func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -275,7 +272,6 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 
 // UpdateInitialSchemaSyncConfig updates organization-level admin configuration (e.g., CDS enablement, schema sync flags).
 func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgId string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -327,7 +323,6 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgId string
 // most on upgrade: a key introduced by a new feature must default to what the org was
 // already doing, not to the zero value.
 func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {
-
 	config := &model.AdminConfig{
 		CDSEnabled:            false,
 		InitialSchemaSyncDone: false,

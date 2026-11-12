@@ -34,7 +34,6 @@ import (
 // storeCORSOrigins stores the origins as the configuration of the organisation, which it
 // stores first as a request would, and returns the org ID the configuration is kept under.
 func storeCORSOrigins(t *testing.T, orgHandle string, origins []string) string {
-
 	t.Helper()
 	orgId := resolveOrgId(t, orgHandle)
 	config := adminConfigModel.AdminConfig{
@@ -51,7 +50,6 @@ func storeCORSOrigins(t *testing.T, orgHandle string, origins []string) string {
 
 // Each organisation's origins round-trip through the store independently of the others.
 func TestCORSAllowedOriginsRoundTripPerOrg(t *testing.T) {
-
 	want := map[string][]string{
 		"cors-acme":   {"https://app.acme.com", "http://localhost:3000"},
 		"cors-globex": {"https://app.globex.com"},
@@ -75,7 +73,6 @@ func TestCORSAllowedOriginsRoundTripPerOrg(t *testing.T) {
 // An organisation that has never been configured reports no origins, so the deployment
 // fallback applies to it.
 func TestCORSAllowedOriginsEmptyForUnconfiguredOrg(t *testing.T) {
-
 	stored, err := adminConfigStore.GetAdminConfig(context.Background(), resolveOrgId(t, "cors-never-configured"))
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
@@ -88,7 +85,6 @@ func TestCORSAllowedOriginsEmptyForUnconfiguredOrg(t *testing.T) {
 // The CORS middleware reads the origins of one organisation by org ID, and an organisation that
 // has configured none, or an empty list, reads as none.
 func TestCORSAllowedOriginsAreReadPerOrg(t *testing.T) {
-
 	ctx := context.Background()
 	acmeId := storeCORSOrigins(t, "cors-one-acme", []string{"https://app.acme.com", "http://localhost:3000"})
 	initechId := storeCORSOrigins(t, "cors-one-initech", []string{})
@@ -117,7 +113,6 @@ func TestCORSAllowedOriginsAreReadPerOrg(t *testing.T) {
 // The stored origins drive the middleware end to end: each organisation's own origin is
 // allowed on its own path and refused on the other's.
 func TestStoredOriginsDriveTheMiddleware(t *testing.T) {
-
 	storeCORSOrigins(t, "cors-mw-acme", []string{"https://app.acme.com"})
 	storeCORSOrigins(t, "cors-mw-globex", []string{"https://app.globex.com"})
 

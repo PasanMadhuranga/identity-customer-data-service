@@ -47,7 +47,6 @@ func NewOrganizationHandler() *OrganizationHandler {
 
 // SyncOrganization applies an organization lifecycle event.
 func (h *OrganizationHandler) SyncOrganization(w http.ResponseWriter, r *http.Request) {
-
 	if err := security.AuthnWithAdminCredentials(r); err != nil {
 		utils.HandleError(w, err)
 		return
@@ -73,7 +72,6 @@ func (h *OrganizationHandler) SyncOrganization(w http.ResponseWriter, r *http.Re
 
 // StartTreeSync starts a background sync of the organization tree.
 func (h *OrganizationHandler) StartTreeSync(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {
 		return
@@ -88,7 +86,6 @@ func (h *OrganizationHandler) StartTreeSync(w http.ResponseWriter, r *http.Reque
 
 // GetTreeSync returns the state of the organization tree sync.
 func (h *OrganizationHandler) GetTreeSync(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:view")
 	if !ok {
 		return
@@ -104,7 +101,6 @@ func (h *OrganizationHandler) GetTreeSync(w http.ResponseWriter, r *http.Request
 // Organization access endpoints.
 
 func (h *OrganizationHandler) CreateOrgAccess(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {
 		return
@@ -122,7 +118,6 @@ func (h *OrganizationHandler) CreateOrgAccess(w http.ResponseWriter, r *http.Req
 }
 
 func (h *OrganizationHandler) ListOrgAccess(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:view")
 	if !ok {
 		return
@@ -136,7 +131,6 @@ func (h *OrganizationHandler) ListOrgAccess(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *OrganizationHandler) GetOrgAccess(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:view")
 	if !ok {
 		return
@@ -150,7 +144,6 @@ func (h *OrganizationHandler) GetOrgAccess(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *OrganizationHandler) UpdateOrgAccess(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {
 		return
@@ -168,7 +161,6 @@ func (h *OrganizationHandler) UpdateOrgAccess(w http.ResponseWriter, r *http.Req
 }
 
 func (h *OrganizationHandler) DeleteOrgAccess(w http.ResponseWriter, r *http.Request) {
-
 	primary, ok := primaryOf(w, r, "organization:update")
 	if !ok {
 		return
@@ -183,7 +175,6 @@ func (h *OrganizationHandler) DeleteOrgAccess(w http.ResponseWriter, r *http.Req
 // primaryOf authenticates the request and returns the primary organization of the path. It writes
 // an error response when the organization is not a primary organization with CDS enabled.
 func primaryOf(w http.ResponseWriter, r *http.Request, operation string) (*model.Organization, bool) {
-
 	if err := security.AuthnAndAuthzPrimary(r, operation); err != nil {
 		utils.HandleError(w, err)
 		return nil, false

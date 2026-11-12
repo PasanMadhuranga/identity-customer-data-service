@@ -91,7 +91,6 @@ func (a *WSO2ISAdapter) IntrospectToken(ctx context.Context, token, orgHandle,
 }
 
 func (a *WSO2ISAdapter) GetPrimaryOrganization(_ context.Context, primaryHandle string) (Organization, error) {
-
 	// Only a primary organization answers the self call on its own tenant path. A primary
 	// organization can still have a parent, such as the super organization.
 	org, found, err := a.client.GetSelfOrganization(primaryHandle)
@@ -113,7 +112,6 @@ func (a *WSO2ISAdapter) GetPrimaryOrganization(_ context.Context, primaryHandle 
 }
 
 func (a *WSO2ISAdapter) ListDescendants(_ context.Context, primaryHandle string) ([]Organization, error) {
-
 	listed, err := a.client.ListDescendantOrganizations(primaryHandle)
 	if err != nil {
 		return nil, err
@@ -134,7 +132,6 @@ func (a *WSO2ISAdapter) ListDescendants(_ context.Context, primaryHandle string)
 }
 
 func (a *WSO2ISAdapter) GetOrganization(_ context.Context, primaryHandle, orgId string) (*Organization, error) {
-
 	org, found, err := a.client.GetOrganization(primaryHandle, orgId)
 	if err != nil || !found {
 		return nil, err
@@ -150,7 +147,6 @@ func (a *WSO2ISAdapter) IdentityAttributeSourceHandle(_ string, primaryHandle st
 }
 
 func toOrganization(org client.ISOrganization) Organization {
-
 	result := Organization{
 		Id:     org.Id,
 		Handle: org.OrgHandle,

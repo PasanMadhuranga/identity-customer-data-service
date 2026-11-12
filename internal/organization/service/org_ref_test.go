@@ -43,7 +43,6 @@ type lookupIdP struct {
 }
 
 func (f *lookupIdP) GetPrimaryOrganization(_ context.Context, handle string) (idp.Organization, error) {
-
 	f.lookups.Add(1)
 	id, ok := f.known[handle]
 	if !ok {
@@ -68,7 +67,6 @@ func (f *lookupIdP) IdentityAttributeSourceHandle(_, primaryHandle string) strin
 }
 
 func setUpLookup(t *testing.T, known map[string]string) (*lookupIdP, *setup.SQLiteTestDB) {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -89,7 +87,6 @@ func setUpLookup(t *testing.T, known map[string]string) (*lookupIdP, *setup.SQLi
 }
 
 func requireNotFound(t *testing.T, err error) {
-
 	t.Helper()
 	var clientError *errors2.ClientError
 	if !errors.As(err, &clientError) || clientError.StatusCode != http.StatusNotFound {
@@ -98,7 +95,6 @@ func requireNotFound(t *testing.T, err error) {
 }
 
 func TestResolveOrganizationStoresThePrimaryOrganization(t *testing.T) {
-
 	fake, _ := setUpLookup(t, map[string]string{"globex": "globex-id"})
 	ctx := context.Background()
 
@@ -124,7 +120,6 @@ func TestResolveOrganizationStoresThePrimaryOrganization(t *testing.T) {
 }
 
 func TestResolveOrganizationUsesTheStoredRow(t *testing.T) {
-
 	fake, testDB := setUpLookup(t, nil)
 	if err := setup.InsertTestOrganization(testDB.DB, "stark-id", "stark"); err != nil {
 		t.Fatal(err)
@@ -140,7 +135,6 @@ func TestResolveOrganizationUsesTheStoredRow(t *testing.T) {
 }
 
 func TestLookupsAreCached(t *testing.T) {
-
 	fake, testDB := setUpLookup(t, nil)
 	ctx := context.Background()
 	if err := setup.InsertTestOrganization(testDB.DB, "wayne-id", "wayne"); err != nil {
@@ -168,7 +162,6 @@ func TestLookupsAreCached(t *testing.T) {
 }
 
 func TestConcurrentResolvesStoreOnce(t *testing.T) {
-
 	fake, _ := setUpLookup(t, map[string]string{"hooli": "hooli-id"})
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
@@ -187,7 +180,6 @@ func TestConcurrentResolvesStoreOnce(t *testing.T) {
 }
 
 func TestLookupOrganizationById(t *testing.T) {
-
 	fake, testDB := setUpLookup(t, map[string]string{"pied-piper": "pied-piper-id"})
 	ctx := context.Background()
 
@@ -219,7 +211,6 @@ func TestLookupOrganizationById(t *testing.T) {
 }
 
 func TestGetOrganizationHandle(t *testing.T) {
-
 	_, testDB := setUpLookup(t, nil)
 	ctx := context.Background()
 	if err := setup.InsertTestOrganization(testDB.DB, "hooli-xyz-id", "hooli-xyz"); err != nil {

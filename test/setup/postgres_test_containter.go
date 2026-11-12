@@ -116,7 +116,6 @@ func SetupTestPostgres(ctx context.Context) (*TestPostgres, error) {
 // this normally succeeds on the first attempt. It is the last guard: the
 // readiness of the test database is a successful query, not an open port.
 func waitForQuery(ctx context.Context, db *sql.DB) error {
-
 	deadline, cancel := context.WithTimeout(ctx, postgresReadyTimeout)
 	defer cancel()
 

@@ -25,8 +25,9 @@ package inmemory
 import (
 	"context"
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 	"sync"
+
+	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"

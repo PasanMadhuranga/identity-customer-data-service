@@ -46,7 +46,6 @@ func statesOf(rules []sharedRule) map[string]string {
 }
 
 func TestResolveSharedRuleStates(t *testing.T) {
-
 	properties := []schemaModel.ProfileSchemaAttribute{
 		attribute("primary-email", "identity_attributes.email", "string"),
 		attribute("primary-loyalty", "traits.loyalty_id", "string"),
@@ -86,7 +85,6 @@ func TestResolveSharedRuleStates(t *testing.T) {
 
 // Two shared rules on one property: the rule of the farthest owner wins, as in the run order.
 func TestResolveSharedRuleStatesFarthestOwnerWins(t *testing.T) {
-
 	properties := []schemaModel.ProfileSchemaAttribute{attribute("primary-email", "identity_attributes.email",
 		"string")}
 	rules := []model.UnificationRule{

@@ -38,7 +38,6 @@ import (
 // AddProfileSchemaAttributesForScope adds multiple profile schema attributes.
 func AddProfileSchemaAttributesForScope(ctx context.Context,
 	attrs []model.ProfileSchemaAttribute, scope, orgId string) error {
-
 	logger := log.GetLogger()
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
@@ -86,7 +85,6 @@ func AddProfileSchemaAttributesForScope(ctx context.Context,
 		valueArgs = append(valueArgs, orgId, attr.AttributeId, attr.AttributeName, attr.ValueType,
 			attr.MergeStrategy, attr.ApplicationIdentifier, attr.Mutability, attr.MultiValued, subAttrsJSON,
 			canonicalJSON, scope, attr.DisplayName)
-
 	}
 
 	query := scripts.InsertProfileSchemaAttributesForScope.Append(strings.Join(valueStrings, ", "))
@@ -108,7 +106,6 @@ func AddProfileSchemaAttributesForScope(ctx context.Context,
 // GetProfileSchemaAttributeById retrieves a profile schema attribute by its ID for a given organization.
 func GetProfileSchemaAttributeById(ctx context.Context,
 	orgId, attributeId string) (model.ProfileSchemaAttribute, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -154,7 +151,6 @@ func GetProfileSchemaAttributeById(ctx context.Context,
 // GetProfileSchemaAttributesByScope retrieves all profile schema attributes for a given organization and scope.
 func GetProfileSchemaAttributesByScope(ctx context.Context,
 	orgId, scope string) ([]model.ProfileSchemaAttribute, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	logger := log.GetLogger()
@@ -199,7 +195,6 @@ func GetProfileSchemaAttributesByScope(ctx context.Context,
 // GetProfileSchemaAttributeByName retrieves a profile schema attribute by its name for a given organization.
 func GetProfileSchemaAttributeByName(ctx context.Context,
 	orgId, attributeName string) (*model.ProfileSchemaAttribute, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -289,7 +284,6 @@ func GetProfileSchemaAttributeByName(ctx context.Context,
 
 // GetProfileSchemaAttributesForOrg retrieves all profile schema attributes for a given organization.
 func GetProfileSchemaAttributesForOrg(ctx context.Context, orgId string) ([]model.ProfileSchemaAttribute, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -332,7 +326,6 @@ func GetProfileSchemaAttributesForOrg(ctx context.Context, orgId string) ([]mode
 // attribute is set.
 func GetProfileSchemaAttributesByIds(ctx context.Context,
 	attributeIds []string) ([]model.ProfileSchemaAttribute, error) {
-
 	if len(attributeIds) == 0 {
 		return nil, nil
 	}
@@ -372,7 +365,6 @@ func GetProfileSchemaAttributesByIds(ctx context.Context,
 // PatchProfileSchemaAttributeById updates a specific profile schema attribute for a given organization.
 func PatchProfileSchemaAttributeById(ctx context.Context,
 	orgId, attributeId string, updates map[string]interface{}) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -442,7 +434,6 @@ func PatchProfileSchemaAttributeById(ctx context.Context,
 
 // DeleteProfileSchemaAttributeById deletes a specific profile schema attribute by its ID for a given organization.
 func DeleteProfileSchemaAttributeById(ctx context.Context, orgId, attributeId string) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -477,7 +468,6 @@ func DeleteProfileSchemaAttributeById(ctx context.Context, orgId, attributeId st
 
 // DeleteProfileSchemaAttributes deletes all profile schema attributes for a given organization and scope.
 func DeleteProfileSchemaAttributes(ctx context.Context, orgId, scope string) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -512,7 +502,6 @@ func DeleteProfileSchemaAttributes(ctx context.Context, orgId, scope string) err
 
 func PatchProfileSchemaAttributesForScope(ctx context.Context,
 	orgId string, scope string, updates []model.ProfileSchemaAttribute) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	logger := log.GetLogger()
@@ -615,7 +604,6 @@ func PatchProfileSchemaAttributesForScope(ctx context.Context,
 
 // DeleteProfileSchema deletes all profile schema attributes for a given organization.
 func DeleteProfileSchema(ctx context.Context, orgId string) error {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -650,7 +638,6 @@ func DeleteProfileSchema(ctx context.Context, orgId string) error {
 
 // mapRowToProfileAttribute converts database row to a ProfileSchemaAttribute model.
 func mapRowToProfileAttribute(row map[string]interface{}) model.ProfileSchemaAttribute {
-
 	var subAttrs []model.SubAttribute
 	if raw, ok := row["sub_attributes"].(string); ok && raw != "" {
 		if err := json.Unmarshal([]byte(raw), &subAttrs); err != nil {
@@ -686,7 +673,6 @@ func mapRowToProfileAttribute(row map[string]interface{}) model.ProfileSchemaAtt
 }
 
 func UpsertIdentityAttributes(ctx context.Context, orgId string, attrs []model.ProfileSchemaAttribute) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
@@ -810,7 +796,6 @@ func extractClaimKeyFromURI(uri string) string {
 
 func GetProfileSchemaAttributesByScopeAndFilter(ctx context.Context,
 	orgId, scope string, filters []string) ([]model.ProfileSchemaAttribute, error) {
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()

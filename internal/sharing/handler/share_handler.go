@@ -37,7 +37,6 @@ const PolicyResource = "share policy"
 
 // DecodePolicyRequest decodes the body of a policy request.
 func DecodePolicyRequest(w http.ResponseWriter, r *http.Request) (model.PolicyRequest, bool) {
-
 	var req model.PolicyRequest
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -55,7 +54,6 @@ func DecodePolicyRequest(w http.ResponseWriter, r *http.Request) (model.PolicyRe
 // InitiatorOf authenticates the request and returns the organization of the path. It writes an
 // error response when CDS is not enabled or the organization is not known.
 func InitiatorOf(w http.ResponseWriter, r *http.Request, operation string) (*orgModel.Organization, bool) {
-
 	if err := security.AuthnAndAuthz(r, operation); err != nil {
 		utils.HandleError(w, err)
 		return nil, false
@@ -84,7 +82,6 @@ func InitiatorOf(w http.ResponseWriter, r *http.Request, operation string) (*org
 // knownOrg returns the stored organization. It stores the primary organization if it is not
 // stored yet.
 func knownOrg(ctx context.Context, ref orgModel.Ref) (*orgModel.Organization, error) {
-
 	org, err := orgService.GetOrStoreOrganization(ctx, ref.Handle)
 	if err != nil {
 		return nil, err

@@ -51,7 +51,6 @@ type OriginsLookup func(ctx context.Context, org Org) ([]string, error)
 // deploymentOrigins on every request and, for a request addressed to an organisation, the
 // origins that organisation has added as well.
 func Middleware(next http.Handler, lookup OriginsLookup, deploymentOrigins func() []string) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
@@ -83,7 +82,6 @@ func Middleware(next http.Handler, lookup OriginsLookup, deploymentOrigins func(
 // origin is among them.
 func isOriginAllowed(r *http.Request, origin string, lookup OriginsLookup,
 	deploymentOrigins func() []string) bool {
-
 	normalizedOrigin := normalizeOrigin(origin)
 
 	// The deployment-wide list applies to every request, so an origin in it, such as the
@@ -109,7 +107,6 @@ func isOriginAllowed(r *http.Request, origin string, lookup OriginsLookup,
 
 // containsOrigin reports whether normalizedOrigin is among origins.
 func containsOrigin(origins []string, normalizedOrigin string) bool {
-
 	for _, candidate := range origins {
 		if normalizeOrigin(candidate) == normalizedOrigin {
 			return true
@@ -124,7 +121,6 @@ func containsOrigin(origins []string, normalizedOrigin string) bool {
 // middleware runs before dispatch, so the organisation cannot yet be read from the request
 // context.
 func ExtractOrgFromPath(path string) Org {
-
 	remainder, found := strings.CutPrefix(path, "/t/")
 	if !found {
 		return Org{}
@@ -140,7 +136,6 @@ func ExtractOrgFromPath(path string) Org {
 // normalizeOrigin lower-cases the scheme and host so that a configured origin compares
 // equal to the browser-supplied Origin header, which is already normalized that way.
 func normalizeOrigin(origin string) string {
-
 	trimmed := strings.TrimSpace(origin)
 	scheme, rest, found := strings.Cut(trimmed, "://")
 	if !found {

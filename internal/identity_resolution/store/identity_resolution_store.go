@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/wso2/identity-customer-data-service/internal/identity_resolution/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
@@ -228,7 +229,6 @@ func CancelRelatedReviewTasks(ctx context.Context, excludeTaskID, IncomingProfil
 }
 
 func GetReviewTaskByID(ctx context.Context, taskID string) (*model.ReviewTask, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
@@ -258,7 +258,6 @@ func GetReviewTaskByID(ctx context.Context, taskID string) (*model.ReviewTask, e
 }
 
 func GetPendingReviewTasks(ctx context.Context, orgId string, pageSize int) ([]model.ReviewTask, int, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, 0, errors2.NewServerError(errors2.ErrorMessage{
@@ -310,7 +309,6 @@ func GetPendingReviewTasks(ctx context.Context, orgId string, pageSize int) ([]m
 }
 
 func GetPendingReviewTasksByProfile(ctx context.Context, orgId, profileID string, pageSize int) ([]model.ReviewTask, int, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, 0, errors2.NewServerError(errors2.ErrorMessage{
@@ -503,7 +501,6 @@ func scanReviewTask(row map[string]interface{}) model.ReviewTask {
 // without normalising here the same pair could occupy two rows.
 func InsertRejectionPair(ctx context.Context, orgId, profileIDA, profileIDB, rejectedBy string,
 	matchScore float64, breakdown map[string]float64) error {
-
 	logger := log.GetLogger()
 
 	first, second := profileIDA, profileIDB
@@ -566,7 +563,6 @@ func DeleteRejectionPairsForProfile(ctx context.Context, orgId, profileID string
 // GetRejectionsForProfile returns every rejection involving the profile, keyed by the
 // profile on the other side of the pair, with the evidence each decision was made against.
 func GetRejectionsForProfile(ctx context.Context, orgId, profileID string) (map[string]model.Rejection, error) {
-
 	logger := log.GetLogger()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()

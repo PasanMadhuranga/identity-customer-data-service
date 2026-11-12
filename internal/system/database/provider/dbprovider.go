@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/database"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/client"
@@ -77,13 +78,11 @@ type DBProvider struct{}
 
 // NewDBProvider creates a new instance of DBProvider.
 func NewDBProvider() DBProviderInterface {
-
 	return &DBProvider{}
 }
 
 // GetDBClient returns a database client for the configured datasource.
 func (d *DBProvider) GetDBClient() (client.DBClientInterface, error) {
-
 	// The suite owns the test handle, so Close must leave it open.
 	if testDBOverride != nil {
 		return client.NewSharedDBClient(testDBOverride, database.ResolveType(testDBTypeOverride)), nil
@@ -102,7 +101,6 @@ func (d *DBProvider) GetDBClient() (client.DBClientInterface, error) {
 
 // getDB returns the process-wide pool for the given datasource type.
 func getDB(dbType string) (*sql.DB, error) {
-
 	if dbType == database.TypeSQLite {
 		return getSQLiteDB()
 	}
@@ -117,7 +115,6 @@ func getDB(dbType string) (*sql.DB, error) {
 // startup, TLS and authentication handshake, but the attempt ends at
 // connect_timeout.
 func getPostgresDB() (*sql.DB, error) {
-
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
@@ -175,7 +172,6 @@ type poolResolution struct {
 // what an omitted setting gives and how an operator asks for the default. A
 // negative value is a mistake, so it is recorded instead of replaced.
 func (r *poolResolution) count(key string, value, def int) int {
-
 	if value < 0 {
 		r.problems = append(r.problems, fmt.Sprintf("%s is %d, which is below zero", key, value))
 		return def
@@ -188,7 +184,6 @@ func (r *poolResolution) count(key string, value, def int) int {
 
 // seconds is count for a setting an operator gives in seconds.
 func (r *poolResolution) seconds(key string, value int, def time.Duration) time.Duration {
-
 	if value < 0 {
 		r.problems = append(r.problems, fmt.Sprintf("%s is %d, which is below zero", key, value))
 		return def
@@ -202,7 +197,6 @@ func (r *poolResolution) seconds(key string, value int, def time.Duration) time.
 // err returns one error that names every problem, so that an operator can fix
 // a configuration in one pass rather than one mistake per restart.
 func (r *poolResolution) err() error {
-
 	if len(r.problems) == 0 {
 		return nil
 	}
@@ -211,7 +205,6 @@ func (r *poolResolution) err() error {
 
 // resolveSQLiteMaxOpenConns returns the open limit of the inbuilt pool.
 func resolveSQLiteMaxOpenConns(cfg config.SQLiteConfig) (int, error) {
-
 	var resolution poolResolution
 	maxOpenConns := resolution.count("datasource.sqlite.max_open_conns",
 		cfg.MaxOpenConns, database.DefaultSQLiteMaxOpenConns)
@@ -238,7 +231,6 @@ type postgresPoolSettings struct {
 // between the check at start and the pool itself. Zero takes the default, a
 // negative value is refused, and so is an idle limit above the open limit.
 func resolvePostgresPoolSettings(cfg config.PostgresConfig) (postgresPoolSettings, error) {
-
 	var resolution poolResolution
 
 	settings := postgresPoolSettings{
@@ -276,7 +268,6 @@ func resolvePostgresPoolSettings(cfg config.PostgresConfig) (postgresPoolSetting
 }
 
 func applyPostgresPoolSettings(db *sql.DB, settings postgresPoolSettings) {
-
 	db.SetMaxOpenConns(settings.maxOpenConns)
 	db.SetMaxIdleConns(settings.maxIdleConns)
 	db.SetConnMaxLifetime(settings.connMaxLifetime)
@@ -289,7 +280,6 @@ func applyPostgresPoolSettings(db *sql.DB, settings postgresPoolSettings) {
 // It is safe to call more than once. After it runs, a request for a pool
 // returns ErrDatabaseClosed rather than a new pool.
 func CloseDB() error {
-
 	dbMu.Lock()
 	postgres, sqlite := postgresHandle, sqliteHandle
 	postgresHandle, sqliteHandle = nil, nil
@@ -313,7 +303,6 @@ func CloseDB() error {
 // handle is published only after the database answers and the schema is
 // applied, so a failed attempt leaves nothing behind.
 func getSQLiteDB() (*sql.DB, error) {
-
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
@@ -371,7 +360,6 @@ func getSQLiteDB() (*sql.DB, error) {
 
 // getDBConfig returns the database configuration based on the provided data source.
 func getDBConfig(dataSource config.Config) (DBConfig, error) {
-
 	ds := dataSource.DataSource
 
 	switch database.ResolveType(ds.Type) {
@@ -413,7 +401,6 @@ func getDBConfig(dataSource config.Config) (DBConfig, error) {
 // resolveSQLitePath returns the absolute path of the inbuilt database file,
 // resolving a relative path against CDS_HOME.
 func resolveSQLitePath(path string) (string, error) {
-
 	if path == "" {
 		path = database.DefaultSQLitePath
 	}
@@ -425,7 +412,6 @@ func resolveSQLitePath(path string) (string, error) {
 
 // GetDBType returns the configured datasource type.
 func (d *DBProvider) GetDBType() string {
-
 	if testDBOverride != nil {
 		return database.ResolveType(testDBTypeOverride)
 	}

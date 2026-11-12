@@ -37,14 +37,12 @@ type ServiceManager struct {
 
 // NewServiceManager creates a new instance of ServiceManager.
 func NewServiceManager(mux *http.ServeMux) ServiceManagerInterface {
-
 	return &ServiceManager{
 		mux: mux,
 	}
 }
 
 func (sm *ServiceManager) RegisterServices() error {
-
 	// Non-tenanted root services (health, ready)
 	rootMux := http.NewServeMux()
 	_ = services.NewHealthService(rootMux) // registers /cds/api/v1/health, /ready

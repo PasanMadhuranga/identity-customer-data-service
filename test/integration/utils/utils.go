@@ -22,10 +22,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"log"
 	"os"
 	"path/filepath"
+
+	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 
 func CreateTablesFromFile(db *sql.DB, path string) error {

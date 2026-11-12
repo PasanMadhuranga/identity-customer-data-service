@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
 	model "github.com/wso2/identity-customer-data-service/internal/consent/model"
 	"github.com/wso2/identity-customer-data-service/internal/consent/store"
 	"github.com/wso2/identity-customer-data-service/internal/organization/suborg"
@@ -54,7 +55,6 @@ func GetConsentCategoryService() ConsentCategoryServiceInterface {
 // GetAllConsentCategories retrieves all categories of the org.
 func (cs *ConsentCategoryService) GetAllConsentCategories(ctx context.Context,
 	orgId string) ([]model.ConsentCategory, error) {
-
 	consentCat, err := store.GetAllConsentCategories(ctx, orgId)
 
 	if err != nil {
@@ -64,12 +64,10 @@ func (cs *ConsentCategoryService) GetAllConsentCategories(ctx context.Context,
 		return []model.ConsentCategory{}, nil
 	}
 	return consentCat, nil
-
 }
 
 // GetConsentCategory retrieves a category by ID.
 func (cs *ConsentCategoryService) GetConsentCategory(ctx context.Context, id string, orgId string) (*model.ConsentCategory, error) {
-
 	consentCat, err := store.GetConsentCategoryByID(ctx, id, orgId)
 	if err != nil {
 		return nil, err
@@ -91,7 +89,6 @@ func consentCategoryNotFoundError(id string) error {
 // AddConsentCategory adds a new category.
 func (cs *ConsentCategoryService) AddConsentCategory(ctx context.Context, orgId string,
 	category model.ConsentCategory) (*model.ConsentCategory, error) {
-
 	if err := suborg.RejectWrite(ctx, orgId); err != nil {
 		return nil, err
 	}
@@ -132,7 +129,6 @@ func (cs *ConsentCategoryService) AddConsentCategory(ctx context.Context, orgId 
 }
 
 func (cs *ConsentCategoryService) validateConsentCat(category model.ConsentCategory) (error, bool) {
-
 	if category.CategoryName == "" || category.Purpose == "" {
 		return errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.CONSENT_CAT_VALIDATION.Code,
@@ -219,7 +215,6 @@ func inferScope(attributeName string) string {
 
 // UpdateConsentCategory updates an existing category.
 func (cs *ConsentCategoryService) UpdateConsentCategory(ctx context.Context, orgId string, category model.ConsentCategory) error {
-
 	if err := suborg.RejectWrite(ctx, orgId); err != nil {
 		return err
 	}

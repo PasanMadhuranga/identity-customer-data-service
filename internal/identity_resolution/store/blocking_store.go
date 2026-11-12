@@ -289,7 +289,6 @@ func InsertBlockingKeysBatch(ctx context.Context, orgId string, perProfileKeys m
 
 // flattenBlockingKeyRows turns the per-profile map into a flat, chunkable slice.
 func flattenBlockingKeyRows(perProfileKeys map[string][]model.BlockingKey) []blockingKeyRow {
-
 	total := 0
 	for _, keys := range perProfileKeys {
 		total += len(keys)

@@ -32,7 +32,6 @@ import (
 )
 
 func TestOrgChainIsNearestFirst(t *testing.T) {
-
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
 	}

@@ -38,7 +38,6 @@ func NewConsentCategoryHandler() *ConsentCategoryHandler {
 
 // GetAllConsentCategories handles GET /consent-categories
 func (h *ConsentCategoryHandler) GetAllConsentCategories(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "consent_category:view")
@@ -67,7 +66,6 @@ func (h *ConsentCategoryHandler) GetAllConsentCategories(w http.ResponseWriter, 
 
 // AddConsentCategory handles POST /consent-categories
 func (h *ConsentCategoryHandler) AddConsentCategory(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "consent_category:create")
@@ -108,7 +106,6 @@ func (h *ConsentCategoryHandler) AddConsentCategory(w http.ResponseWriter, r *ht
 
 // GetConsentCategory handles GET /consent-categories/{id}
 func (h *ConsentCategoryHandler) GetConsentCategory(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "consent_category:view")
@@ -146,7 +143,6 @@ func (h *ConsentCategoryHandler) GetConsentCategory(w http.ResponseWriter, r *ht
 
 // UpdateConsentCategory handles PUT /consent-categories/{id}
 func (h *ConsentCategoryHandler) UpdateConsentCategory(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "consent_category:update")
@@ -197,7 +193,6 @@ func (h *ConsentCategoryHandler) UpdateConsentCategory(w http.ResponseWriter, r 
 
 // DeleteConsentCategory handles Delete /consent-categories/{id}
 func (h *ConsentCategoryHandler) DeleteConsentCategory(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "consent_category:delete")

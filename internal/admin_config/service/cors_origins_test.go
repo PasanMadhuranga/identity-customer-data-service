@@ -33,7 +33,6 @@ import (
 )
 
 func TestValidateCORSOriginsAcceptsWellFormedOrigins(t *testing.T) {
-
 	origins := []string{
 		"https://app.acme.com",
 		"http://localhost:3000",
@@ -50,7 +49,6 @@ func TestValidateCORSOriginsAcceptsWellFormedOrigins(t *testing.T) {
 }
 
 func TestValidateCORSOriginsNormalizesAndDeduplicates(t *testing.T) {
-
 	got, err := validateCORSOrigins([]string{
 		"HTTPS://App.Acme.COM",
 		" https://app.acme.com ",
@@ -66,7 +64,6 @@ func TestValidateCORSOriginsNormalizesAndDeduplicates(t *testing.T) {
 }
 
 func TestValidateCORSOriginsEmptyListIsAllowed(t *testing.T) {
-
 	got, err := validateCORSOrigins([]string{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -77,7 +74,6 @@ func TestValidateCORSOriginsEmptyListIsAllowed(t *testing.T) {
 }
 
 func TestValidateCORSOriginsRejectsMalformedOrigins(t *testing.T) {
-
 	cases := map[string]string{
 		"wildcard":        "*",
 		"trailing slash":  "https://app.acme.com/",
@@ -112,7 +108,6 @@ func TestValidateCORSOriginsRejectsMalformedOrigins(t *testing.T) {
 
 // One bad entry rejects the whole update, so a partially valid list is never stored.
 func TestValidateCORSOriginsRejectsWholeListOnOneBadEntry(t *testing.T) {
-
 	_, err := validateCORSOrigins([]string{"https://app.acme.com", "*"})
 	if err == nil {
 		t.Fatal("expected an error for a list containing a wildcard")
@@ -122,7 +117,6 @@ func TestValidateCORSOriginsRejectsWholeListOnOneBadEntry(t *testing.T) {
 // The origins are stored as one JSON array in a column of limited width, so a list that would
 // not fit is refused with a client error rather than failing in the database.
 func TestValidateCORSOriginsRejectsAListTooLongToStore(t *testing.T) {
-
 	var origins []string
 	for i := 0; i < 30; i++ {
 		origins = append(origins, fmt.Sprintf("https://app-%02d.acme.com", i))
@@ -161,7 +155,6 @@ func (l *countingLoader) load(_ context.Context, orgId string) ([]string, error)
 }
 
 func newTestCORSOriginsCache(t *testing.T, loader *countingLoader, ttl time.Duration) *corsOriginsCache {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -171,7 +164,6 @@ func newTestCORSOriginsCache(t *testing.T, loader *countingLoader, ttl time.Dura
 
 // Each organisation is read once per TTL, including one that has configured no origins.
 func TestCORSOriginsCacheReadsEachOrganisationOnce(t *testing.T) {
-
 	loader := newCountingLoader(map[string][]string{"acme-id": {"https://app.acme.com"}})
 	origins := newTestCORSOriginsCache(t, loader, time.Hour)
 	ctx := context.Background()
@@ -191,7 +183,6 @@ func TestCORSOriginsCacheReadsEachOrganisationOnce(t *testing.T) {
 }
 
 func TestCORSOriginsCacheRereadsOnceExpired(t *testing.T) {
-
 	loader := newCountingLoader(map[string][]string{})
 	origins := newTestCORSOriginsCache(t, loader, 0)
 	ctx := context.Background()
@@ -208,7 +199,6 @@ func TestCORSOriginsCacheRereadsOnceExpired(t *testing.T) {
 
 // An update drops the entry of the organisation and no other.
 func TestCORSOriginsCacheRereadsAfterAnUpdate(t *testing.T) {
-
 	loader := newCountingLoader(map[string][]string{})
 	origins := newTestCORSOriginsCache(t, loader, time.Hour)
 	ctx := context.Background()
@@ -229,7 +219,6 @@ func TestCORSOriginsCacheRereadsAfterAnUpdate(t *testing.T) {
 
 // A read that started before an update committed is not cached over the update.
 func TestCORSOriginsCacheDoesNotCacheAReadOverlappingAnUpdate(t *testing.T) {
-
 	loader := newCountingLoader(map[string][]string{})
 	origins := newTestCORSOriginsCache(t, loader, time.Hour)
 	origins.load = func(ctx context.Context, orgId string) ([]string, error) {
@@ -250,7 +239,6 @@ func TestCORSOriginsCacheDoesNotCacheAReadOverlappingAnUpdate(t *testing.T) {
 
 // A failed read is returned to the caller and not cached, so the next request reads again.
 func TestCORSOriginsCacheDoesNotCacheAFailedRead(t *testing.T) {
-
 	loader := newCountingLoader(map[string][]string{"acme-id": {"https://app.acme.com"}})
 	loader.err = fmt.Errorf("database unavailable")
 	origins := newTestCORSOriginsCache(t, loader, time.Hour)
@@ -282,7 +270,6 @@ func (l *countingOrgLookup) lookup(_ context.Context, orgHandle string) (orgMode
 }
 
 func newTestCORSOrgIdResolver(t *testing.T, lookup *countingOrgLookup) *corsOrgIdResolver {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -293,7 +280,6 @@ func newTestCORSOrgIdResolver(t *testing.T, lookup *countingOrgLookup) *corsOrgI
 // A handle CDS has no organization for, as an unauthenticated preflight may carry, is read once
 // and then answered without a read.
 func TestCORSOrgIdResolverRemembersUnknownHandles(t *testing.T) {
-
 	lookup := &countingOrgLookup{reads: map[string]int{}, orgs: map[string]string{"acme": "acme-id"}}
 	resolver := newTestCORSOrgIdResolver(t, lookup)
 	ctx := context.Background()
@@ -313,7 +299,6 @@ func TestCORSOrgIdResolverRemembersUnknownHandles(t *testing.T) {
 
 // An organization stored after its handle was found unknown is resolved once it is forgotten.
 func TestCORSOrgIdResolverResolvesAForgottenHandle(t *testing.T) {
-
 	lookup := &countingOrgLookup{reads: map[string]int{}, orgs: map[string]string{}}
 	resolver := newTestCORSOrgIdResolver(t, lookup)
 	ctx := context.Background()
@@ -329,7 +314,6 @@ func TestCORSOrgIdResolverResolvesAForgottenHandle(t *testing.T) {
 
 // A failed lookup is returned and not taken to mean the handle is unknown.
 func TestCORSOrgIdResolverDoesNotRememberAFailedLookup(t *testing.T) {
-
 	lookup := &countingOrgLookup{reads: map[string]int{}, orgs: map[string]string{"acme": "acme-id"},
 		err: fmt.Errorf("database unavailable")}
 	resolver := newTestCORSOrgIdResolver(t, lookup)

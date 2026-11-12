@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	irModel "github.com/wso2/identity-customer-data-service/internal/identity_resolution/model"
 	irStore "github.com/wso2/identity-customer-data-service/internal/identity_resolution/store"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"

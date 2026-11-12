@@ -34,7 +34,6 @@ type OrganizationService struct {
 }
 
 func NewOrganizationService(mux *http.ServeMux) *OrganizationService {
-
 	s := &OrganizationService{
 		organizations: orgHandler.NewOrganizationHandler(),
 		mux:           mux,

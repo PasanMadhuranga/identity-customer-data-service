@@ -35,7 +35,6 @@ import (
 //	│   └── A2 (disabled)
 //	└── B
 func testTree() []orgModel.Organization {
-
 	org := func(id, parent, status string) orgModel.Organization {
 		return orgModel.Organization{OrgId: id, OrgHandle: strings.ToLower(id), ParentOrgId: parent,
 			PrimaryOrgId: "R", Status: status}
@@ -52,7 +51,6 @@ func testTree() []orgModel.Organization {
 
 // ancestorsIn returns the ancestors of the organization in the tree, the parent first.
 func ancestorsIn(tree []orgModel.Organization, orgId string) []orgModel.Ancestor {
-
 	byId := map[string]orgModel.Organization{}
 	for _, o := range tree {
 		byId[o.OrgId] = o
@@ -66,7 +64,6 @@ func ancestorsIn(tree []orgModel.Organization, orgId string) []orgModel.Ancestor
 
 // reachedOrgs returns the organizations of the tree that the policy reaches, in tree order.
 func reachedOrgs(p model.Policy) []string {
-
 	tree := testTree()
 	reached := []string{}
 	for _, org := range tree {
@@ -83,7 +80,6 @@ func policy(initiator string, targets ...model.Target) model.Policy {
 }
 
 func TestPolicyReachesOrg(t *testing.T) {
-
 	cases := []struct {
 		name     string
 		policy   model.Policy
@@ -111,7 +107,6 @@ func TestPolicyReachesOrg(t *testing.T) {
 }
 
 func TestTargetProblems(t *testing.T) {
-
 	cases := []struct {
 		name    string
 		policy  model.Policy

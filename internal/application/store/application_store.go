@@ -31,7 +31,6 @@ import (
 
 // UpsertApplication persists the application information, refreshing the clientId on re-validation.
 func UpsertApplication(ctx context.Context, orgId string, app model.Application) error {
-
 	logger := log.GetLogger()
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
@@ -69,7 +68,6 @@ func UpsertApplication(ctx context.Context, orgId string, app model.Application)
 
 // GetAppIdentifierByClientID resolves an OAuth clientId to the app ID.
 func GetAppIdentifierByClientID(ctx context.Context, orgId, clientID string) (string, error) {
-
 	logger := log.GetLogger()
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {

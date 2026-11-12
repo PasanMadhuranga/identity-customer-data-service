@@ -43,7 +43,6 @@ import "github.com/wso2/identity-customer-data-service/internal/system/database/
 // unless an override is supplied. Most statements need no override; pass one
 // only where the dialects differ.
 func newQuery(id, base string, sqliteOverride ...string) model.DBQuery {
-
 	query := model.DBQuery{
 		ID:    id,
 		Query: base,

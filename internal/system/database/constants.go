@@ -46,7 +46,6 @@ var SupportedTypes = []string{TypePostgres, TypeSQLite}
 // DefaultType. The returned value may still be unsupported, which
 // IsSupportedType reports on.
 func ResolveType(dbType string) string {
-
 	normalized := strings.ToLower(strings.TrimSpace(dbType))
 	if normalized == "" {
 		return DefaultType
@@ -56,7 +55,6 @@ func ResolveType(dbType string) string {
 
 // IsSupportedType reports whether dbType is a datasource CDS can run on.
 func IsSupportedType(dbType string) bool {
-
 	for _, supported := range SupportedTypes {
 		if dbType == supported {
 			return true

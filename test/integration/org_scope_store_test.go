@@ -21,11 +21,12 @@ package integration
 import (
 	"context"
 	"fmt"
-	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
-	"github.com/wso2/identity-customer-data-service/test/setup"
 	"net/http"
 	"testing"
 	"time"
+
+	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
+	"github.com/wso2/identity-customer-data-service/test/setup"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -240,7 +241,6 @@ func Test_OrgScope_ProfileStore(t *testing.T) {
 }
 
 func assertClientError(t *testing.T, err error, status int, code string) {
-
 	t.Helper()
 
 	require.Error(t, err)

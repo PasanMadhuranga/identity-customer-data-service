@@ -38,7 +38,6 @@ import (
 // setUpStoredTree prepares a database with the organizations of the test tree. The tree is not
 // synced.
 func setUpStoredTree(t *testing.T, orgs []orgModel.Organization) context.Context {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -62,7 +61,6 @@ func setUpStoredTree(t *testing.T, orgs []orgModel.Organization) context.Context
 }
 
 func markSynced(t *testing.T, ctx context.Context, primary orgModel.Organization) {
-
 	t.Helper()
 	values := map[string]string{orgModel.ConfigTreeSyncedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 	if err := orgStore.SetTreeSyncValues(ctx, primary.OrgId, values); err != nil {
@@ -71,7 +69,6 @@ func markSynced(t *testing.T, ctx context.Context, primary orgModel.Organization
 }
 
 func orgOf(t *testing.T, orgs []orgModel.Organization, orgId string) orgModel.Organization {
-
 	t.Helper()
 	for _, o := range orgs {
 		if o.OrgId == orgId {
@@ -83,7 +80,6 @@ func orgOf(t *testing.T, orgs []orgModel.Organization, orgId string) orgModel.Or
 }
 
 func clientErrorCode(err error) string {
-
 	var clientErr *errors2.ClientError
 	if errors.As(err, &clientErr) {
 		return clientErr.ErrorMessage.Code
@@ -92,7 +88,6 @@ func clientErrorCode(err error) string {
 }
 
 func selectedOrgs(reach string, ids ...string) model.PolicyRequest {
-
 	req := model.PolicyRequest{ChildOrgs: &model.ChildOrgs{Mode: model.ChildOrgsModeSelected}}
 	for _, id := range ids {
 		req.ChildOrgs.Orgs = append(req.ChildOrgs.Orgs, model.ChildOrg{OrgId: id, Reach: reach})
@@ -103,7 +98,6 @@ func selectedOrgs(reach string, ids ...string) model.PolicyRequest {
 var allChildOrgs = model.PolicyRequest{ChildOrgs: &model.ChildOrgs{Mode: model.ChildOrgsModeAll}}
 
 func TestOrganizationAccessNeedsACompletedSync(t *testing.T) {
-
 	tree := testTree()
 	ctx := setUpStoredTree(t, tree)
 	primary := orgOf(t, tree, "R")
@@ -119,7 +113,6 @@ func TestOrganizationAccessNeedsACompletedSync(t *testing.T) {
 }
 
 func TestOrganizationAccessChecksTheSelectedOrganizations(t *testing.T) {
-
 	tree := testTree()
 	ctx := setUpStoredTree(t, tree)
 	primary := orgOf(t, tree, "R")
@@ -141,7 +134,6 @@ func TestOrganizationAccessChecksTheSelectedOrganizations(t *testing.T) {
 }
 
 func TestOrganizationAccessStoresManySelectedOrganizations(t *testing.T) {
-
 	const count = 2500
 	primary := orgModel.Organization{OrgId: "R", OrgHandle: "r", PrimaryOrgId: "R", Status: orgModel.StatusActive}
 	tree := []orgModel.Organization{primary}
@@ -169,7 +161,6 @@ func TestOrganizationAccessStoresManySelectedOrganizations(t *testing.T) {
 }
 
 func TestIsOrgEnabled(t *testing.T) {
-
 	tree := testTree()
 	ctx := setUpStoredTree(t, tree)
 	primary := orgOf(t, tree, "R")
@@ -188,7 +179,6 @@ func TestIsOrgEnabled(t *testing.T) {
 }
 
 func TestGetSharedResources(t *testing.T) {
-
 	tree := testTree()
 	ctx := setUpStoredTree(t, tree)
 	primary := orgOf(t, tree, "R")

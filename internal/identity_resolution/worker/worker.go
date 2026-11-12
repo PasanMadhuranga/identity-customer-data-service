@@ -272,7 +272,6 @@ func ResolveProfileAsync(ctx context.Context, orgId string, profile profileModel
 		decision := model.Decide(sc.score, thresholds)
 
 		if decision == constants.DecisionAutoMerge && !reconsidered[sc.id] {
-
 			matchedProfile, loadErr := profileStore.GetProfile(ctx, sc.id, orgId)
 			if loadErr != nil || matchedProfile == nil {
 				logger.Error(fmt.Sprintf("AsyncWorker: failed to load matched profile '%s' for auto-merge", sc.id))
@@ -365,7 +364,6 @@ func ResolveProfileAsync(ctx context.Context, orgId string, profile profileModel
 // each time for data already in memory.
 func insertReviewTask(ctx context.Context, orgId string, incomingProfileID string, sc scoredCandidate,
 	agreementThreshold float64, rejections map[string]model.Rejection) {
-
 	logger := log.GetLogger()
 
 	if rejection, wasRejected := rejections[sc.id]; wasRejected &&

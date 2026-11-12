@@ -110,7 +110,6 @@ func StripTenantPrefix(path string) string {
 }
 
 func WriteErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.StatusCode)
 
@@ -118,7 +117,6 @@ func WriteErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
 }
 
 func WriteBadRequestErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 
@@ -198,7 +196,6 @@ var IsSubOrgHandle func(ctx context.Context, orgHandle string) (bool, error)
 
 // RespondJSON sends a JSON response with the given status code and payload
 func RespondJSON(w http.ResponseWriter, status int, payload any, resource string) {
-
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)

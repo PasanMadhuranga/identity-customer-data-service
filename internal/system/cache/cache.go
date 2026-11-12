@@ -20,9 +20,10 @@ package cache
 
 import (
 	"fmt"
-	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"sync"
 	"time"
+
+	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
 type CacheItem struct {
@@ -53,7 +54,6 @@ func NewCache(defaultTTL time.Duration) *Cache {
 
 // Set adds an item to the cache
 func (c *Cache) Set(key string, value interface{}) {
-
 	logger := log.GetLogger()
 	logger.Debug(fmt.Sprint("Setting cache for key: ", key))
 	c.mutex.Lock()
@@ -76,7 +76,6 @@ func (c *Cache) Set(key string, value interface{}) {
 
 // sweepExpiredLocked drops every expired entry. The caller must hold the write lock.
 func (c *Cache) sweepExpiredLocked() {
-
 	now := time.Now()
 	for key, item := range c.items {
 		if now.After(item.Expiration) {
@@ -95,7 +94,6 @@ func (c *Cache) sweepExpiredLocked() {
 
 // Get retrieves an item from the cache
 func (c *Cache) Get(key string) (interface{}, bool) {
-
 	logger := log.GetLogger()
 	logger.Debug(fmt.Sprint("Getting cache for key: ", key))
 	c.mutex.RLock()

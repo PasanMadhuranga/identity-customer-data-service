@@ -353,7 +353,6 @@ func EvaluateCandidate(
 // organization does not merge automatically.
 func withAutoMergeDisabled(thresholds model.Thresholds, score float64,
 	reasons []model.ReviewReason) []model.ReviewReason {
-
 	if !thresholds.AutoMergeEnabled && score >= thresholds.AutoMerge {
 		reasons = append(reasons, model.ReviewReason{Code: model.ReasonAutoMergeDisabled})
 	}

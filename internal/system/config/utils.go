@@ -19,9 +19,10 @@
 package config
 
 import (
-	"gopkg.in/yaml.v2"
 	"os"
 	"path"
+
+	"gopkg.in/yaml.v2"
 )
 
 // LoadConfig loads and sets AppConfig (global variable)

@@ -22,7 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -31,7 +30,10 @@ import (
 	"strings"
 	"time"
 
+	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
+
 	"github.com/google/uuid"
+
 	"github.com/wso2/identity-customer-data-service/internal/identity_resolution/engine"
 	irModel "github.com/wso2/identity-customer-data-service/internal/identity_resolution/model"
 	irStore "github.com/wso2/identity-customer-data-service/internal/identity_resolution/store"
@@ -85,14 +87,12 @@ type ProfilesService struct{}
 
 // GetProfilesService creates a new instance of EventsService.
 func GetProfilesService() ProfilesServiceInterface {
-
 	return &ProfilesService{}
 }
 
 var safeIdentifier = regexp.MustCompile(constants.FilterRegex)
 
 func ConvertAppData(input map[string]interface{}) ([]profileModel.ApplicationData, error) {
-
 	appDataList := make([]profileModel.ApplicationData, 0, len(input))
 
 	for appID, val := range input {
@@ -129,7 +129,6 @@ func WideAppDataMap(input map[string]map[string]interface{}) map[string]interfac
 // CreateProfile creates a new profile.
 func (ps *ProfilesService) CreateProfile(ctx context.Context,
 	profileRequest profileModel.ProfileRequest, orgId string) (*profileModel.ProfileResponse, error) {
-
 	rawSchema, err := schemaService.GetProfileSchemaService().GetProfileSchema(ctx, orgId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -221,7 +220,6 @@ func (ps *ProfilesService) CreateProfile(ctx context.Context,
 
 func ValidateProfileAgainstSchema(profile profileModel.ProfileRequest, existingProfile profileModel.Profile,
 	schema model.ProfileSchema, isUpdate bool) error {
-
 	// Validate identity attributes
 	for key, val := range profile.IdentityAttributes {
 		if err := rejectIfFlattenedSubAttribute(key, "identity_attributes", schema.IdentityAttributes); err != nil {
@@ -766,7 +764,6 @@ func isValidType(value interface{}, expected string, multiValued bool, subAttrs 
 // UpdateProfile creates or updates a profile
 func (ps *ProfilesService) UpdateProfile(ctx context.Context,
 	profileId string, orgId string, updatedProfile profileModel.ProfileRequest) (*profileModel.ProfileResponse, error) {
-
 	profile, err := profileStore.GetProfile(ctx, profileId, orgId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -924,7 +921,6 @@ func ConvertAppDataToMap(appDataList []profileModel.ApplicationData) map[string]
 
 // GetProfile retrieves a profile
 func (ps *ProfilesService) GetProfile(ctx context.Context, ProfileId string, orgId string) (*profileModel.ProfileResponse, error) {
-
 	profile, err := profileStore.GetProfile(ctx, ProfileId, orgId)
 	if err != nil {
 		return nil, err
@@ -943,7 +939,6 @@ func (ps *ProfilesService) GetProfile(ctx context.Context, ProfileId string, org
 	}
 
 	if profile.ProfileStatus.IsReferenceProfile {
-
 		alias, err := profileStore.FetchReferencedProfiles(ctx, ProfileId)
 
 		if err != nil {
@@ -1016,7 +1011,6 @@ func (ps *ProfilesService) GetProfile(ctx context.Context, ProfileId string, org
 // GetProfileConsents retrieves a profile
 func (ps *ProfilesService) GetProfileConsents(ctx context.Context,
 	ProfileId string, orgId string) ([]profileModel.ConsentRecord, error) {
-
 	profile, err := profileStore.GetProfile(ctx, ProfileId, orgId)
 	if err != nil {
 		return nil, err
@@ -1108,7 +1102,6 @@ func (ps *ProfilesService) UpdateProfileConsents(ctx context.Context,
 
 // DeleteProfile removes a profile from MongoDB by `perma_id`
 func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileId string, orgId string) error {
-
 	// Fetch the existing profile before deletion
 	profile, err := profileStore.GetProfile(ctx, ProfileId, orgId)
 	logger := log.GetLogger()
@@ -1202,7 +1195,6 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileId string, 
 	// GetProfile signals that as (nil, nil) — so without this guard the nil parent is
 	// dereferenced and deleting any never-merged profile panics.
 	if !profile.ProfileStatus.IsReferenceProfile && profile.ProfileStatus.ReferenceProfileId != "" {
-
 		logger.Info(fmt.Sprintf("Deleting child profile: %s with parent: %s", ProfileId,
 			profile.ProfileStatus.ReferenceProfileId))
 		parentProfile, err := profileStore.GetProfile(ctx, profile.ProfileStatus.ReferenceProfileId, orgId)
@@ -1276,7 +1268,6 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileId string, 
 			logger.Info(fmt.Sprintf("Deleted current profile: %s with parent: %s",
 				ProfileId, profile.ProfileStatus.ReferenceProfileId))
 		}
-
 	}
 
 	return nil
@@ -1289,7 +1280,6 @@ func (ps *ProfilesService) GetAllProfilesCursor(ctx context.Context,
 	limit int,
 	cursor *profileModel.ProfileCursor,
 ) ([]profileModel.ProfileResponse, bool, error) {
-
 	existingProfiles, hasMore, err := profileStore.GetAllProfiles(ctx, orgId, limit, cursor)
 	if err != nil {
 		return nil, false, err
@@ -1310,7 +1300,6 @@ func (ps *ProfilesService) GetAllProfilesCursor(ctx context.Context,
 	result := make([]profileModel.ProfileResponse, 0, len(existingProfiles))
 
 	for _, profile := range existingProfiles {
-
 		//  Base row meta must be preserved for cursor correctness
 		baseMeta := profileModel.Meta{
 			CreatedAt: profile.CreatedAt,
@@ -1359,7 +1348,6 @@ func (ps *ProfilesService) GetAllProfilesWithFilterCursor(ctx context.Context,
 	limit int,
 	cursor *profileModel.ProfileCursor,
 ) ([]profileModel.ProfileResponse, bool, error) {
-
 	propertyTypeMap := make(map[string]string)
 
 	// Rewrite filters (keep your logic)
@@ -1434,7 +1422,6 @@ func (ps *ProfilesService) GetAllProfilesWithFilterCursor(ctx context.Context,
 	result := make([]profileModel.ProfileResponse, 0, len(filteredProfiles))
 
 	for _, profile := range filteredProfiles {
-
 		// meta data must be preserved for cursor correctness
 		baseMeta := profileModel.Meta{
 			CreatedAt: profile.CreatedAt,
@@ -1465,7 +1452,6 @@ func (ps *ProfilesService) GetAllProfilesWithFilterCursor(ctx context.Context,
 
 // isValidFilterKey ensures the filter key is valid and does not contain any malicious patterns.
 func isValidFilterKey(key string) bool {
-
 	logger := log.GetLogger()
 
 	if key == "" {
@@ -1503,7 +1489,6 @@ func parseTypedValueForFilters(valueType string, raw string) interface{} {
 // FindProfileByUserId retrieves a profile by user_id
 func (ps *ProfilesService) FindProfileByUserId(ctx context.Context,
 	userId string, orgId string) (*profileModel.ProfileResponse, error) {
-
 	profile, err := profileStore.GetProfileWithUserId(ctx, userId, orgId)
 	if err != nil {
 		return nil, err
@@ -1543,7 +1528,6 @@ func (ps *ProfilesService) FindProfileByUserId(ctx context.Context,
 // PatchProfile applies a partial update to an existing profile
 func (ps *ProfilesService) PatchProfile(ctx context.Context,
 	profileId string, orgId string, patch map[string]interface{}) (*profileModel.ProfileResponse, error) {
-
 	existingProfile, err := profileStore.GetProfile(ctx, profileId, orgId)
 	if err != nil {
 		return nil, err
@@ -1641,7 +1625,6 @@ func (ps *ProfilesService) PatchProfile(ctx context.Context,
 
 func (ps *ProfilesService) GetProfileCookieByProfileId(ctx context.Context,
 	profileId string) (*profileModel.ProfileCookie, error) {
-
 	cookie, err := profileStore.GetProfileCookieByProfileId(ctx, profileId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -1667,7 +1650,6 @@ func (ps *ProfilesService) GetProfileCookieByProfileId(ctx context.Context,
 
 func (ps *ProfilesService) GetProfileCookieById(ctx context.Context,
 	cookie string, orgId string) (*profileModel.ProfileCookie, error) {
-
 	cookieObj, err := profileStore.GetProfileCookie(ctx, cookie, orgId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -1694,7 +1676,6 @@ func (ps *ProfilesService) GetProfileCookieById(ctx context.Context,
 // CreateProfileCookie creates a new profile cookie
 func (ps *ProfilesService) CreateProfileCookie(ctx context.Context,
 	profileId string) (*profileModel.ProfileCookie, error) {
-
 	cookie := profileModel.ProfileCookie{
 		ProfileId: profileId,
 		CookieId:  uuid.New().String(),
@@ -1717,7 +1698,6 @@ func (ps *ProfilesService) CreateProfileCookie(ctx context.Context,
 
 // UpdateCookieStatusByProfileId updates the status of a profile cookie by profile_id
 func (ps *ProfilesService) UpdateCookieStatusByProfileId(ctx context.Context, profileId string, isActive bool) error {
-
 	err := profileStore.UpdateProfileCookieByProfileId(ctx, profileId, isActive)
 	logger := log.GetLogger()
 	if err != nil {
@@ -1735,7 +1715,6 @@ func (ps *ProfilesService) UpdateCookieStatusByProfileId(ctx context.Context, pr
 
 // UpdateCookieStatusByCookieId updates the status of a profile cookie by cookie id
 func (ps *ProfilesService) UpdateCookieStatusByCookieId(ctx context.Context, cookieId string, isActive bool) error {
-
 	err := profileStore.UpdateProfileCookieByCookieId(ctx, cookieId, isActive)
 	logger := log.GetLogger()
 	if err != nil {
@@ -1753,7 +1732,6 @@ func (ps *ProfilesService) UpdateCookieStatusByCookieId(ctx context.Context, coo
 
 // DeleteCookieByProfileId deletes a profile cookie by profile_id
 func (ps *ProfilesService) DeleteCookieByProfileId(ctx context.Context, profileId string) error {
-
 	err := profileStore.DeleteProfileCookieByProfile(ctx, profileId)
 	logger := log.GetLogger()
 	if err != nil {
@@ -2250,7 +2228,6 @@ func toComparableStrings(value interface{}) []string {
 // just gained or changed one must be re-examined even if no rule value moved.
 func shouldResolveAfterUpdate(before, after profileModel.Profile, matchedValuesChanged bool,
 	activeRules []UnificationModel.UnificationRule) bool {
-
 	if before.UserId != after.UserId {
 		return true
 	}

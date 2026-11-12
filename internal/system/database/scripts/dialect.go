@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/lib/pq"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/database"
 )
@@ -40,7 +41,6 @@ var safeJSONKey = regexp.MustCompile(constants.FilterRegex)
 // LIKE is case-insensitive for ASCII, which is the closest equivalent of
 // PostgreSQL's ILIKE.
 func LikeOperator(dbType string) string {
-
 	if dbType == database.TypeSQLite {
 		return "LIKE"
 	}
@@ -51,7 +51,6 @@ func LikeOperator(dbType string) string {
 // Keys arrive from user-supplied filters, so they are restricted to the
 // characters allowed for filter values.
 func ValidateJSONKey(key string) error {
-
 	if key == "" {
 		return fmt.Errorf("JSON key must not be empty")
 	}
@@ -68,7 +67,6 @@ func ValidateJSONKey(key string) error {
 //
 // path is the chain of keys to the value, e.g. ["app_specific_data", "email"].
 func JSONEqCondition(dbType, column string, path []string, value string, argID int) (string, interface{}, error) {
-
 	if len(path) == 0 {
 		return "", nil, fmt.Errorf("JSON path must not be empty")
 	}
@@ -103,7 +101,6 @@ func JSONEqCondition(dbType, column string, path []string, value string, argID i
 // JSONLikeCondition builds a case-insensitive pattern-match condition against a
 // key nested inside a JSON column. The caller binds the pattern.
 func JSONLikeCondition(dbType, column string, path []string, argID int) (string, error) {
-
 	if len(path) == 0 {
 		return "", fmt.Errorf("JSON path must not be empty")
 	}
@@ -133,7 +130,6 @@ func JSONLikeCondition(dbType, column string, path []string, argID int) (string,
 // sqliteJSONPath renders a JSON path expression for json_extract. Each key is
 // quoted so that a key containing a dot is not read as a nested lookup.
 func sqliteJSONPath(path []string) string {
-
 	var builder strings.Builder
 	builder.WriteString("$")
 	for _, key := range path {
@@ -147,7 +143,6 @@ func sqliteJSONPath(path []string) string {
 
 // KeysetCondition builds the row-value comparison used for cursor pagination.
 func KeysetCondition(dbType, operator string, timestampArgID, idArgID int) string {
-
 	if dbType == database.TypeSQLite {
 		return fmt.Sprintf("(p.created_at, p.profile_id) %s ($%d, $%d)", operator, timestampArgID, idArgID)
 	}
@@ -159,7 +154,6 @@ func KeysetCondition(dbType, operator string, timestampArgID, idArgID int) strin
 // or, since SQLite has no array type, a JSON array. DecodeStringArray reads
 // back either form.
 func EncodeStringArray(dbType string, values []string) interface{} {
-
 	if dbType != database.TypeSQLite {
 		return pq.Array(values)
 	}
@@ -178,7 +172,6 @@ func EncodeStringArray(dbType string, values []string) interface{} {
 // DecodeStringArray reads a list of strings written by EncodeStringArray, in
 // either form.
 func DecodeStringArray(raw interface{}) []string {
-
 	var text string
 	switch typed := raw.(type) {
 	case nil:

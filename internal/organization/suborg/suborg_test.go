@@ -33,7 +33,6 @@ import (
 )
 
 func setUp(t *testing.T) context.Context {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -62,7 +61,6 @@ func setUp(t *testing.T) context.Context {
 }
 
 func TestRejectWrite(t *testing.T) {
-
 	ctx := setUp(t)
 	if err := RejectWrite(ctx, "primary-id"); err != nil {
 		t.Fatalf("a primary org must write, got %v", err)

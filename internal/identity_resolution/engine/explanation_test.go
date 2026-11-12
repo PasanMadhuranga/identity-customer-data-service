@@ -39,7 +39,6 @@ func idRule(id, property, attrType, method string, priority int) urModel.Unifica
 // reports, since the two must never drift apart.
 func evaluatePair(t *testing.T, rules []urModel.UnificationRule, ctx ScoringContext,
 	incoming, candidate map[string]interface{}) CandidateEvaluation {
-
 	t.Helper()
 	profile := &model.ProfileData{ProfileID: "candidate", Attributes: candidate}
 	evaluation := EvaluateCandidate(incoming, profile, rules, ctx)

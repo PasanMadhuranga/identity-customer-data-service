@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
 	adminModel "github.com/wso2/identity-customer-data-service/internal/admin_config/model"
 	adminStore "github.com/wso2/identity-customer-data-service/internal/admin_config/store"
 	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
@@ -64,7 +65,6 @@ func mustUnmarshalProfile(jsonStr string) profileModel.ProfileRequest {
 }
 
 func Test_Profile_Unification_Scenarios(t *testing.T) {
-
 	RuleNamePhoneBased := "phone_based"
 	RuleNameEmailBased := "email_based"
 	AppId := "test-app-001"
@@ -200,7 +200,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		require.Contains(t, merged2.IdentityAttributes["phone_number"].([]interface{}), "0774567890")
 
 		cleanProfiles(profileSvc, SuperTenantOrg)
-
 	})
 
 	t.Run("Scenario3_TempTempThenPerm_Merge", func(t *testing.T) {
@@ -230,7 +229,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		require.Contains(t, merged3.IdentityAttributes["email"].([]interface{}), "c@wso2.com")
 
 		cleanProfiles(profileSvc, SuperTenantOrg)
-
 	})
 
 	t.Run("Scenario4_TempPermThenAnotherTemp", func(t *testing.T) {
@@ -257,7 +255,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		require.Contains(t, merged3.IdentityAttributes["email"].([]interface{}), "d@wso2.com")
 
 		cleanProfiles(profileSvc, SuperTenantOrg)
-
 	})
 
 	t.Run("Scenario5_TwoPermanent_SameEmail_NoMerge", func(t *testing.T) {
@@ -272,7 +269,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		require.Empty(t, p2.MergedTo)
 
 		cleanProfiles(profileSvc, SuperTenantOrg)
-
 	})
 
 	t.Run("Scenario6_RulePriority_HigherPriorityWins", func(t *testing.T) {
@@ -294,7 +290,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	})
 
 	t.Run("Scenario7_InactiveRule_ShouldPreventUnification", func(t *testing.T) {
-
 		emailBasedRule.IsActive = false
 		err = unificationSvc.PatchUnificationRule(context.Background(), emailRuleId, SuperTenantOrg.ID, emailBasedRule)
 		require.NoError(t, err, "Failed to deactivate email based unification rule")
@@ -318,7 +313,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		err = unificationSvc.PatchUnificationRule(context.Background(), emailRuleId, SuperTenantOrg.ID, emailBasedRule)
 		require.NoError(t, err, "Failed to reactivate email based unification rule")
 		cleanProfiles(profileSvc, SuperTenantOrg)
-
 	})
 
 	t.Run("Scenario8_RuleChange_ShouldNotSplitExisting", func(t *testing.T) {
@@ -342,11 +336,9 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		merged2, _ = profileSvc.GetProfile(context.Background(), after2.ProfileId, SuperTenantOrg.ID)
 		require.Equal(t, merged1.MergedTo.ProfileId, merged2.MergedTo.ProfileId)
 		cleanProfiles(profileSvc, SuperTenantOrg)
-
 	})
 
 	t.Run("Scenario9_CrossTenantProfiles_ShouldNotUnify", func(t *testing.T) {
-
 		OtherTenant := setup.TestOrg(t, fmt.Sprintf("other.org-%d", time.Now().UnixNano()))
 		identityAttr := []schemaModel.ProfileSchemaAttribute{
 			{OrgId: OtherTenant.ID, AttributeId: uuid.New().String(), AttributeName: "identity_attributes.email", ValueType: constants.StringDataType, MergeStrategy: "combine",
@@ -390,7 +382,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	})
 
 	t.Run("Scenario10_AppAttribute_Separation", func(t *testing.T) {
-
 		p1JSON := `{ "identity_attributes":{"email":["shared-app-test@wso2.com"]}, "application_data":{"` + AppA_Id + `":{"ui_mode":"dark"},"` + AppB_Id + `":{"ui_mode":"light"}}}`
 		p1Req := mustUnmarshalProfile(p1JSON)
 
@@ -456,7 +447,6 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 }
 
 func cleanProfiles(profileSvc profileService.ProfilesServiceInterface, org orgModel.Ref) {
-
 	profiles, _, _ := profileSvc.GetAllProfilesCursor(context.Background(), org.ID, 10, nil)
 	for _, p := range profiles {
 		_ = profileSvc.DeleteProfile(context.Background(), p.ProfileId, org.ID)

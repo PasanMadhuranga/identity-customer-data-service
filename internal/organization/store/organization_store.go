@@ -54,7 +54,6 @@ func serverError(description string, err error) error {
 
 // UpsertOrganization inserts the organization, or updates it when it exists.
 func UpsertOrganization(ctx context.Context, org model.Organization) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return serverError("Failed to get a database client to store an organization.", err)
@@ -97,7 +96,6 @@ func GetOrganizationByHandle(ctx context.Context, orgHandle string) (*model.Orga
 // false when the handle has no row. Unlike GetOrganizationByHandle it reads the table when organization
 // management is disabled: the org ID of every deployment comes from it. The result is cached.
 func LookupOrganizationRef(ctx context.Context, orgHandle string) (ref model.Ref, found bool, err error) {
-
 	if value, ok := refs.Get(orgHandle); ok {
 		if ref, ok := value.(model.Ref); ok {
 			return ref, true, nil
@@ -115,7 +113,6 @@ func LookupOrganizationRef(ctx context.Context, orgHandle string) (ref model.Ref
 // ID. found is false when the ID has no row. As LookupOrganizationRef does, it reads the table when
 // organization management is disabled. The result is cached.
 func LookupOrganizationRefById(ctx context.Context, orgId string) (ref model.Ref, found bool, err error) {
-
 	if value, ok := refsById.Get(orgId); ok {
 		if ref, ok := value.(model.Ref); ok {
 			return ref, true, nil
@@ -131,7 +128,6 @@ func LookupOrganizationRefById(ctx context.Context, orgId string) (ref model.Ref
 
 // GetOrganizationsByPrimaryOrg returns all organizations of an organization tree.
 func GetOrganizationsByPrimaryOrg(ctx context.Context, primaryOrgId string) ([]model.Organization, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
@@ -155,7 +151,6 @@ const idBatchSize = 1000
 
 // GetOrganizationsByIds returns the stored organizations with the IDs.
 func GetOrganizationsByIds(ctx context.Context, orgIds []string) ([]model.Organization, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
@@ -186,7 +181,6 @@ func GetOrganizationsByIds(ctx context.Context, orgIds []string) ([]model.Organi
 // GetOrganizationChain returns the organization and its ancestors, the primary organization first.
 // The chain is empty when organization management is disabled.
 func GetOrganizationChain(ctx context.Context, orgId string) ([]model.Organization, error) {
-
 	if !config.OrganizationManagementEnabled() {
 		return nil, nil
 	}
@@ -210,7 +204,6 @@ func GetOrganizationChain(ctx context.Context, orgId string) ([]model.Organizati
 
 // GetAncestors returns the ancestors of the organization, the parent first.
 func GetAncestors(ctx context.Context, orgId string) ([]model.Ancestor, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
@@ -230,7 +223,6 @@ func GetAncestors(ctx context.Context, orgId string) ([]model.Ancestor, error) {
 
 // UpdateOrganizationStatus sets the status of the organization.
 func UpdateOrganizationStatus(ctx context.Context, orgId, status string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return serverError("Failed to get a database client to update an organization.", err)
@@ -246,7 +238,6 @@ func UpdateOrganizationStatus(ctx context.Context, orgId, status string) error {
 
 // GetTreeSyncStatus returns the tree sync state of the primary organization.
 func GetTreeSyncStatus(ctx context.Context, orgId string) (*model.TreeSyncStatus, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read the organization sync state.", err)
@@ -281,7 +272,6 @@ func GetTreeSyncStatus(ctx context.Context, orgId string) (*model.TreeSyncStatus
 // SetTreeSyncValues writes the tree sync keys of the primary organization in one transaction. An
 // empty value clears the key.
 func SetTreeSyncValues(ctx context.Context, orgId string, values map[string]string) error {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return serverError("Failed to get a database client to store the organization sync state.", err)
@@ -313,7 +303,6 @@ func parseTime(value string) *time.Time {
 }
 
 func getOne(ctx context.Context, query dbmodel.DBQuery, arg string) (*model.Organization, error) {
-
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read an organization.", err)

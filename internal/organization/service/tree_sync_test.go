@@ -61,7 +61,6 @@ func (f *fakeIdP) GetPrimaryOrganization(_ context.Context, handle string) (idp.
 }
 
 func (f *fakeIdP) ListDescendants(_ context.Context, _ string) ([]idp.Organization, error) {
-
 	f.mu.Lock()
 	f.listCalls++
 	onList, release, listErr := f.onList, f.release, f.listErr
@@ -80,7 +79,6 @@ func (f *fakeIdP) ListDescendants(_ context.Context, _ string) ([]idp.Organizati
 }
 
 func (f *fakeIdP) GetOrganization(_ context.Context, _, orgId string) (*idp.Organization, error) {
-
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.getCalls++
@@ -106,7 +104,6 @@ func (f *fakeIdP) calls() (int, int) {
 // setUp prepares an empty database, a primary organization with CDS enabled, and the fake
 // identity provider.
 func setUp(t *testing.T, fake *fakeIdP) context.Context {
-
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
@@ -136,7 +133,6 @@ func setUp(t *testing.T, fake *fakeIdP) context.Context {
 
 // waitIdle waits until no background sync runs.
 func waitIdle(t *testing.T) {
-
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -152,7 +148,6 @@ func waitIdle(t *testing.T) {
 }
 
 func waitState(t *testing.T, ctx context.Context, want string) *model.TreeSyncStatus {
-
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -178,7 +173,6 @@ func tree() []idp.Organization {
 }
 
 func orgStatus(t *testing.T, ctx context.Context, orgId string) string {
-
 	t.Helper()
 	org, err := store.GetOrganizationById(ctx, orgId)
 	if err != nil {
@@ -191,7 +185,6 @@ func orgStatus(t *testing.T, ctx context.Context, orgId string) string {
 }
 
 func clientErrorCode(err error) string {
-
 	var clientErr *errors2.ClientError
 	if errors.As(err, &clientErr) {
 		return clientErr.ErrorMessage.Code
@@ -200,7 +193,6 @@ func clientErrorCode(err error) string {
 }
 
 func TestEnsurePrimaryStoresOnlyThePrimary(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 
@@ -224,7 +216,6 @@ func TestEnsurePrimaryStoresOnlyThePrimary(t *testing.T) {
 }
 
 func TestStartTreeSyncStoresTheTreeInTheBackground(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree(), release: make(chan struct{})}
 	ctx := setUp(t, fake)
 
@@ -259,7 +250,6 @@ func TestStartTreeSyncStoresTheTreeInTheBackground(t *testing.T) {
 }
 
 func TestFailedSyncKeepsTheStoredOrgs(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := StartTreeSync(ctx, primaryRef); err != nil {
@@ -290,7 +280,6 @@ func TestFailedSyncKeepsTheStoredOrgs(t *testing.T) {
 }
 
 func TestSyncMarksMissingOrgsDeleted(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := syncTree(ctx, primaryHandle); err != nil {
@@ -313,7 +302,6 @@ func TestSyncMarksMissingOrgsDeleted(t *testing.T) {
 }
 
 func TestSyncDoesNotDeleteOrgsThatAnEventChanged(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := syncTree(ctx, primaryHandle); err != nil {
@@ -353,7 +341,6 @@ func TestSyncDoesNotDeleteOrgsThatAnEventChanged(t *testing.T) {
 }
 
 func TestEventsAreIgnoredBeforeTheFirstSync(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := EnsurePrimary(ctx, primaryHandle); err != nil {
@@ -376,7 +363,6 @@ func TestEventsAreIgnoredBeforeTheFirstSync(t *testing.T) {
 }
 
 func TestEventsApplyAfterTheFirstSync(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := StartTreeSync(ctx, primaryRef); err != nil {
@@ -431,7 +417,6 @@ func TestEventsApplyAfterTheFirstSync(t *testing.T) {
 }
 
 func TestDeleteEventAppliesOnlyToSubOrgsOfThePathTree(t *testing.T) {
-
 	ctx := setUp(t, &fakeIdP{orgs: tree()})
 	if _, err := StartTreeSync(ctx, primaryRef); err != nil {
 		t.Fatal(err)
@@ -468,14 +453,12 @@ func TestDeleteEventAppliesOnlyToSubOrgsOfThePathTree(t *testing.T) {
 
 // requestSyncAgain requests one more run of the running sync.
 func requestSyncAgain() {
-
 	treeSyncMu.Lock()
 	defer treeSyncMu.Unlock()
 	scheduleLocked(primaryRef)
 }
 
 func TestATriggerDuringASyncRunsItAgain(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree(), release: make(chan struct{})}
 	ctx := setUp(t, fake)
 	if _, err := StartTreeSync(ctx, primaryRef); err != nil {
@@ -494,7 +477,6 @@ func TestATriggerDuringASyncRunsItAgain(t *testing.T) {
 }
 
 func TestUnknownOrgsAreNotLookedUp(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := EnsurePrimary(ctx, primaryHandle); err != nil {
@@ -519,7 +501,6 @@ func TestUnknownOrgsAreNotLookedUp(t *testing.T) {
 
 // setCDSEnabled sets the CDS enabled flag of the primary organization.
 func setCDSEnabled(t *testing.T, ctx context.Context, enabled bool) {
-
 	t.Helper()
 	config, err := adminConfigStore.GetAdminConfig(ctx, primaryId)
 	if err != nil || config == nil {
@@ -532,7 +513,6 @@ func setCDSEnabled(t *testing.T, ctx context.Context, enabled bool) {
 }
 
 func TestResetTreeSyncNeedsANewSync(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if _, err := StartTreeSync(ctx, primaryRef); err != nil {
@@ -581,7 +561,6 @@ func TestResetTreeSyncNeedsANewSync(t *testing.T) {
 }
 
 func TestASyncThatEndsAfterADisableStoresNoState(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree(), release: make(chan struct{})}
 	ctx := setUp(t, fake)
 	if _, err := StartTreeSync(ctx, primaryRef); err != nil {
@@ -609,7 +588,6 @@ func TestASyncThatEndsAfterADisableStoresNoState(t *testing.T) {
 }
 
 func TestResetTreeSyncWithoutASyncWritesNothing(t *testing.T) {
-
 	fake := &fakeIdP{orgs: tree()}
 	ctx := setUp(t, fake)
 	if err := ResetTreeSync(ctx, primaryRef.ID); err != nil {

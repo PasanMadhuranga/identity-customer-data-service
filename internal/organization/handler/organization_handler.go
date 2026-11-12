@@ -52,16 +52,16 @@ func (h *OrganizationHandler) SyncOrganization(w http.ResponseWriter, r *http.Re
 		return
 	}
 	var event model.SyncEvent
-	if err := json.NewDecoder(r.Body).Decode(&event); err != nil || event.OrgId == "" || event.Event == "" {
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil || event.OrgID == "" || event.Event == "" {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BAD_REQUEST.Code,
-			Message:     errors2.BAD_REQUEST.Message,
+			Code:        errors2.BadRequest.Code,
+			Message:     errors2.BadRequest.Message,
 			Description: "The body must have 'event' and 'org_id'.",
 		}, http.StatusBadRequest))
 		return
 	}
 	orgHandle := utils.ExtractOrgHandleFromPath(r)
-	log.GetLogger().Info("Received organization event " + event.Event + " for org " + event.OrgId + " through " +
+	log.GetLogger().Info("Received organization event " + event.Event + " for org " + event.OrgID + " through " +
 		orgHandle)
 	if err := service.HandleSyncEvent(r.Context(), orgHandle, event); err != nil {
 		utils.HandleError(w, err)
@@ -90,7 +90,7 @@ func (h *OrganizationHandler) GetTreeSync(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	status, err := service.GetTreeSyncStatus(r.Context(), primary.OrgId)
+	status, err := service.GetTreeSyncStatus(r.Context(), primary.OrgID)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
@@ -195,8 +195,8 @@ func primaryOf(w http.ResponseWriter, r *http.Request, operation string) (*model
 	}
 	if org == nil || !org.IsPrimary() {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.SUB_ORG_CONFIG_NOT_ALLOWED.Code,
-			Message:     errors2.SUB_ORG_CONFIG_NOT_ALLOWED.Message,
+			Code:        errors2.SubOrgConfigNotAllowed.Code,
+			Message:     errors2.SubOrgConfigNotAllowed.Message,
 			Description: "Only the primary organization manages the organization sync and the organization access.",
 		}, http.StatusBadRequest))
 		return nil, false
@@ -206,8 +206,8 @@ func primaryOf(w http.ResponseWriter, r *http.Request, operation string) (*model
 
 func notEnabled() error {
 	return errors2.NewClientError(errors2.ErrorMessage{
-		Code:        errors2.CDS_NOT_ENABLED.Code,
-		Message:     errors2.CDS_NOT_ENABLED.Message,
-		Description: errors2.CDS_NOT_ENABLED.Description,
+		Code:        errors2.CDSNotEnabled.Code,
+		Message:     errors2.CDSNotEnabled.Message,
+		Description: errors2.CDSNotEnabled.Description,
 	}, http.StatusBadRequest)
 }

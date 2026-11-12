@@ -158,16 +158,16 @@ func MountTenantDispatcher(mux *http.ServeMux, handlerFunc http.HandlerFunc) {
 				http.NotFound(w, r)
 				return
 			}
-			orgId := segments[0]
-			subOrgHandle, err := SubOrgResolver(r.Context(), orgHandle, orgId)
+			orgID := segments[0]
+			subOrgHandle, err := SubOrgResolver(r.Context(), orgHandle, orgID)
 			if err != nil {
 				HandleError(w, err)
 				return
 			}
 			ctx = context.WithValue(ctx, constants.TenantContextKey, subOrgHandle)
-			ctx = context.WithValue(ctx, constants.OrgIdContextKey, orgId)
+			ctx = context.WithValue(ctx, constants.OrgIDContextKey, orgID)
 			remainingPath = "/" + segments[1]
-			basePath += "/o/" + orgId
+			basePath += "/o/" + orgID
 		} else if IsSubOrgHandle != nil {
 			isSubOrg, err := IsSubOrgHandle(r.Context(), orgHandle)
 			if err != nil {
@@ -175,7 +175,7 @@ func MountTenantDispatcher(mux *http.ServeMux, handlerFunc http.HandlerFunc) {
 				return
 			}
 			if isSubOrg {
-				HandleError(w, error2.NewClientError(error2.ORGANIZATION_PATH_NOT_SUPPORTED, http.StatusBadRequest))
+				HandleError(w, error2.NewClientError(error2.OrganizationPathNotSupported, http.StatusBadRequest))
 				return
 			}
 		}
@@ -202,8 +202,8 @@ func RespondJSON(w http.ResponseWriter, status int, payload any, resource string
 
 	if err := enc.Encode(payload); err != nil {
 		serverError := error2.NewServerError(error2.ErrorMessage{
-			Code:        error2.ENCODE_ERROR.Code,
-			Message:     error2.ENCODE_ERROR.Message,
+			Code:        error2.EncodeError.Code,
+			Message:     error2.EncodeError.Message,
 			Description: fmt.Sprintf("Failed to encode %s response", resource),
 		}, err)
 		HandleError(w, serverError)

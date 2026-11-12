@@ -37,10 +37,10 @@ type Org struct {
 	// Handle is the organisation segment of the path, which for a sub organisation is the
 	// handle of its primary organisation.
 	Handle string
-	// SubOrgId is the ID of the sub organisation the path addresses, empty for a primary
+	// SubOrgID is the ID of the sub organisation the path addresses, empty for a primary
 	// organisation. It comes from an unauthenticated request, so a lookup must treat it as a
 	// key to match and nothing more.
-	SubOrgId string
+	SubOrgID string
 }
 
 // OriginsLookup returns the origins an organisation has added to the deployment-wide list. An
@@ -127,8 +127,8 @@ func ExtractOrgFromPath(path string) Org {
 	}
 	handle, rest, _ := strings.Cut(remainder, "/")
 	if subOrgPath, isSubOrg := strings.CutPrefix(rest, "o/"); isSubOrg {
-		subOrgId, _, _ := strings.Cut(subOrgPath, "/")
-		return Org{Handle: handle, SubOrgId: subOrgId}
+		subOrgID, _, _ := strings.Cut(subOrgPath, "/")
+		return Org{Handle: handle, SubOrgID: subOrgID}
 	}
 	return Org{Handle: handle}
 }

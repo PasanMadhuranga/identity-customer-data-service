@@ -42,7 +42,7 @@ type AuthServerConfig struct {
 	ClaimEndpoint             string              `yaml:"claim_endpoint"`
 	ClientID                  string              `yaml:"client_id"`
 	ClientSecret              string              `yaml:"client_secret"`
-	IntrospectionClientId     string              `yaml:"introspection_client_id"`
+	IntrospectionClientID     string              `yaml:"introspection_client_id"`
 	IntrospectionClientSecret string              `yaml:"introspection_client_secret"`
 	AdminUsername             string              `yaml:"admin_username"`
 	AdminPassword             string              `yaml:"admin_password"`
@@ -150,7 +150,7 @@ type Config struct {
 	Log          LogConfig          `yaml:"log"`
 	Auth         AuthConfig         `yaml:"auth"`
 	AuthServer   AuthServerConfig   `yaml:"auth_server"`
-	IdP          IdPConfig          `yaml:"idp"`
+	IDP          IDPConfig          `yaml:"idp"`
 	DataSource   DataSourceConfig   `yaml:"datasource"`
 	TLS          TLSConfig          `yaml:"tls"`
 	Cleanup      CleanupConfig      `yaml:"cleanup"`
@@ -164,8 +164,8 @@ type Config struct {
 	IdentityResolution IdentityResolutionConfig `yaml:"identity_resolution"`
 }
 
-// IdPConfig selects the identity provider of the deployment.
-type IdPConfig struct {
+// IDPConfig selects the identity provider of the deployment.
+type IDPConfig struct {
 	// Type is "wso2is", the default when it is empty.
 	Type string `yaml:"type"`
 	// ServiceCredentials governs the credentials CDS calls the identity

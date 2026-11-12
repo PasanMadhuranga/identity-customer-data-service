@@ -60,8 +60,8 @@ func (h *IdentityResolutionHandler) GetReviewTasks(w http.ResponseWriter, r *htt
 	pageSize, parseErr := pagination.ParsePageSize(r)
 	if parseErr != nil {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BAD_REQUEST.Code,
-			Message:     errors2.BAD_REQUEST.Message,
+			Code:        errors2.BadRequest.Code,
+			Message:     errors2.BadRequest.Message,
 			Description: parseErr.Error(),
 		}, http.StatusBadRequest))
 		return
@@ -103,8 +103,8 @@ func (h *IdentityResolutionHandler) ResolveReviewTask(w http.ResponseWriter, r *
 	taskID := r.PathValue("taskId")
 	if taskID == "" {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BAD_REQUEST.Code,
-			Message:     errors2.BAD_REQUEST.Message,
+			Code:        errors2.BadRequest.Code,
+			Message:     errors2.BadRequest.Message,
 			Description: "Task ID is required.",
 		}, http.StatusBadRequest))
 		return
@@ -113,8 +113,8 @@ func (h *IdentityResolutionHandler) ResolveReviewTask(w http.ResponseWriter, r *
 	var resolveReq irModel.ReviewResolveRequest
 	if err := json.NewDecoder(r.Body).Decode(&resolveReq); err != nil {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BAD_REQUEST.Code,
-			Message:     errors2.BAD_REQUEST.Message,
+			Code:        errors2.BadRequest.Code,
+			Message:     errors2.BadRequest.Message,
 			Description: fmt.Sprintf("Failed to parse resolve request: %v", err),
 		}, http.StatusBadRequest))
 		return
@@ -122,8 +122,8 @@ func (h *IdentityResolutionHandler) ResolveReviewTask(w http.ResponseWriter, r *
 
 	if resolveReq.Decision != constants.ReviewStatusApproved && resolveReq.Decision != constants.ReviewStatusRejected {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:    errors2.BAD_REQUEST.Code,
-			Message: errors2.BAD_REQUEST.Message,
+			Code:    errors2.BadRequest.Code,
+			Message: errors2.BadRequest.Message,
 			Description: fmt.Sprintf("Invalid decision '%s'. Must be '%s' or '%s'.",
 				resolveReq.Decision, constants.ReviewStatusApproved, constants.ReviewStatusRejected),
 		}, http.StatusBadRequest))
@@ -177,7 +177,7 @@ func extractResolverIdentity(r *http.Request) string {
 	if azp, ok := claims[constants.AZPClaim].(string); ok && azp != "" {
 		return azp
 	}
-	if clientID, ok := claims[constants.ClientIdClaim].(string); ok && clientID != "" {
+	if clientID, ok := claims[constants.ClientIDClaim].(string); ok && clientID != "" {
 		return clientID
 	}
 	return ""

@@ -21,7 +21,7 @@ package model
 import "time"
 
 type ProfileStatus struct {
-	ReferenceProfileId string `json:"reference_profile_id,omitempty" bson:"reference_profile_id,omitempty"`
+	ReferenceProfileID string `json:"reference_profile_id,omitempty" bson:"reference_profile_id,omitempty"`
 	IsReferenceProfile bool   `json:"is_reference_profile,omitempty" bson:"is_reference_profile,omitempty"`
 	// Is the profile waiting for admin approval for unification
 	IsWaitingOnAdmin bool `json:"is_waiting_on_admin,omitempty" bson:"is_waiting_on_admin,omitempty"`
@@ -34,14 +34,14 @@ type ProfileStatus struct {
 }
 
 type Reference struct {
-	ProfileId string `json:"profile_id,omitempty" bson:"profile_id,omitempty"`
+	ProfileID string `json:"profile_id,omitempty" bson:"profile_id,omitempty"`
 	Reason    string `json:"reason,omitempty" bson:"rule_name,omitempty"`
 }
 
 type Profile struct {
-	ProfileId          string                 `json:"profile_id" bson:"profile_id"`
-	UserId             string                 `json:"user_id" bson:"user_id"`
-	OrgId              string                 `json:"org_id" bson:"org_id"`
+	ProfileID          string                 `json:"profile_id" bson:"profile_id"`
+	UserID             string                 `json:"user_id" bson:"user_id"`
+	OrgID              string                 `json:"org_id" bson:"org_id"`
 	CreatedAt          time.Time              `json:"created_at" bson:"created_at"`
 	UpdatedAt          time.Time              `json:"updated_at" bson:"updated_at"`
 	IdentityAttributes map[string]interface{} `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
@@ -51,8 +51,8 @@ type Profile struct {
 }
 
 type ProfileCookie struct {
-	ProfileId string `json:"profile_id" bson:"profile_id"`
-	CookieId  string `json:"cookie_id" bson:"cookie_id"`
+	ProfileID string `json:"profile_id" bson:"profile_id"`
+	CookieID  string `json:"cookie_id" bson:"cookie_id"`
 	IsActive  bool   `json:"is_active" bson:"is_active"`
 }
 
@@ -75,6 +75,6 @@ type ProfileConsentResponse struct {
 
 type ProfileCursor struct {
 	CreatedAt time.Time `json:"created_at"`
-	ProfileId string    `json:"profile_id"`
+	ProfileID string    `json:"profile_id"`
 	Direction string    `json:"direction,omitempty"` // "next" or "prev"
 }

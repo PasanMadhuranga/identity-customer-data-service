@@ -77,14 +77,14 @@ type orgScopeFixture struct {
 	ownerToken string
 	otherToken string
 
-	ownerUserId       string
-	ownerProfileId    string
-	ownerAnonId       string
+	ownerUserID       string
+	ownerProfileID    string
+	ownerAnonID       string
 	ownerCookie       string
-	ownerCategoryId   string
-	ownerRuleId       string
-	otherProfileId    string
-	otherCategoryId   string
+	ownerCategoryID   string
+	ownerRuleID       string
+	otherProfileID    string
+	otherCategoryID   string
 	ownerInterests    string
 	ownerAnonInterest string
 }
@@ -97,7 +97,7 @@ func Test_OrgScope_API(t *testing.T) {
 
 	t.Run("UnificationRules", func(t *testing.T) {
 		f := setUpOrgScopeFixture(t)
-		rulePath := "/unification-rules/" + f.ownerRuleId
+		rulePath := "/unification-rules/" + f.ownerRuleID
 
 		t.Run("Get_other_org_rule_returns_not_found", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet, rulePath, "", nil)
@@ -134,7 +134,7 @@ func Test_OrgScope_API(t *testing.T) {
 
 	t.Run("Profiles", func(t *testing.T) {
 		f := setUpOrgScopeFixture(t)
-		profilePath := "/profiles/" + f.ownerProfileId
+		profilePath := "/profiles/" + f.ownerProfileID
 
 		t.Run("Get_other_org_profile_returns_not_found", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet, profilePath, "", nil)
@@ -151,12 +151,12 @@ func Test_OrgScope_API(t *testing.T) {
 		t.Run("Get_other_org_profile_consents_returns_not_found", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet, profilePath+"/consents", "", nil)
 			assert.Equal(t, http.StatusNotFound, status, string(body))
-			assert.NotContains(t, string(body), f.ownerCategoryId)
+			assert.NotContains(t, string(body), f.ownerCategoryID)
 		})
 
 		t.Run("Put_other_org_profile_consents_returns_not_found", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodPut, profilePath+"/consents",
-				fmt.Sprintf(`[{"category_identifier":%q,"is_consented":false}]`, f.ownerCategoryId), nil)
+				fmt.Sprintf(`[{"category_identifier":%q,"is_consented":false}]`, f.ownerCategoryID), nil)
 			assert.Equal(t, http.StatusNotFound, status, string(body))
 		})
 
@@ -185,7 +185,7 @@ func Test_OrgScope_API(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet, "/profiles/Me", "", ownerCookie)
 			assert.Equal(t, http.StatusNotFound, status, string(body))
 			assert.NotContains(t, string(body), f.ownerAnonInterest)
-			assert.NotContains(t, string(body), f.ownerAnonId)
+			assert.NotContains(t, string(body), f.ownerAnonID)
 		})
 
 		t.Run("Patch_with_other_org_cookie_matches_unknown_cookie", func(t *testing.T) {
@@ -201,7 +201,7 @@ func Test_OrgScope_API(t *testing.T) {
 		t.Run("Init_with_other_org_cookie_creates_a_new_profile", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodPost, "/profiles", `{}`, ownerCookie)
 			assert.Equal(t, http.StatusCreated, status, string(body))
-			assert.NotContains(t, string(body), f.ownerAnonId)
+			assert.NotContains(t, string(body), f.ownerAnonID)
 			assert.NotContains(t, string(body), f.ownerAnonInterest)
 			assert.NotContains(t, string(body), f.ownerCookie)
 		})
@@ -213,11 +213,11 @@ func Test_OrgScope_API(t *testing.T) {
 
 	t.Run("ConsentCategoryIds", func(t *testing.T) {
 		f := setUpOrgScopeFixture(t)
-		consentsPath := "/profiles/" + f.otherProfileId + "/consents"
+		consentsPath := "/profiles/" + f.otherProfileID + "/consents"
 
 		t.Run("Put_other_org_category_returns_bad_request", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodPut, consentsPath,
-				fmt.Sprintf(`[{"category_identifier":%q,"is_consented":true}]`, f.ownerCategoryId), nil)
+				fmt.Sprintf(`[{"category_identifier":%q,"is_consented":true}]`, f.ownerCategoryID), nil)
 			assert.Equal(t, http.StatusBadRequest, status, string(body))
 		})
 
@@ -230,14 +230,14 @@ func Test_OrgScope_API(t *testing.T) {
 		t.Run("Rejected_categories_are_not_stored", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet, consentsPath, "", nil)
 			require.Equal(t, http.StatusOK, status, string(body))
-			assert.NotContains(t, string(body), f.ownerCategoryId)
+			assert.NotContains(t, string(body), f.ownerCategoryID)
 		})
 
 		t.Run("Filter_uses_own_org_category", func(t *testing.T) {
-			f.setOtherProfileConsent(t, f.otherCategoryId)
+			f.setOtherProfileConsent(t, f.otherCategoryID)
 
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet,
-				"/profiles/"+f.otherProfileId+"?consentCategoryId="+f.otherCategoryId, "", nil)
+				"/profiles/"+f.otherProfileID+"?consentCategoryId="+f.otherCategoryID, "", nil)
 			require.Equal(t, http.StatusOK, status, string(body))
 			assert.Contains(t, string(body), "other-org-interest")
 		})
@@ -245,10 +245,10 @@ func Test_OrgScope_API(t *testing.T) {
 		t.Run("Filter_ignores_other_org_category", func(t *testing.T) {
 			// The profile holds a consent record for the category of the owner org,
 			// written directly to the store as a record that predates the API check.
-			f.setOtherProfileConsent(t, f.ownerCategoryId)
+			f.setOtherProfileConsent(t, f.ownerCategoryID)
 
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet,
-				"/profiles/"+f.otherProfileId+"?consentCategoryId="+f.ownerCategoryId, "", nil)
+				"/profiles/"+f.otherProfileID+"?consentCategoryId="+f.ownerCategoryID, "", nil)
 			require.Equal(t, http.StatusOK, status, string(body))
 			assert.NotContains(t, string(body), "other-org-interest")
 		})
@@ -260,10 +260,10 @@ func Test_OrgScope_API(t *testing.T) {
 		t.Run("Delete_user_event_does_not_reach_other_org_profile", func(t *testing.T) {
 			f.sync(t, map[string]interface{}{
 				"event":     constants.DeleteUserEvent,
-				"userId":    f.ownerUserId,
+				"userId":    f.ownerUserID,
 				"orgHandle": f.otherOrg,
 			})
-			stored, err := profileStore.GetProfile(ctx, f.ownerProfileId, f.owner.ID)
+			stored, err := profileStore.GetProfile(ctx, f.ownerProfileID, f.owner.ID)
 			require.NoError(t, err)
 			assert.NotNil(t, stored, "owner profile must still exist")
 		})
@@ -275,10 +275,10 @@ func Test_OrgScope_API(t *testing.T) {
 				"profileCookie": f.ownerCookie,
 				"orgHandle":     f.otherOrg,
 			})
-			anon, err := profileStore.GetProfile(ctx, f.ownerAnonId, f.owner.ID)
+			anon, err := profileStore.GetProfile(ctx, f.ownerAnonID, f.owner.ID)
 			require.NoError(t, err)
 			require.NotNil(t, anon)
-			assert.Empty(t, anon.UserId, "owner anonymous profile must not be linked to a user of another org")
+			assert.Empty(t, anon.UserID, "owner anonymous profile must not be linked to a user of another org")
 		})
 	})
 }
@@ -291,7 +291,7 @@ func setUpOrgScopeFixture(t *testing.T) *orgScopeFixture {
 	f := &orgScopeFixture{
 		ownerOrg:          fmt.Sprintf("scope-owner-org-%d", suffix),
 		otherOrg:          fmt.Sprintf("scope-other-org-%d", suffix),
-		ownerUserId:       fmt.Sprintf("owner-user-%d", suffix),
+		ownerUserID:       fmt.Sprintf("owner-user-%d", suffix),
 		ownerInterests:    fmt.Sprintf("owner-interest-%d", suffix),
 		ownerAnonInterest: fmt.Sprintf("owner-anon-interest-%d", suffix),
 	}
@@ -324,21 +324,21 @@ func setUpOrgScopeFixture(t *testing.T) *orgScopeFixture {
 
 	for _, org := range []orgModel.Ref{f.owner, f.other} {
 		require.NoError(t, adminConfigStore.UpdateAdminConfig(ctx, adminConfigModel.AdminConfig{
-			OrgId:      org.ID,
+			OrgID:      org.ID,
 			CDSEnabled: true,
 		}, org.ID))
 		_, err := schemaSvc.AddProfileSchemaAttributesForScope(ctx, []profileSchemaModel.ProfileSchemaAttribute{{
-			OrgId: org.ID, AttributeId: uuid.New().String(), AttributeName: "identity_attributes.email",
+			OrgID: org.ID, AttributeID: uuid.New().String(), AttributeName: "identity_attributes.email",
 			ValueType: constants.StringDataType, MergeStrategy: "combine", Mutability: constants.MutabilityReadWrite,
 		}}, constants.IdentityAttributes, org.ID)
 		require.NoError(t, err)
 		_, err = schemaSvc.AddProfileSchemaAttributesForScope(ctx, []profileSchemaModel.ProfileSchemaAttribute{
 			{
-				OrgId: org.ID, AttributeId: uuid.New().String(), AttributeName: "traits.interests",
+				OrgID: org.ID, AttributeID: uuid.New().String(), AttributeName: "traits.interests",
 				ValueType: constants.StringDataType, MergeStrategy: "combine", Mutability: constants.MutabilityReadWrite,
 			},
 			{
-				OrgId: org.ID, AttributeId: uuid.New().String(), AttributeName: "traits.loyalty_id",
+				OrgID: org.ID, AttributeID: uuid.New().String(), AttributeName: "traits.loyalty_id",
 				ValueType: constants.StringDataType, MergeStrategy: "combine", Mutability: constants.MutabilityReadWrite,
 			},
 		}, constants.Traits, org.ID)
@@ -348,55 +348,55 @@ func setUpOrgScopeFixture(t *testing.T) *orgScopeFixture {
 
 	ownerCategory, err := consentSvc.AddConsentCategory(ctx, f.owner.ID, consentModel.ConsentCategory{
 		CategoryName: "Owner Marketing",
-		OrgId:        f.owner.ID,
+		OrgID:        f.owner.ID,
 		Purpose:      "personalization",
 		Attributes:   []consentModel.ConsentAttribute{{AttributeName: "traits.interests"}},
 	})
 	require.NoError(t, err)
-	f.ownerCategoryId = ownerCategory.CategoryIdentifier
+	f.ownerCategoryID = ownerCategory.CategoryIdentifier
 
 	otherCategory, err := consentSvc.AddConsentCategory(ctx, f.other.ID, consentModel.ConsentCategory{
 		CategoryName: "Other Marketing",
-		OrgId:        f.other.ID,
+		OrgID:        f.other.ID,
 		Purpose:      "personalization",
 		Attributes:   []consentModel.ConsentAttribute{{AttributeName: "traits.interests"}},
 	})
 	require.NoError(t, err)
-	f.otherCategoryId = otherCategory.CategoryIdentifier
+	f.otherCategoryID = otherCategory.CategoryIdentifier
 
 	ownerProfile, err := profiles.CreateProfile(ctx, profileModel.ProfileRequest{
-		UserId:             f.ownerUserId,
+		UserID:             f.ownerUserID,
 		IdentityAttributes: map[string]interface{}{"email": "owner@example.com"},
 		Traits:             map[string]interface{}{"interests": f.ownerInterests},
 	}, f.owner.ID)
 	require.NoError(t, err)
-	f.ownerProfileId = ownerProfile.ProfileId
-	require.NoError(t, profiles.UpdateProfileConsents(ctx, f.ownerProfileId, f.owner.ID,
-		[]profileModel.ConsentRecord{{CategoryIdentifier: f.ownerCategoryId, IsConsented: true}}))
+	f.ownerProfileID = ownerProfile.ProfileID
+	require.NoError(t, profiles.UpdateProfileConsents(ctx, f.ownerProfileID, f.owner.ID,
+		[]profileModel.ConsentRecord{{CategoryIdentifier: f.ownerCategoryID, IsConsented: true}}))
 
 	ownerAnon, err := profiles.CreateProfile(ctx, profileModel.ProfileRequest{
 		Traits: map[string]interface{}{"interests": f.ownerAnonInterest},
 	}, f.owner.ID)
 	require.NoError(t, err)
-	f.ownerAnonId = ownerAnon.ProfileId
-	cookie, err := profiles.CreateProfileCookie(ctx, f.ownerAnonId)
+	f.ownerAnonID = ownerAnon.ProfileID
+	cookie, err := profiles.CreateProfileCookie(ctx, f.ownerAnonID)
 	require.NoError(t, err)
-	f.ownerCookie = cookie.CookieId
+	f.ownerCookie = cookie.CookieID
 
 	otherProfile, err := profiles.CreateProfile(ctx, profileModel.ProfileRequest{
 		Traits: map[string]interface{}{"interests": "other-org-interest"},
 	}, f.other.ID)
 	require.NoError(t, err)
-	f.otherProfileId = otherProfile.ProfileId
-	require.NoError(t, profiles.UpdateProfileConsents(ctx, f.otherProfileId, f.other.ID,
-		[]profileModel.ConsentRecord{{CategoryIdentifier: f.otherCategoryId, IsConsented: true}}))
+	f.otherProfileID = otherProfile.ProfileID
+	require.NoError(t, profiles.UpdateProfileConsents(ctx, f.otherProfileID, f.other.ID,
+		[]profileModel.ConsentRecord{{CategoryIdentifier: f.otherCategoryID, IsConsented: true}}))
 
 	now := time.Now().UTC()
-	f.ownerRuleId = uuid.New().String()
+	f.ownerRuleID = uuid.New().String()
 	require.NoError(t, unificationService.GetUnificationRuleService().AddUnificationRule(ctx,
 		unificationModel.UnificationRule{
-			RuleId:       f.ownerRuleId,
-			OrgId:        f.owner.ID,
+			RuleID:       f.ownerRuleID,
+			OrgID:        f.owner.ID,
 			RuleName:     "Owner loyalty rule",
 			PropertyName: "traits.loyalty_id",
 			Priority:     1,
@@ -414,38 +414,38 @@ func (f *orgScopeFixture) assertOwnerDataUnchanged(t *testing.T) {
 
 	t.Helper()
 
-	status, body := f.call(t, f.ownerOrg, f.ownerToken, http.MethodGet, "/profiles/"+f.ownerProfileId, "", nil)
+	status, body := f.call(t, f.ownerOrg, f.ownerToken, http.MethodGet, "/profiles/"+f.ownerProfileID, "", nil)
 	require.Equal(t, http.StatusOK, status, "owner profile must still exist: %s", string(body))
 	var profile profileModel.ProfileResponse
 	require.NoError(t, json.Unmarshal(body, &profile))
-	assert.Equal(t, f.ownerUserId, profile.UserId)
+	assert.Equal(t, f.ownerUserID, profile.UserID)
 
-	stored, err := profileStore.GetProfile(ctx, f.ownerProfileId, f.owner.ID)
+	stored, err := profileStore.GetProfile(ctx, f.ownerProfileID, f.owner.ID)
 	require.NoError(t, err)
 	require.NotNil(t, stored)
 	assert.Equal(t, f.ownerInterests, stored.Traits["interests"])
 
-	anon, err := profileStore.GetProfile(ctx, f.ownerAnonId, f.owner.ID)
+	anon, err := profileStore.GetProfile(ctx, f.ownerAnonID, f.owner.ID)
 	require.NoError(t, err)
 	require.NotNil(t, anon, "owner anonymous profile must still exist")
-	assert.Empty(t, anon.UserId)
+	assert.Empty(t, anon.UserID)
 	assert.Equal(t, f.ownerAnonInterest, anon.Traits["interests"])
 
-	consents, err := profileStore.GetProfileConsents(ctx, f.ownerProfileId, f.owner.ID)
+	consents, err := profileStore.GetProfileConsents(ctx, f.ownerProfileID, f.owner.ID)
 	require.NoError(t, err)
 	require.Len(t, consents, 1)
-	assert.Equal(t, f.ownerCategoryId, consents[0].CategoryIdentifier)
+	assert.Equal(t, f.ownerCategoryID, consents[0].CategoryIdentifier)
 	assert.True(t, consents[0].IsConsented)
 }
 
 // setOtherProfileConsent stores one consent record on the profile of the other org.
-func (f *orgScopeFixture) setOtherProfileConsent(t *testing.T, categoryId string) {
+func (f *orgScopeFixture) setOtherProfileConsent(t *testing.T, categoryID string) {
 	ctx := context.Background()
 
 	t.Helper()
 
-	require.NoError(t, profileStore.UpdateProfileConsents(ctx, f.otherProfileId,
-		[]profileModel.ConsentRecord{{CategoryIdentifier: categoryId, IsConsented: true,
+	require.NoError(t, profileStore.UpdateProfileConsents(ctx, f.otherProfileID,
+		[]profileModel.ConsentRecord{{CategoryIdentifier: categoryID, IsConsented: true,
 			ConsentedAt: time.Now().UTC()}}))
 }
 
@@ -453,7 +453,7 @@ func (f *orgScopeFixture) call(t *testing.T, org, token, method, path, body stri
 	cookie *http.Cookie) (int, []byte) {
 	t.Helper()
 
-	target := fmt.Sprintf("/t/%s%s/v1%s", org, constants.ApiBasePath, path)
+	target := fmt.Sprintf("/t/%s%s/v1%s", org, constants.APIBasePath, path)
 	request := httptest.NewRequest(method, target, strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer "+token)
 	request.Header.Set("Content-Type", "application/json")
@@ -471,7 +471,7 @@ func (f *orgScopeFixture) sync(t *testing.T, event map[string]interface{}) {
 
 	payload, err := json.Marshal(event)
 	require.NoError(t, err)
-	target := fmt.Sprintf("/t/%s%s/v1/profiles/sync", f.otherOrg, constants.ApiBasePath)
+	target := fmt.Sprintf("/t/%s%s/v1/profiles/sync", f.otherOrg, constants.APIBasePath)
 	request := httptest.NewRequest(http.MethodPost, target, strings.NewReader(string(payload)))
 	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString(
 		[]byte(orgScopeAdminUser+":"+orgScopeAdminPassword)))
@@ -541,7 +541,7 @@ func setUpOrgScopeAuth(t *testing.T) func() {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			constants.ActiveClaim:   true,
-			constants.ClientIdClaim: constants.CONSOLE_APP,
+			constants.ClientIDClaim: constants.ConsoleApp,
 		})
 	}))
 

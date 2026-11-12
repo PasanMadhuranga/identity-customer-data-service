@@ -43,7 +43,7 @@ func NewOrganizationService(mux *http.ServeMux) *OrganizationService {
 	utils.SubOrgResolver = orgService.SubOrgHandleOf
 	utils.IsSubOrgHandle = orgService.IsSubOrgHandle
 
-	const base = constants.ApiBasePath + "/v1"
+	const base = constants.APIBasePath + "/v1"
 	s.mux.HandleFunc("POST "+base+"/organizations/event-sync", s.organizations.SyncOrganization)
 	s.mux.HandleFunc("POST "+base+"/organizations/sync", s.organizations.StartTreeSync)
 	s.mux.HandleFunc("GET "+base+"/organizations/sync-status", s.organizations.GetTreeSync)

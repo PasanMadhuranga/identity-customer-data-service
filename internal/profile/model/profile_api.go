@@ -25,8 +25,8 @@ import (
 )
 
 type ProfileResponse struct {
-	ProfileId               string                            `json:"profile_id" bson:"profile_id"`
-	UserId                  string                            `json:"user_id,omitempty" bson:"user_id,omitempty"`
+	ProfileID               string                            `json:"profile_id" bson:"profile_id"`
+	UserID                  string                            `json:"user_id,omitempty" bson:"user_id,omitempty"`
 	AnonymousProfileTracker string                            `json:"anonymous_profile_tracker,omitempty" bson:"anonymous_profile_tracker,omitempty"`
 	Meta                    Meta                              `json:"meta" bson:"meta"`
 	IdentityAttributes      map[string]interface{}            `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
@@ -37,8 +37,8 @@ type ProfileResponse struct {
 }
 
 type ProfileListResponse struct {
-	ProfileId          string                            `json:"profile_id" bson:"profile_id"`
-	UserId             string                            `json:"user_id,omitempty" bson:"user_id,omitempty"`
+	ProfileID          string                            `json:"profile_id" bson:"profile_id"`
+	UserID             string                            `json:"user_id,omitempty" bson:"user_id,omitempty"`
 	Meta               Meta                              `json:"meta" bson:"meta"`
 	IdentityAttributes map[string]interface{}            `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
 	Traits             map[string]interface{}            `json:"traits,omitempty" bson:"traits,omitempty"`
@@ -55,26 +55,26 @@ type Meta struct {
 }
 
 type ProfileRequest struct {
-	UserId             string                 `json:"user_id" bson:"user_id"`
+	UserID             string                 `json:"user_id" bson:"user_id"`
 	IdentityAttributes map[string]interface{} `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
 	Traits             map[string]interface{} `json:"traits,omitempty" bson:"traits,omitempty"`
 	ApplicationData    map[string]interface{} `json:"application_data"`
 }
 
 type ProfileLinkRequest struct {
-	ProfileId string `json:"profile_id" bson:"profile_id"`
-	UserId    string `json:"user_id" bson:"user_id"`
+	ProfileID string `json:"profile_id" bson:"profile_id"`
+	UserID    string `json:"user_id" bson:"user_id"`
 }
 
 type ProfileLinkResponse struct {
-	ProfileId string `json:"profile_id" bson:"profile_id"`
-	UserId    string `json:"user_id" bson:"user_id"`
+	ProfileID string `json:"profile_id" bson:"profile_id"`
+	UserID    string `json:"user_id" bson:"user_id"`
 }
 
 type ProfileSync struct {
-	UserId        string                 `json:"userId" bson:"userId"`
+	UserID        string                 `json:"userId" bson:"userId"`
 	ProfileCookie string                 `json:"profileCookie,omitempty" bson:"profileCookie,omitempty"`
-	ProfileId     string                 `json:"profileId,omitempty" bson:"profileId,omitempty"`
+	ProfileID     string                 `json:"profileId,omitempty" bson:"profileId,omitempty"`
 	Event         string                 `json:"event" bson:"event"`
 	Claims        map[string]interface{} `json:"claims,omitempty" bson:"claims,omitempty"`
 	OrgHandle     string                 `json:"orgHandle,omitempty" bson:"orgHandle,omitempty"`

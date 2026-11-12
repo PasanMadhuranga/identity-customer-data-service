@@ -36,7 +36,7 @@ import (
 )
 
 // AddUnificationRule adds a new unification rule to the database
-func AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgId string) error {
+func AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgID string) error {
 	defer invalidateRulesCache()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -45,8 +45,8 @@ func AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgId s
 		errorMsg := fmt.Sprintf("Failed to get database client for adding unification rule: %s", rule.RuleName)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.ADD_UNIFICATION_RULE.Code,
-			Message:     errors2.ADD_UNIFICATION_RULE.Message,
+			Code:        errors2.AddUnificationRule.Code,
+			Message:     errors2.AddUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return serverError
@@ -55,15 +55,15 @@ func AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgId s
 
 	query := scripts.InsertUnificationRule
 
-	_, err = dbClient.ExecuteQueryContext(ctx, query, rule.RuleId, orgId, rule.RuleName, rule.PropertyName,
-		rule.PropertyId, rule.Priority, rule.IsActive, rule.AttributeType, rule.UnificationMethod,
+	_, err = dbClient.ExecuteQueryContext(ctx, query, rule.RuleID, orgID, rule.RuleName, rule.PropertyName,
+		rule.PropertyID, rule.Priority, rule.IsActive, rule.AttributeType, rule.UnificationMethod,
 		rule.MatchStrength, rule.MismatchStrength, rule.CreatedAt, rule.UpdatedAt)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Error occurred while adding unification rule: %s", rule.RuleName)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.ADD_UNIFICATION_RULE.Code,
-			Message:     errors2.ADD_UNIFICATION_RULE.Message,
+			Code:        errors2.AddUnificationRule.Code,
+			Message:     errors2.AddUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return serverError
@@ -90,10 +90,10 @@ func invalidateRulesCache() {
 	rulesCache.Clear()
 }
 
-func GetUnificationRules(ctx context.Context, orgId string) ([]model.UnificationRule, error) {
+func GetUnificationRules(ctx context.Context, orgID string) ([]model.UnificationRule, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
-	if cached, found := rulesCache.Get(orgId); found {
+	if cached, found := rulesCache.Get(orgID); found {
 		if rules, ok := cached.([]model.UnificationRule); ok {
 			return rules, nil
 		}
@@ -102,11 +102,11 @@ func GetUnificationRules(ctx context.Context, orgId string) ([]model.Unification
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for fetching unification rules for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to get database client for fetching unification rules for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_UNIFICATION_RULE.Code,
-			Message:     errors2.GET_UNIFICATION_RULE.Message,
+			Code:        errors2.GetUnificationRule.Code,
+			Message:     errors2.GetUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return nil, serverError
@@ -114,13 +114,13 @@ func GetUnificationRules(ctx context.Context, orgId string) ([]model.Unification
 	defer dbClient.Close()
 
 	query := scripts.GetUnificationRules
-	results, err := dbClient.ExecuteQueryContext(ctx, query, orgId)
+	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed in fetching all unification rules for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed in fetching all unification rules for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_UNIFICATION_RULE.Code,
-			Message:     errors2.GET_UNIFICATION_RULE.Message,
+			Code:        errors2.GetUnificationRule.Code,
+			Message:     errors2.GetUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return nil, serverError
@@ -131,24 +131,24 @@ func GetUnificationRules(ctx context.Context, orgId string) ([]model.Unification
 		rules = append(rules, scanUnificationRule(row))
 	}
 
-	rulesCache.Set(orgId, rules)
+	rulesCache.Set(orgID, rules)
 
-	logger.Info(fmt.Sprintf("Successfully fetched all unification rules for organization: %s", orgId))
+	logger.Info(fmt.Sprintf("Successfully fetched all unification rules for organization: %s", orgID))
 	return rules, nil
 }
 
 // GetUnificationRule fetches a specific unification rule by its Id
-func GetUnificationRule(ctx context.Context, ruleId, orgId string) (*model.UnificationRule, error) {
+func GetUnificationRule(ctx context.Context, ruleID, orgID string) (*model.UnificationRule, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for fetching unification rule: %s", ruleId)
+		errorMsg := fmt.Sprintf("Failed to get database client for fetching unification rule: %s", ruleID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_UNIFICATION_RULE.Code,
-			Message:     errors2.GET_UNIFICATION_RULE.Message,
+			Code:        errors2.GetUnificationRule.Code,
+			Message:     errors2.GetUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return nil, serverError
@@ -156,42 +156,42 @@ func GetUnificationRule(ctx context.Context, ruleId, orgId string) (*model.Unifi
 	defer dbClient.Close()
 
 	query := scripts.GetUnificationRule
-	results, err := dbClient.ExecuteQueryContext(ctx, query, ruleId, orgId)
+	results, err := dbClient.ExecuteQueryContext(ctx, query, ruleID, orgID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			logger.Debug(fmt.Sprintf("No unification rule found for rule_id: %s ", ruleId))
+			logger.Debug(fmt.Sprintf("No unification rule found for rule_id: %s ", ruleID))
 			return nil, nil
 		}
-		errorMsg := fmt.Sprintf("Failed in fetching unification rule with rule_id: %s", ruleId)
+		errorMsg := fmt.Sprintf("Failed in fetching unification rule with rule_id: %s", ruleID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_UNIFICATION_RULE.Code,
-			Message:     errors2.GET_UNIFICATION_RULE.Message,
+			Code:        errors2.GetUnificationRule.Code,
+			Message:     errors2.GetUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return nil, serverError
 	}
 
 	if len(results) == 0 {
-		logger.Debug(fmt.Sprintf("No unification rule found for rule_id: %s ", ruleId))
+		logger.Debug(fmt.Sprintf("No unification rule found for rule_id: %s ", ruleID))
 		return nil, nil
 	}
 
 	rule := scanUnificationRule(results[0])
 
-	logger.Info("Successfully fetched unification rule for rule_id: " + ruleId)
+	logger.Info("Successfully fetched unification rule for rule_id: " + ruleID)
 	return &rule, nil
 }
 
-// GetUnificationRulesByIds returns the rules with the IDs.
-func GetUnificationRulesByIds(ctx context.Context, ruleIds []string) ([]model.UnificationRule, error) {
-	if len(ruleIds) == 0 {
+// GetUnificationRulesByIDs returns the rules with the IDs.
+func GetUnificationRulesByIDs(ctx context.Context, ruleIDs []string) ([]model.UnificationRule, error) {
+	if len(ruleIDs) == 0 {
 		return nil, nil
 	}
 	serverError := func(description string, err error) error {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_UNIFICATION_RULE.Code,
-			Message:     errors2.GET_UNIFICATION_RULE.Message,
+			Code:        errors2.GetUnificationRule.Code,
+			Message:     errors2.GetUnificationRule.Message,
 			Description: description,
 		}, err)
 	}
@@ -201,14 +201,14 @@ func GetUnificationRulesByIds(ctx context.Context, ruleIds []string) ([]model.Un
 	}
 	defer dbClient.Close()
 
-	placeholders := make([]string, len(ruleIds))
-	args := make([]interface{}, len(ruleIds))
-	for i, id := range ruleIds {
+	placeholders := make([]string, len(ruleIDs))
+	args := make([]interface{}, len(ruleIDs))
+	for i, id := range ruleIDs {
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = id
 	}
 	results, err := dbClient.ExecuteQueryContext(ctx,
-		scripts.GetUnificationRulesByIds.Format(strings.Join(placeholders, ", ")), args...)
+		scripts.GetUnificationRulesByIDs.Format(strings.Join(placeholders, ", ")), args...)
 	if err != nil {
 		return nil, serverError("Failed to read rules by ID.", err)
 	}
@@ -220,7 +220,7 @@ func GetUnificationRulesByIds(ctx context.Context, ruleIds []string) ([]model.Un
 }
 
 // PatchUnificationRule applies partial updates to a unification rule.
-func PatchUnificationRule(ctx context.Context, ruleId, orgId string, updatedRule model.UnificationRule) error {
+func PatchUnificationRule(ctx context.Context, ruleID, orgID string, updatedRule model.UnificationRule) error {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	defer invalidateRulesCache()
@@ -228,11 +228,11 @@ func PatchUnificationRule(ctx context.Context, ruleId, orgId string, updatedRule
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for updating unification rule: %s", ruleId)
+		errorMsg := fmt.Sprintf("Failed to get database client for updating unification rule: %s", ruleID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_UNIFICATION_RULE.Code,
-			Message:     errors2.UPDATE_UNIFICATION_RULE.Message,
+			Code:        errors2.UpdateUnificationRule.Code,
+			Message:     errors2.UpdateUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return serverError
@@ -242,26 +242,26 @@ func PatchUnificationRule(ctx context.Context, ruleId, orgId string, updatedRule
 	query := scripts.UpdateUnificationRule
 	_, err = dbClient.ExecuteQueryContext(ctx, query, updatedRule.RuleName, updatedRule.Priority,
 		updatedRule.IsActive, updatedRule.AttributeType, updatedRule.UnificationMethod,
-		updatedRule.MatchStrength, updatedRule.MismatchStrength, time.Now().UTC(), ruleId,
-		orgId)
+		updatedRule.MatchStrength, updatedRule.MismatchStrength, time.Now().UTC(), ruleID,
+		orgID)
 
 	if err != nil {
-		errorMsg := fmt.Sprintf("Error occurred while updating unification rule for rule_id: %s", ruleId)
+		errorMsg := fmt.Sprintf("Error occurred while updating unification rule for rule_id: %s", ruleID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_UNIFICATION_RULE.Code,
-			Message:     errors2.UPDATE_UNIFICATION_RULE.Message,
+			Code:        errors2.UpdateUnificationRule.Code,
+			Message:     errors2.UpdateUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return serverError
 	}
 
-	logger.Info("Successfully updated unification rule for rule_id: " + ruleId)
+	logger.Info("Successfully updated unification rule for rule_id: " + ruleID)
 	return nil
 }
 
 // DeleteUnificationRule deletes a unification rule by its Id
-func DeleteUnificationRule(ctx context.Context, ruleId, orgId string) error {
+func DeleteUnificationRule(ctx context.Context, ruleID, orgID string) error {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	defer invalidateRulesCache()
@@ -269,11 +269,11 @@ func DeleteUnificationRule(ctx context.Context, ruleId, orgId string) error {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for updating unification rule: %s", ruleId)
+		errorMsg := fmt.Sprintf("Failed to get database client for updating unification rule: %s", ruleID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.DELETE_UNIFICATION_RULE.Code,
-			Message:     errors2.DELETE_UNIFICATION_RULE.Message,
+			Code:        errors2.DeleteUnificationRule.Code,
+			Message:     errors2.DeleteUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return serverError
@@ -281,18 +281,18 @@ func DeleteUnificationRule(ctx context.Context, ruleId, orgId string) error {
 	defer dbClient.Close()
 
 	query := scripts.DeleteUnificationRule
-	_, err = dbClient.ExecuteQueryContext(ctx, query, ruleId, orgId)
+	_, err = dbClient.ExecuteQueryContext(ctx, query, ruleID, orgID)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to delete unification rule: %s", ruleId)
+		errorMsg := fmt.Sprintf("Failed to delete unification rule: %s", ruleID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.DELETE_UNIFICATION_RULE.Code,
-			Message:     errors2.DELETE_UNIFICATION_RULE.Message,
+			Code:        errors2.DeleteUnificationRule.Code,
+			Message:     errors2.DeleteUnificationRule.Message,
 			Description: errorMsg,
 		}, err)
 		return serverError
 	}
-	logger.Info("Successfully deleted unification rule with rule_id: " + ruleId)
+	logger.Info("Successfully deleted unification rule with rule_id: " + ruleID)
 	return nil
 }
 
@@ -304,11 +304,11 @@ func DeleteUnificationRule(ctx context.Context, ruleId, orgId string) error {
 func scanUnificationRule(row map[string]interface{}) model.UnificationRule {
 	var rule model.UnificationRule
 
-	rule.RuleId = stringColumn(row, "rule_id")
-	rule.OrgId = stringColumn(row, "org_id")
+	rule.RuleID = stringColumn(row, "rule_id")
+	rule.OrgID = stringColumn(row, "org_id")
 	rule.RuleName = stringColumn(row, "rule_name")
 	rule.PropertyName = stringColumn(row, "property_name")
-	rule.PropertyId = stringColumn(row, "property_id")
+	rule.PropertyID = stringColumn(row, "property_id")
 	rule.AttributeType = stringColumn(row, "attribute_type")
 	rule.UnificationMethod = stringColumn(row, "unification_method")
 	rule.MatchStrength = stringColumn(row, "match_strength")

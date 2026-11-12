@@ -54,7 +54,7 @@ func setUpStoredTree(t *testing.T, orgs []orgModel.Organization) context.Context
 	ctx := context.Background()
 	for _, org := range orgs {
 		if err := orgStore.UpsertOrganization(ctx, org); err != nil {
-			t.Fatalf("failed to store organization %s: %v", org.OrgId, err)
+			t.Fatalf("failed to store organization %s: %v", org.OrgID, err)
 		}
 	}
 	return ctx
@@ -63,19 +63,19 @@ func setUpStoredTree(t *testing.T, orgs []orgModel.Organization) context.Context
 func markSynced(t *testing.T, ctx context.Context, primary orgModel.Organization) {
 	t.Helper()
 	values := map[string]string{orgModel.ConfigTreeSyncedAt: time.Now().UTC().Format(time.RFC3339Nano)}
-	if err := orgStore.SetTreeSyncValues(ctx, primary.OrgId, values); err != nil {
+	if err := orgStore.SetTreeSyncValues(ctx, primary.OrgID, values); err != nil {
 		t.Fatalf("failed to mark the tree synced: %v", err)
 	}
 }
 
-func orgOf(t *testing.T, orgs []orgModel.Organization, orgId string) orgModel.Organization {
+func orgOf(t *testing.T, orgs []orgModel.Organization, orgID string) orgModel.Organization {
 	t.Helper()
 	for _, o := range orgs {
-		if o.OrgId == orgId {
+		if o.OrgID == orgID {
 			return o
 		}
 	}
-	t.Fatalf("no organization %s", orgId)
+	t.Fatalf("no organization %s", orgID)
 	return orgModel.Organization{}
 }
 
@@ -90,7 +90,7 @@ func clientErrorCode(err error) string {
 func selectedOrgs(reach string, ids ...string) model.PolicyRequest {
 	req := model.PolicyRequest{ChildOrgs: &model.ChildOrgs{Mode: model.ChildOrgsModeSelected}}
 	for _, id := range ids {
-		req.ChildOrgs.Orgs = append(req.ChildOrgs.Orgs, model.ChildOrg{OrgId: id, Reach: reach})
+		req.ChildOrgs.Orgs = append(req.ChildOrgs.Orgs, model.ChildOrg{OrgID: id, Reach: reach})
 	}
 	return req
 }
@@ -103,7 +103,7 @@ func TestOrganizationAccessNeedsACompletedSync(t *testing.T) {
 	primary := orgOf(t, tree, "R")
 
 	if _, err := CreateOrgAccess(ctx, primary, allChildOrgs); clientErrorCode(err) !=
-		errors2.ORGANIZATIONS_NOT_SYNCED.Code {
+		errors2.OrganizationsNotSynced.Code {
 		t.Fatalf("expected ORGANIZATIONS_NOT_SYNCED, got %v", err)
 	}
 	markSynced(t, ctx, primary)
@@ -120,7 +120,7 @@ func TestOrganizationAccessChecksTheSelectedOrganizations(t *testing.T) {
 
 	for _, ids := range [][]string{{"A1"}, {"unknown"}, {"A", "A1"}} {
 		if _, err := CreateOrgAccess(ctx, primary, selectedOrgs(model.ReachOrg, ids...)); clientErrorCode(err) !=
-			errors2.SHARE_BAD_REQUEST.Code {
+			errors2.ShareBadRequest.Code {
 			t.Fatalf("expected SHARE_BAD_REQUEST for %v, got %v", ids, err)
 		}
 	}
@@ -135,13 +135,13 @@ func TestOrganizationAccessChecksTheSelectedOrganizations(t *testing.T) {
 
 func TestOrganizationAccessStoresManySelectedOrganizations(t *testing.T) {
 	const count = 2500
-	primary := orgModel.Organization{OrgId: "R", OrgHandle: "r", PrimaryOrgId: "R", Status: orgModel.StatusActive}
+	primary := orgModel.Organization{OrgID: "R", OrgHandle: "r", PrimaryOrgID: "R", Status: orgModel.StatusActive}
 	tree := []orgModel.Organization{primary}
 	var ids []string
 	for i := 0; i < count; i++ {
 		id := fmt.Sprintf("child%04d", i)
 		ids = append(ids, id)
-		tree = append(tree, orgModel.Organization{OrgId: id, OrgHandle: id, ParentOrgId: "R", PrimaryOrgId: "R",
+		tree = append(tree, orgModel.Organization{OrgID: id, OrgHandle: id, ParentOrgID: "R", PrimaryOrgID: "R",
 			Status: orgModel.StatusActive})
 	}
 	ctx := setUpStoredTree(t, tree)
@@ -151,7 +151,7 @@ func TestOrganizationAccessStoresManySelectedOrganizations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected organization access for %d organizations, got %v", count, err)
 	}
-	stored, err := GetOrgAccess(ctx, primary, created.Id)
+	stored, err := GetOrgAccess(ctx, primary, created.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,13 +198,13 @@ func TestGetSharedResources(t *testing.T) {
 	}
 
 	cases := []struct {
-		orgId    string
+		orgID    string
 		expected []model.SharedResource
 	}{
 		{"A", []model.SharedResource{
-			{ResourceId: "res-1", OwnerOrgId: "R", OwnerDepth: 1},
-			{ResourceId: "res-2", OwnerOrgId: "R", OwnerDepth: 1}}},
-		{"A1x", []model.SharedResource{{ResourceId: "res-1", OwnerOrgId: "R", OwnerDepth: 3}}},
+			{ResourceID: "res-1", OwnerOrgID: "R", OwnerDepth: 1},
+			{ResourceID: "res-2", OwnerOrgID: "R", OwnerDepth: 1}}},
+		{"A1x", []model.SharedResource{{ResourceID: "res-1", OwnerOrgID: "R", OwnerDepth: 3}}},
 		// The organization access does not include B, and A2 is not active.
 		{"B", nil},
 		{"A2", nil},
@@ -212,9 +212,9 @@ func TestGetSharedResources(t *testing.T) {
 		{"R", nil},
 	}
 	for _, c := range cases {
-		got, err := GetSharedResources(ctx, "TEST_RESOURCE", orgOf(t, tree, c.orgId))
+		got, err := GetSharedResources(ctx, "TEST_RESOURCE", orgOf(t, tree, c.orgID))
 		if err != nil || !reflect.DeepEqual(got, c.expected) {
-			t.Errorf("organization %s: expected %+v, got %+v (%v)", c.orgId, c.expected, got, err)
+			t.Errorf("organization %s: expected %+v, got %+v (%v)", c.orgID, c.expected, got, err)
 		}
 	}
 	one, err := GetSharedResource(ctx, "TEST_RESOURCE", "res-2", orgOf(t, tree, "A1"))

@@ -32,28 +32,28 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
-func GetAdminConfig(ctx context.Context, orgId string) (*model.AdminConfig, error) {
+func GetAdminConfig(ctx context.Context, orgID string) (*model.AdminConfig, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get db client for fetching configurations for the organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to get db client for fetching configurations for the organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_ADMIN_CONFIG.Code,
-			Message:     errors2.GET_ADMIN_CONFIG.Message,
+			Code:        errors2.GetAdminConfig.Code,
+			Message:     errors2.GetAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
 	defer dbClient.Close()
 
 	query := scripts.GetOrgConfigurations
-	results, err := dbClient.ExecuteQueryContext(ctx, query, orgId)
+	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to execute query for fetching configurations for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to execute query for fetching configurations for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_ADMIN_CONFIG.Code,
-			Message:     errors2.GET_ADMIN_CONFIG.Message,
+			Code:        errors2.GetAdminConfig.Code,
+			Message:     errors2.GetAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -63,28 +63,28 @@ func GetAdminConfig(ctx context.Context, orgId string) (*model.AdminConfig, erro
 
 // GetCORSAllowedOrigins returns the CORS allowed origins the organization has configured, or nil
 // when it has configured none. It reads the one key, which the (org_id, config) key serves.
-func GetCORSAllowedOrigins(ctx context.Context, orgId string) ([]string, error) {
+func GetCORSAllowedOrigins(ctx context.Context, orgID string) ([]string, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get db client for fetching the CORS allowed origins of organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to get db client for fetching the CORS allowed origins of organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_ADMIN_CONFIG.Code,
-			Message:     errors2.GET_ADMIN_CONFIG.Message,
+			Code:        errors2.GetAdminConfig.Code,
+			Message:     errors2.GetAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
 	defer dbClient.Close()
 
-	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrgConfiguration, orgId,
+	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrgConfiguration, orgID,
 		constants.ConfigCORSAllowedOrigins)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to execute query for fetching the CORS allowed origins of organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to execute query for fetching the CORS allowed origins of organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_ADMIN_CONFIG.Code,
-			Message:     errors2.GET_ADMIN_CONFIG.Message,
+			Code:        errors2.GetAdminConfig.Code,
+			Message:     errors2.GetAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -103,15 +103,15 @@ func GetCORSAllowedOrigins(ctx context.Context, orgId string) ([]string, error) 
 }
 
 // UpdateAdminConfig updates organization-level admin configuration (e.g., CDS enablement, schema sync flags).
-func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId string) error {
+func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID string) error {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get DB client for updating configurations for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to get DB client for updating configurations for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -119,11 +119,11 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to begin transaction for updating configurations for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to begin transaction for updating configurations for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -134,14 +134,14 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 	if config.CDSEnabled {
 		cdsEnabledValue = "true"
 	}
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigCDSEnabled, cdsEnabledValue)
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigCDSEnabled, cdsEnabledValue)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update cds_enabled for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update cds_enabled for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -150,14 +150,14 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 	if config.InitialSchemaSyncDone {
 		schemaSyncValue = "true"
 	}
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigInitialSchemaSyncDone, schemaSyncValue)
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigInitialSchemaSyncDone, schemaSyncValue)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update initial_schema_sync_done for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update initial_schema_sync_done for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -165,23 +165,23 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 	systemAppsValue, err := json.Marshal(config.SystemApplications)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to marshal system_applications for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to marshal system_applications for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigSystemApplications, string(systemAppsValue))
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigSystemApplications, string(systemAppsValue))
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update system_applications for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update system_applications for organization: %s", orgID)
 
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -190,40 +190,40 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 	if config.AutoMergeEnabled {
 		autoMergeEnabledValue = "true"
 	}
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigAutoMergeEnabled, autoMergeEnabledValue)
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigAutoMergeEnabled, autoMergeEnabledValue)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update auto_merge_enabled for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update auto_merge_enabled for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
 
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigAutoMergeThreshold,
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigAutoMergeThreshold,
 		strconv.FormatFloat(config.AutoMergeThreshold, 'f', -1, 64))
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update auto_merge_threshold for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update auto_merge_threshold for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
 
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigManualReviewThreshold,
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigManualReviewThreshold,
 		strconv.FormatFloat(config.ManualReviewThreshold, 'f', -1, 64))
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update manual_review_threshold for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update manual_review_threshold for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -232,14 +232,14 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 	if config.DeterministicMatchDecisive {
 		deterministicDecisiveValue = "true"
 	}
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigDeterministicMatchDecisive, deterministicDecisiveValue)
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigDeterministicMatchDecisive, deterministicDecisiveValue)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update deterministic_match_decisive for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update deterministic_match_decisive for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -247,22 +247,22 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 	corsOriginsValue, err := json.Marshal(config.CORSAllowedOrigins)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to marshal cors_allowed_origins for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to marshal cors_allowed_origins for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
-	_, err = tx.ExecContext(ctx, query, orgId, constants.ConfigCORSAllowedOrigins, string(corsOriginsValue))
+	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigCORSAllowedOrigins, string(corsOriginsValue))
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to update cors_allowed_origins for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to update cors_allowed_origins for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -271,15 +271,15 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgId stri
 }
 
 // UpdateInitialSchemaSyncConfig updates organization-level admin configuration (e.g., CDS enablement, schema sync flags).
-func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgId string) error {
+func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string) error {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get DB client for updating configurations for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to get DB client for updating configurations for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -287,11 +287,11 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgId string
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to begin transaction for updating configurations for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to begin transaction for updating configurations for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -302,14 +302,14 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgId string
 	}
 
 	query := scripts.UpdateInitialSchemaSyncDoneConfig
-	_, err = tx.ExecContext(ctx, query, orgId, stateValue)
+	_, err = tx.ExecContext(ctx, query, orgID, stateValue)
 	if err != nil {
 		_ = tx.Rollback()
-		errorMsg := fmt.Sprintf("Failed to execute update for configurations for organization: %s", orgId)
+		errorMsg := fmt.Sprintf("Failed to execute update for configurations for organization: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_ADMIN_CONFIG.Code,
-			Message:     errors2.UPDATE_ADMIN_CONFIG.Message,
+			Code:        errors2.UpdateAdminConfig.Code,
+			Message:     errors2.UpdateAdminConfig.Message,
 			Description: errorMsg,
 		}, err)
 	}

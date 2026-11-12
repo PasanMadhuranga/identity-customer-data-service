@@ -34,8 +34,8 @@ func TestExtractOrgFromPath(t *testing.T) {
 		want Org
 	}{
 		{"/t/carbon.super/cds/api/v1/profiles", Org{Handle: "carbon.super"}},
-		{"/t/acme/o/4b1e/cds/api/v1/profiles", Org{Handle: "acme", SubOrgId: "4b1e"}},
-		{"/t/acme/o/4b1e", Org{Handle: "acme", SubOrgId: "4b1e"}},
+		{"/t/acme/o/4b1e/cds/api/v1/profiles", Org{Handle: "acme", SubOrgID: "4b1e"}},
+		{"/t/acme/o/4b1e", Org{Handle: "acme", SubOrgID: "4b1e"}},
 		{"/t/acme/o/", Org{Handle: "acme"}},
 		{"/t/acme/cds/api/v1/o/4b1e", Org{Handle: "acme"}},
 		{"/o/4b1e/cds/api/v1/profiles", Org{}},
@@ -65,7 +65,7 @@ func TestSubOrgPathPassesTheSubOrgToTheLookup(t *testing.T) {
 	h, _ := newTestHandler(lookup, nil)
 
 	w := doRequest(h, http.MethodGet, "/t/acme/o/4b1e/cds/api/v1/profiles", "https://app.acme.com")
-	if want := (Org{Handle: "acme", SubOrgId: "4b1e"}); got != want {
+	if want := (Org{Handle: "acme", SubOrgID: "4b1e"}); got != want {
 		t.Errorf("lookup got %+v, want %+v", got, want)
 	}
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "https://app.acme.com" {

@@ -62,7 +62,7 @@ func TestTenantDispatcherOrgPath(t *testing.T) {
 		if primaryHandle == "carbon.super" && orgId == "4f088c20" {
 			return "region1", nil
 		}
-		return "", error2.NewClientError(error2.ORGANIZATION_NOT_FOUND, http.StatusNotFound)
+		return "", error2.NewClientError(error2.OrganizationNotFound, http.StatusNotFound)
 	}
 	IsSubOrgHandle = func(_ context.Context, orgHandle string) (bool, error) { return orgHandle == "region1", nil }
 
@@ -125,7 +125,7 @@ func TestTenantDispatcherSubOrgHandleOnPrimaryOrgPath(t *testing.T) {
 		t.Fatalf("the body is not JSON: %q", raw)
 	}
 	want := map[string]string{
-		"code":        error2.ORGANIZATION_PATH_NOT_SUPPORTED.Code,
+		"code":        error2.OrganizationPathNotSupported.Code,
 		"message":     "Organization path not supported.",
 		"description": "The requested organization cannot be accessed using this API path.",
 	}
@@ -162,8 +162,8 @@ func TestTenantDispatcherLookupFailure(t *testing.T) {
 		SubOrgResolver, IsSubOrgHandle = resolver, isSub
 	}(SubOrgResolver, IsSubOrgHandle)
 	failure := error2.NewServerError(error2.ErrorMessage{
-		Code:        error2.ORGANIZATION_STORE.Code,
-		Message:     error2.ORGANIZATION_STORE.Message,
+		Code:        error2.OrganizationStore.Code,
+		Message:     error2.OrganizationStore.Message,
 		Description: "Failed to read the organization.",
 	}, errors.New("connection refused"))
 	SubOrgResolver = func(_ context.Context, _, _ string) (string, error) { return "", failure }

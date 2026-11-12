@@ -65,14 +65,14 @@ type corsOriginsCache struct {
 	generation atomic.Uint64
 }
 
-// corsOrgIds resolves the handle in the path of a request to an org ID for the CORS
+// corsOrgIDs resolves the handle in the path of a request to an org ID for the CORS
 // middleware, remembering for a while the handles that CDS has no organization for.
-var corsOrgIds = &corsOrgIdResolver{
+var corsOrgIDs = &corsOrgIDResolver{
 	lookup:  orgService.LookupOrganization,
 	unknown: cache.NewCache(unknownCORSHandleTTL),
 }
 
-type corsOrgIdResolver struct {
+type corsOrgIDResolver struct {
 	lookup  func(ctx context.Context, orgHandle string) (orgModel.Ref, bool, error)
 	unknown *cache.Cache
 }
@@ -80,7 +80,7 @@ type corsOrgIdResolver struct {
 // resolve returns the org ID of the handle. found is false when CDS has no organization for it.
 // It neither stores the organization nor asks the identity provider, as the request is not
 // authenticated yet.
-func (r *corsOrgIdResolver) resolve(ctx context.Context, orgHandle string) (string, bool, error) {
+func (r *corsOrgIDResolver) resolve(ctx context.Context, orgHandle string) (string, bool, error) {
 	if _, unknown := r.unknown.Get(orgHandle); unknown {
 		return "", false, nil
 	}
@@ -97,33 +97,33 @@ func (r *corsOrgIdResolver) resolve(ctx context.Context, orgHandle string) (stri
 
 // forget drops the handle from the unknown ones, so that an organization that has just been
 // stored is resolved at once.
-func (r *corsOrgIdResolver) forget(orgHandle string) {
+func (r *corsOrgIDResolver) forget(orgHandle string) {
 	r.unknown.Delete(orgHandle)
 }
 
 // get returns the origins the organisation has configured, or nil if it has none.
-func (c *corsOriginsCache) get(ctx context.Context, orgId string) ([]string, error) {
-	if cached, ok := c.entries.Get(orgId); ok {
+func (c *corsOriginsCache) get(ctx context.Context, orgID string) ([]string, error) {
+	if cached, ok := c.entries.Get(orgID); ok {
 		if origins, ok := cached.([]string); ok {
 			return origins, nil
 		}
 	}
 	generation := c.generation.Load()
-	origins, err := c.load(ctx, orgId)
+	origins, err := c.load(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}
 	if c.generation.Load() == generation {
-		c.entries.Set(orgId, origins)
+		c.entries.Set(orgID, origins)
 	}
 	return origins, nil
 }
 
 // invalidate drops the cached origins of the organisation, so that this process serves an
 // update at once.
-func (c *corsOriginsCache) invalidate(orgId string) {
+func (c *corsOriginsCache) invalidate(orgID string) {
 	c.generation.Add(1)
-	c.entries.Delete(orgId)
+	c.entries.Delete(orgID)
 }
 
 // normalizeOrigin lower-cases the scheme and host of an origin so that comparison against
@@ -206,8 +206,8 @@ func validateCORSOrigins(origins []string) ([]string, error) {
 
 func newCORSOriginError(description string) error {
 	return errors.NewClientError(errors.ErrorMessage{
-		Code:        errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-		Message:     errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+		Code:        errors.UpdateConfigBadRequest.Code,
+		Message:     errors.UpdateConfigBadRequest.Message,
 		Description: description,
 	}, http.StatusBadRequest)
 }

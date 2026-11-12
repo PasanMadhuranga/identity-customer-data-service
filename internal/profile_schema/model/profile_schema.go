@@ -21,8 +21,8 @@ package model
 import "github.com/wso2/identity-customer-data-service/internal/system/constants"
 
 type ProfileSchemaAttribute struct {
-	OrgId                 string           `json:"org_id,omitempty" bson:"org_id,omitempty"`
-	AttributeId           string           `json:"attribute_id" bson:"attribute_id"`
+	OrgID                 string           `json:"org_id,omitempty" bson:"org_id,omitempty"`
+	AttributeID           string           `json:"attribute_id" bson:"attribute_id"`
 	AttributeName         string           `json:"attribute_name" bson:"attribute_name" binding:"required"`
 	Scope                 string           `json:"scope,omitempty" bson:"scope,omitempty"`
 	DisplayName           string           `json:"display_name,omitempty" bson:"display_name,omitempty"`
@@ -36,11 +36,11 @@ type ProfileSchemaAttribute struct {
 	SCIMDialect           string           `json:"scim_dialect,omitempty" bson:"scim_dialect,omitempty"`         // Need to skip this in the response
 	// Set only on reads of the effective schema.
 	Origin     string `json:"origin,omitempty" bson:"-"` // OWNED, SHARED, or INHERITED
-	OwnerOrgId string `json:"-" bson:"-"`                // The owner org of a shared attribute, for the owner check
+	OwnerOrgID string `json:"-" bson:"-"`                // The owner org of a shared attribute, for the owner check
 }
 
 type SubAttribute struct {
-	AttributeId   string `json:"attribute_id" bson:"attribute_id" binding:"required"`
+	AttributeID   string `json:"attribute_id" bson:"attribute_id" binding:"required"`
 	AttributeName string `json:"attribute_name" bson:"attribute_name" binding:"required"`
 }
 
@@ -56,8 +56,8 @@ type Meta struct {
 }
 
 type ProfileSchema struct {
-	ProfileId          map[string]string                   `json:"profile_id" bson:"profile_id"`
-	UserId             map[string]string                   `json:"user_id" bson:"user_id"`
+	ProfileID          map[string]string                   `json:"profile_id" bson:"profile_id"`
+	UserID             map[string]string                   `json:"user_id" bson:"user_id"`
 	Meta               map[string]map[string]string        `json:"meta" bson:"meta"`
 	IdentityAttributes []ProfileSchemaAttribute            `json:"identity_attributes" bson:"identity_attributes"`
 	Traits             []ProfileSchemaAttribute            `json:"traits" bson:"traits"`

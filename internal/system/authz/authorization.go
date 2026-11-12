@@ -65,8 +65,8 @@ const OrgOperationPrefix = "org:"
 
 // OperationFor returns the operation to authorize. In a sub organization, it is the `org:` form of
 // the operation.
-func OperationFor(operation, pathOrgId string) string {
-	if pathOrgId == "" {
+func OperationFor(operation, pathOrgID string) string {
+	if pathOrgID == "" {
 		return operation
 	}
 	return OrgOperationPrefix + operation

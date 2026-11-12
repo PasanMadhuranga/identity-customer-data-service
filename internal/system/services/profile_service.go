@@ -37,7 +37,7 @@ func NewProfileService(mux *http.ServeMux) *ProfileService {
 		mux:            mux,
 	}
 
-	const base = constants.ApiBasePath + "/v1"
+	const base = constants.APIBasePath + "/v1"
 	// Register routes using Go 1.22+ ServeMux patterns on the shared mux
 	ps.mux.HandleFunc("GET "+base+"/profiles", ps.profileHandler.GetAllProfiles)
 	ps.mux.HandleFunc("POST "+base+"/profiles", ps.profileHandler.InitProfile)

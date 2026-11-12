@@ -53,7 +53,7 @@ func insertRule(t *testing.T, org, name, property string, priority int, attribut
 	now := time.Now().UTC()
 	ruleID := uuid.New().String()
 	_, err = dbClient.ExecuteQueryContext(context.Background(), fuzzyRuleInsert,
-		ruleID, resolveOrgId(t, org), name, property, priority, true, attributeType, method, now, now)
+		ruleID, resolveOrgID(t, org), name, property, priority, true, attributeType, method, now, now)
 	if err != nil {
 		t.Fatalf("store rule %q: %v", name, err)
 	}
@@ -131,14 +131,14 @@ func Test_RejectedPair_ReconsideredIsReviewedNotMerged(t *testing.T) {
 	}
 	irWorker.ResolveProfileAsync(ctx, ref.ID, second)
 
-	for _, p := range []string{first.ProfileId, second.ProfileId} {
+	for _, p := range []string{first.ProfileID, second.ProfileID} {
 		stored, err := profileStore.GetProfile(ctx, p, ref.ID)
 		if err != nil || stored == nil {
 			t.Fatalf("load profile %s: %v", p, err)
 		}
-		if stored.ProfileStatus != nil && stored.ProfileStatus.ReferenceProfileId != "" {
+		if stored.ProfileStatus != nil && stored.ProfileStatus.ReferenceProfileID != "" {
 			t.Fatalf("profile %s was merged into %s without review, overturning the rejection",
-				p, stored.ProfileStatus.ReferenceProfileId)
+				p, stored.ProfileStatus.ReferenceProfileID)
 		}
 	}
 

@@ -28,11 +28,11 @@ import (
 
 // UnificationRule represents rules for merging user profiles
 type UnificationRule struct {
-	RuleId            string `json:"rule_id" bson:"rule_id" binding:"required"`
-	OrgId             string `json:"org_id" bson:"org_id" binding:"required"`
+	RuleID            string `json:"rule_id" bson:"rule_id" binding:"required"`
+	OrgID             string `json:"org_id" bson:"org_id" binding:"required"`
 	RuleName          string `json:"rule_name" bson:"rule_name" binding:"required"`
 	PropertyName      string `json:"property_name" bson:"property_name" binding:"required"`
-	PropertyId        string `json:"property_id" bson:"property_id" binding:"required"`
+	PropertyID        string `json:"property_id" bson:"property_id" binding:"required"`
 	Priority          int    `json:"priority" bson:"priority" binding:"required"`
 	IsActive          bool   `json:"is_active" bson:"is_active" binding:"required"`
 	AttributeType     string `json:"attribute_type" bson:"attribute_type"`

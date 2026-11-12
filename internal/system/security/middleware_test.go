@@ -39,7 +39,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
-const subOrgId = "6b1f0d2e-4c1a-4f0e-9a51-2d0c3f7a9b10"
+const subOrgID = "6b1f0d2e-4c1a-4f0e-9a51-2d0c3f7a9b10"
 
 func setUp(t *testing.T) {
 	t.Helper()
@@ -61,9 +61,9 @@ func primaryOrgRequest() *http.Request {
 
 // subOrgRequest returns a request for a sub organization of carbon.super.
 func subOrgRequest() *http.Request {
-	r := httptest.NewRequest(http.MethodPost, "/t/carbon.super/o/"+subOrgId+"/cds/api/v1/profiles", nil)
+	r := httptest.NewRequest(http.MethodPost, "/t/carbon.super/o/"+subOrgID+"/cds/api/v1/profiles", nil)
 	ctx := context.WithValue(r.Context(), constants.TenantContextKey, "region1")
-	ctx = context.WithValue(ctx, constants.OrgIdContextKey, subOrgId)
+	ctx = context.WithValue(ctx, constants.OrgIDContextKey, subOrgID)
 	return r.WithContext(ctx)
 }
 
@@ -129,7 +129,7 @@ func TestAuthorizePrimary(t *testing.T) {
 	status, code := statusOf(t, authorizePrimary(subOrgRequest(),
 		claims("internal_cds_admin_config_update internal_org_cds_admin_config_update"), "admin_config:update"))
 	assert.Equal(t, http.StatusBadRequest, status, "an operation of the primary org in a sub org")
-	assert.Equal(t, errors.SUB_ORG_CONFIG_NOT_ALLOWED.Code, code)
+	assert.Equal(t, errors.SubOrgConfigNotAllowed.Code, code)
 }
 
 // newIntrospectionServer starts a stub identity server with system app grant enabled, and returns the

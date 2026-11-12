@@ -27,15 +27,15 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
-func sharedAttribute(id, owner, name, appId string) model.ProfileSchemaAttribute {
-	return model.ProfileSchemaAttribute{AttributeId: id, AttributeName: name, ApplicationIdentifier: appId,
-		OwnerOrgId: owner}
+func sharedAttribute(id, owner, name, appID string) model.ProfileSchemaAttribute {
+	return model.ProfileSchemaAttribute{AttributeID: id, AttributeName: name, ApplicationIdentifier: appID,
+		OwnerOrgID: owner}
 }
 
-func attributeIds(attrs []model.ProfileSchemaAttribute) []string {
+func attributeIDs(attrs []model.ProfileSchemaAttribute) []string {
 	ids := []string{}
 	for _, attr := range attrs {
-		ids = append(ids, attr.AttributeId)
+		ids = append(ids, attr.AttributeID)
 	}
 	return ids
 }
@@ -50,17 +50,17 @@ func TestSelectActiveSharedAttributesConflicts(t *testing.T) {
 		sharedAttribute("primary-age", "r", "traits.age", ""),
 	}
 	shared := []shareModel.SharedResource{
-		{ResourceId: "a-tier", OwnerOrgId: "a", OwnerDepth: 1},
-		{ResourceId: "primary-tier", OwnerOrgId: "r", OwnerDepth: 2},
-		{ResourceId: "primary-plan", OwnerOrgId: "r", OwnerDepth: 2},
-		{ResourceId: "primary-age", OwnerOrgId: "r", OwnerDepth: 2},
+		{ResourceID: "a-tier", OwnerOrgID: "a", OwnerDepth: 1},
+		{ResourceID: "primary-tier", OwnerOrgID: "r", OwnerDepth: 2},
+		{ResourceID: "primary-plan", OwnerOrgID: "r", OwnerDepth: 2},
+		{ResourceID: "primary-age", OwnerOrgID: "r", OwnerDepth: 2},
 		// A resource that does not exist, and a resource of another owner, are skipped.
-		{ResourceId: "deleted", OwnerOrgId: "r", OwnerDepth: 2},
-		{ResourceId: "primary-age", OwnerOrgId: "a", OwnerDepth: 1},
+		{ResourceID: "deleted", OwnerOrgID: "r", OwnerDepth: 2},
+		{ResourceID: "primary-age", OwnerOrgID: "a", OwnerDepth: 1},
 	}
-	owned := []model.ProfileSchemaAttribute{{AttributeId: "a1-plan", AttributeName: "traits.plan"}}
+	owned := []model.ProfileSchemaAttribute{{AttributeID: "a1-plan", AttributeName: "traits.plan"}}
 
-	got := attributeIds(selectActiveSharedAttributes(shared, attrs, owned))
+	got := attributeIDs(selectActiveSharedAttributes(shared, attrs, owned))
 	if expected := []string{"a-tier", "primary-age"}; !reflect.DeepEqual(got, expected) {
 		t.Fatalf("expected %v, got %v", expected, got)
 	}
@@ -70,16 +70,16 @@ func TestSelectActiveSharedAttributesConflicts(t *testing.T) {
 // application.
 func TestSelectActiveSharedAttributesScopesAppDataNamesToTheApp(t *testing.T) {
 	attrs := []model.ProfileSchemaAttribute{sharedAttribute("shop-cart", "r", "application_data.cart", "shop")}
-	shared := []shareModel.SharedResource{{ResourceId: "shop-cart", OwnerOrgId: "r", OwnerDepth: 1}}
+	shared := []shareModel.SharedResource{{ResourceID: "shop-cart", OwnerOrgID: "r", OwnerDepth: 1}}
 
-	otherApp := []model.ProfileSchemaAttribute{{AttributeId: "other-cart", AttributeName: "application_data.cart",
+	otherApp := []model.ProfileSchemaAttribute{{AttributeID: "other-cart", AttributeName: "application_data.cart",
 		ApplicationIdentifier: "other"}}
-	if got := attributeIds(selectActiveSharedAttributes(shared, attrs, otherApp)); len(got) != 1 {
+	if got := attributeIDs(selectActiveSharedAttributes(shared, attrs, otherApp)); len(got) != 1 {
 		t.Errorf("expected the attribute to be active next to the attribute of another app, got %v", got)
 	}
-	sameApp := []model.ProfileSchemaAttribute{{AttributeId: "local-cart", AttributeName: "application_data.cart",
+	sameApp := []model.ProfileSchemaAttribute{{AttributeID: "local-cart", AttributeName: "application_data.cart",
 		ApplicationIdentifier: "shop"}}
-	if got := attributeIds(selectActiveSharedAttributes(shared, attrs, sameApp)); len(got) != 0 {
+	if got := attributeIDs(selectActiveSharedAttributes(shared, attrs, sameApp)); len(got) != 0 {
 		t.Errorf("expected a conflict with the attribute of the same app, got %v", got)
 	}
 }

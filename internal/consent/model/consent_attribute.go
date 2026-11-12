@@ -25,6 +25,6 @@ package models
 type ConsentAttribute struct {
 	Scope                 string `json:"scope,omitempty" bson:"scope"`                                             // derived — "identityAttributes" | "traits" | "applicationData"
 	AttributeName         string `json:"attribute_name" bson:"attribute_name"`                                     // references ProfileSchemaAttribute.attribute_name
-	AttributeId           string `json:"attribute_id" bson:"attribute_id"`                                         // internal FK to profile_schema.attribute_id; enables ON DELETE CASCADE
+	AttributeID           string `json:"attribute_id" bson:"attribute_id"`                                         // internal FK to profile_schema.attribute_id; enables ON DELETE CASCADE
 	ApplicationIdentifier string `json:"application_identifier,omitempty" bson:"application_identifier,omitempty"` // only for applicationData scope
 }

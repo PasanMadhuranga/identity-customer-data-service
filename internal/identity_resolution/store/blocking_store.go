@@ -32,7 +32,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
-func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []model.BlockingKey) error {
+func UpsertBlockingKeys(ctx context.Context, profileID, orgID string, keys []model.BlockingKey) error {
 	logger := log.GetLogger()
 	if len(keys) == 0 {
 		return nil
@@ -42,8 +42,8 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	if err != nil {
 		logger.Error("BlockingStore: failed to get DB client", log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for blocking key indexing.",
 		}, err)
 	}
@@ -53,21 +53,21 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	if err != nil {
 		logger.Error("BlockingStore: failed to begin transaction", log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to begin transaction for blocking key upsert: %s", profileID),
 		}, err)
 	}
 
 	deleteQuery := scripts.DeleteBlockingKeysSQL
-	if _, err = tx.ExecContext(ctx, deleteQuery, orgId, profileID); err != nil {
+	if _, err = tx.ExecContext(ctx, deleteQuery, orgID, profileID); err != nil {
 		logger.Error("BlockingStore: failed to delete existing blocking keys", log.Error(err))
 		if rbErr := tx.Rollback(); rbErr != nil {
 			logger.Error("BlockingStore: failed to rollback transaction", log.Error(rbErr))
 		}
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to delete existing blocking keys for profile: %s", profileID),
 		}, err)
 	}
@@ -79,7 +79,7 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	for _, key := range keys {
 		valueClauses = append(valueClauses,
 			fmt.Sprintf("($%d, $%d, $%d, $%d)", argIdx, argIdx+1, argIdx+2, argIdx+3))
-		args = append(args, profileID, orgId, key.AttributeName, key.KeyValue)
+		args = append(args, profileID, orgID, key.AttributeName, key.KeyValue)
 		argIdx += blockingKeyColumns
 	}
 
@@ -91,8 +91,8 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 			logger.Error("BlockingStore: failed to rollback transaction", log.Error(rbErr))
 		}
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to insert blocking keys for profile: %s", profileID),
 		}, err)
 	}
@@ -100,8 +100,8 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	if err = tx.Commit(); err != nil {
 		logger.Error("BlockingStore: failed to commit transaction", log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to commit blocking key upsert for profile: %s", profileID),
 		}, err)
 	}
@@ -109,26 +109,26 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	return nil
 }
 
-func DeleteBlockingKeys(ctx context.Context, orgId, profileID string) error {
+func DeleteBlockingKeys(ctx context.Context, orgID, profileID string) error {
 	logger := log.GetLogger()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for blocking key deletion.",
 		}, err)
 	}
 	defer dbClient.Close()
 
 	deleteQuery := scripts.DeleteBlockingKeysSQL
-	_, err = dbClient.ExecuteQueryContext(ctx, deleteQuery, orgId, profileID)
+	_, err = dbClient.ExecuteQueryContext(ctx, deleteQuery, orgID, profileID)
 	if err != nil {
 		logger.Error("BlockingStore: failed to delete blocking keys", log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to delete blocking keys for profile: %s", profileID),
 		}, err)
 	}
@@ -137,27 +137,27 @@ func DeleteBlockingKeys(ctx context.Context, orgId, profileID string) error {
 }
 
 // DeleteBlockingKeysByAttribute removes all blocking keys for a specific attribute across all profiles in an org.
-func DeleteBlockingKeysByAttribute(ctx context.Context, orgId, attributeName string) error {
+func DeleteBlockingKeysByAttribute(ctx context.Context, orgID, attributeName string) error {
 	logger := log.GetLogger()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for attribute blocking key deletion.",
 		}, err)
 	}
 	defer dbClient.Close()
 
 	query := scripts.DeleteBlockingKeysByAttributeSQL
-	_, err = dbClient.ExecuteQueryContext(ctx, query, orgId, attributeName)
+	_, err = dbClient.ExecuteQueryContext(ctx, query, orgID, attributeName)
 	if err != nil {
 		logger.Error(fmt.Sprintf("BlockingStore: failed to delete blocking keys for attribute '%s'", attributeName),
 			log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to delete blocking keys for attribute: %s", attributeName),
 		}, err)
 	}
@@ -167,7 +167,7 @@ func DeleteBlockingKeysByAttribute(ctx context.Context, orgId, attributeName str
 
 // InsertBlockingKeys inserts blocking keys for a profile without deleting existing keys.
 // Uses ON CONFLICT DO NOTHING to skip duplicates.
-func InsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []model.BlockingKey) error {
+func InsertBlockingKeys(ctx context.Context, profileID, orgID string, keys []model.BlockingKey) error {
 	logger := log.GetLogger()
 	if len(keys) == 0 {
 		return nil
@@ -176,8 +176,8 @@ func InsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for blocking key insertion.",
 		}, err)
 	}
@@ -190,7 +190,7 @@ func InsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	for _, key := range keys {
 		valueClauses = append(valueClauses,
 			fmt.Sprintf("($%d, $%d, $%d, $%d)", argIdx, argIdx+1, argIdx+2, argIdx+3))
-		args = append(args, profileID, orgId, key.AttributeName, key.KeyValue)
+		args = append(args, profileID, orgID, key.AttributeName, key.KeyValue)
 		argIdx += blockingKeyColumns
 	}
 
@@ -200,8 +200,8 @@ func InsertBlockingKeys(ctx context.Context, profileID, orgId string, keys []mod
 	if err != nil {
 		logger.Error("BlockingStore: failed to insert blocking keys", log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to insert blocking keys for profile: %s", profileID),
 		}, err)
 	}
@@ -233,7 +233,7 @@ const maxBlockingKeyRowsPerInsert = 5000
 // InsertBlockingKeysBatch inserts blocking keys for many profiles, chunked so no single
 // statement exceeds the driver's bind-parameter limit.
 // Uses ON CONFLICT DO NOTHING to skip duplicates.
-func InsertBlockingKeysBatch(ctx context.Context, orgId string, perProfileKeys map[string][]model.BlockingKey) error {
+func InsertBlockingKeysBatch(ctx context.Context, orgID string, perProfileKeys map[string][]model.BlockingKey) error {
 	logger := log.GetLogger()
 
 	rows := flattenBlockingKeyRows(perProfileKeys)
@@ -244,8 +244,8 @@ func InsertBlockingKeysBatch(ctx context.Context, orgId string, perProfileKeys m
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for batch blocking key insertion.",
 		}, err)
 	}
@@ -265,7 +265,7 @@ func InsertBlockingKeysBatch(ctx context.Context, orgId string, perProfileKeys m
 		for _, row := range chunk {
 			valueClauses = append(valueClauses,
 				fmt.Sprintf("($%d, $%d, $%d, $%d)", argIdx, argIdx+1, argIdx+2, argIdx+3))
-			args = append(args, row.profileID, orgId,
+			args = append(args, row.profileID, orgID,
 				row.key.AttributeName, row.key.KeyValue)
 			argIdx += blockingKeyColumns
 		}
@@ -274,12 +274,12 @@ func InsertBlockingKeysBatch(ctx context.Context, orgId string, perProfileKeys m
 		if _, err := dbClient.ExecuteQueryContext(ctx, insertQuery, args...); err != nil {
 			logger.Error(fmt.Sprintf(
 				"BlockingStore: batch insert failed for org '%s' at rows %d-%d of %d",
-				orgId, start, end, len(rows)), log.Error(err))
+				orgID, start, end, len(rows)), log.Error(err))
 			return errors2.NewServerError(errors2.ErrorMessage{
-				Code:    errors2.IR_BLOCKING_KEYS_FAILED.Code,
-				Message: errors2.IR_BLOCKING_KEYS_FAILED.Message,
+				Code:    errors2.IRBlockingKeysFailed.Code,
+				Message: errors2.IRBlockingKeysFailed.Message,
 				Description: fmt.Sprintf("Failed to batch insert blocking keys for org: %s",
-					orgId),
+					orgID),
 			}, err)
 		}
 	}
@@ -307,7 +307,7 @@ func flattenBlockingKeyRows(perProfileKeys map[string][]model.BlockingKey) []blo
 }
 
 func FindCandidateIDsByKeys(ctx context.Context,
-	orgId, attributeName string,
+	orgID, attributeName string,
 	keyValues []string,
 	excludeProfileID string,
 	maxResults int,
@@ -321,14 +321,14 @@ func FindCandidateIDsByKeys(ctx context.Context,
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for blocking key lookup.",
 		}, err)
 	}
 	defer dbClient.Close()
 
-	args := []interface{}{orgId, attributeName}
+	args := []interface{}{orgID, attributeName}
 	var inClauses []string
 	argIdx := 3
 
@@ -354,8 +354,8 @@ func FindCandidateIDsByKeys(ctx context.Context,
 	if err != nil {
 		logger.Error("BlockingStore: failed to query blocking keys", log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: fmt.Sprintf("Failed to query blocking keys for attribute: %s", attributeName),
 		}, err)
 	}
@@ -366,7 +366,7 @@ func FindCandidateIDsByKeys(ctx context.Context,
 	if len(results) > maxResults {
 		logger.Warn(fmt.Sprintf(
 			"BlockingStore: attribute '%s' matched more than %d profiles in org '%s' — skipping this key group",
-			attributeName, maxResults, orgId))
+			attributeName, maxResults, orgID))
 		return nil, nil
 	}
 
@@ -390,8 +390,8 @@ func GetProfilesByIDs(ctx context.Context, profileIDs []string) ([]model.Profile
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_SEARCH_FAILED.Code,
-			Message:     errors2.IR_SEARCH_FAILED.Message,
+			Code:        errors2.IRSearchFailed.Code,
+			Message:     errors2.IRSearchFailed.Message,
 			Description: "Failed to connect to database for profile batch lookup.",
 		}, err)
 	}
@@ -410,8 +410,8 @@ func GetProfilesByIDs(ctx context.Context, profileIDs []string) ([]model.Profile
 	if err != nil {
 		logger.Error("BlockingStore: failed to batch load profiles", log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_SEARCH_FAILED.Code,
-			Message:     errors2.IR_SEARCH_FAILED.Message,
+			Code:        errors2.IRSearchFailed.Code,
+			Message:     errors2.IRSearchFailed.Message,
 			Description: "Failed to batch load candidate profiles.",
 		}, err)
 	}
@@ -436,10 +436,10 @@ var rarityCache = cache.NewCache(constants.RarityLookupCacheTTL)
 
 // CountProfilesByBlockingKey reports how many profiles in the org already carry the given
 // exact blocking key — that is, how common the value is within the tenant.
-func CountProfilesByBlockingKey(ctx context.Context, orgId, attributeName, keyValue string) (int, error) {
+func CountProfilesByBlockingKey(ctx context.Context, orgID, attributeName, keyValue string) (int, error) {
 	logger := log.GetLogger()
 
-	cacheKey := orgId + "|" + attributeName + "|" + keyValue
+	cacheKey := orgID + "|" + attributeName + "|" + keyValue
 	if cached, found := rarityCache.Get(cacheKey); found {
 		if count, ok := cached.(int); ok {
 			return count, nil
@@ -449,15 +449,15 @@ func CountProfilesByBlockingKey(ctx context.Context, orgId, attributeName, keyVa
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return 0, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IR_BLOCKING_KEYS_FAILED.Code,
-			Message:     errors2.IR_BLOCKING_KEYS_FAILED.Message,
+			Code:        errors2.IRBlockingKeysFailed.Code,
+			Message:     errors2.IRBlockingKeysFailed.Message,
 			Description: "Failed to connect to database for value frequency lookup.",
 		}, err)
 	}
 	defer dbClient.Close()
 
 	query := scripts.IRCountProfilesByBlockingKey
-	results, err := dbClient.ExecuteQueryContext(ctx, query, orgId, attributeName, keyValue)
+	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID, attributeName, keyValue)
 	if err != nil {
 		logger.Warn(fmt.Sprintf("BlockingStore: frequency lookup failed for attribute '%s'", attributeName),
 			log.Error(err))

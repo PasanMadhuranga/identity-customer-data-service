@@ -37,7 +37,7 @@ func NewAdminConfigService(mux *http.ServeMux) *AdminConfigService {
 		mux:     mux,
 	}
 
-	const base = constants.ApiBasePath + "/v1"
+	const base = constants.APIBasePath + "/v1"
 	// Register routes with Go 1.22 ServeMux patterns on shared mux
 	s.mux.HandleFunc("GET "+base+"/config", s.handler.GetAdminConfig)
 	s.mux.HandleFunc("PATCH "+base+"/config", s.handler.UpdateAdminConfig)

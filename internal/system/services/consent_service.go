@@ -37,7 +37,7 @@ func NewConsentCategoryService(mux *http.ServeMux) *ConsentCategoryService {
 		mux:     mux,
 	}
 
-	const base = constants.ApiBasePath + "/v1"
+	const base = constants.APIBasePath + "/v1"
 	// Register routes with Go 1.22 ServeMux patterns on shared mux
 	s.mux.HandleFunc("GET "+base+"/consent-categories", s.handler.GetAllConsentCategories)
 	s.mux.HandleFunc("POST "+base+"/consent-categories", s.handler.AddConsentCategory)

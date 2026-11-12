@@ -28,10 +28,10 @@ import (
 
 // Organization holds the details of an organization that the identity provider returns.
 type Organization struct {
-	Id       string
+	ID       string
 	Handle   string
 	Name     string
-	ParentId string // Empty for a primary organization.
+	ParentID string // Empty for a primary organization.
 	Status   string
 }
 
@@ -44,7 +44,7 @@ type Adapter interface {
 	ListDescendants(ctx context.Context, primaryHandle string) ([]Organization, error)
 	// GetOrganization returns one organization below the primary organization. It returns nil when
 	// the organization does not exist.
-	GetOrganization(ctx context.Context, primaryHandle, orgId string) (*Organization, error)
+	GetOrganization(ctx context.Context, primaryHandle, orgID string) (*Organization, error)
 	// IdentityAttributeSourceHandle returns the handle of the organization that holds the identity
 	// attributes of a sub organization.
 	IdentityAttributeSourceHandle(orgHandle, primaryHandle string) string

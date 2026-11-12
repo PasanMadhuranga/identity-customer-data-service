@@ -19,8 +19,8 @@ import (
 // createAttr is a helper to quickly generate a schema attribute.
 func createAttr(org, name, vType, merge, mut string) model.ProfileSchemaAttribute {
 	return model.ProfileSchemaAttribute{
-		OrgId:                 org,
-		AttributeId:           uuid.New().String(),
+		OrgID:                 org,
+		AttributeID:           uuid.New().String(),
 		AttributeName:         name,
 		ValueType:             vType,
 		MergeStrategy:         merge,
@@ -51,8 +51,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 			// 2. Traits
 			traits := []model.ProfileSchemaAttribute{
 				{
-					OrgId:         SuperTenantOrg.ID,
-					AttributeId:   uuid.New().String(),
+					OrgID:         SuperTenantOrg.ID,
+					AttributeID:   uuid.New().String(),
 					AttributeName: "traits.interests",
 					ValueType:     constants.StringDataType,
 					MergeStrategy: "combine",
@@ -66,8 +66,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 			// 3. Application Data
 			appData := []model.ProfileSchemaAttribute{
 				{
-					OrgId:                 SuperTenantOrg.ID,
-					AttributeId:           uuid.New().String(),
+					OrgID:                 SuperTenantOrg.ID,
+					AttributeID:           uuid.New().String(),
 					AttributeName:         "application_data.device_id",
 					ValueType:             constants.StringDataType,
 					MergeStrategy:         "combine",
@@ -107,8 +107,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 		t.Run("Add_SameAttributeNameDifferentApps_ShouldSucceed", func(t *testing.T) {
 			// Test that the same attribute name can be used for different applications
 			app1Attr := model.ProfileSchemaAttribute{
-				OrgId:                 SuperTenantOrg.ID,
-				AttributeId:           uuid.New().String(),
+				OrgID:                 SuperTenantOrg.ID,
+				AttributeID:           uuid.New().String(),
 				AttributeName:         "application_data.theme",
 				ValueType:             constants.StringDataType,
 				MergeStrategy:         "overwrite",
@@ -120,8 +120,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// Add the SAME attribute name for a DIFFERENT application - should succeed
 			app2Attr := model.ProfileSchemaAttribute{
-				OrgId:                 SuperTenantOrg.ID,
-				AttributeId:           uuid.New().String(),
+				OrgID:                 SuperTenantOrg.ID,
+				AttributeID:           uuid.New().String(),
 				AttributeName:         "application_data.theme",
 				ValueType:             constants.StringDataType,
 				MergeStrategy:         "overwrite",
@@ -159,8 +159,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 		t.Run("Add_SameAttributeNameSameApp_ShouldFail", func(t *testing.T) {
 			// Test that duplicate attribute for the SAME application is blocked
 			app1Attr := model.ProfileSchemaAttribute{
-				OrgId:                 SuperTenantOrg.ID,
-				AttributeId:           uuid.New().String(),
+				OrgID:                 SuperTenantOrg.ID,
+				AttributeID:           uuid.New().String(),
 				AttributeName:         "application_data.language",
 				ValueType:             constants.StringDataType,
 				MergeStrategy:         "overwrite",
@@ -172,8 +172,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// Try to add the SAME attribute for the SAME application - should fail
 			duplicateAttr := model.ProfileSchemaAttribute{
-				OrgId:                 SuperTenantOrg.ID,
-				AttributeId:           uuid.New().String(),
+				OrgID:                 SuperTenantOrg.ID,
+				AttributeID:           uuid.New().String(),
 				AttributeName:         "application_data.language",
 				ValueType:             constants.StringDataType,
 				MergeStrategy:         "overwrite",
@@ -211,15 +211,15 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// Create parent with sub-attribute (valid: one level deeper)
 			parent := model.ProfileSchemaAttribute{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.orders",
 				ValueType:     constants.ComplexDataType,
 				MergeStrategy: "combine",
 				Mutability:    constants.MutabilityReadWrite,
 				SubAttributes: []model.SubAttribute{
 					{
-						AttributeId:   subAttr.AttributeId,
+						AttributeID:   subAttr.AttributeID,
 						AttributeName: subAttr.AttributeName,
 					},
 				},
@@ -234,8 +234,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 		t.Run("Add_InvalidSubAttribute_ShouldFail", func(t *testing.T) {
 			// Step 1: Create sub-attribute first
 			subAttr := model.ProfileSchemaAttribute{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.orders.payment.card.type", // depth 4
 				ValueType:     constants.StringDataType,
 				MergeStrategy: "combine",
@@ -246,15 +246,15 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// Step 2: Parent referencing invalid deeper sub-attribute
 			parent := model.ProfileSchemaAttribute{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.orders",
 				ValueType:     constants.ComplexDataType,
 				MergeStrategy: "combine",
 				Mutability:    constants.MutabilityReadWrite,
 				SubAttributes: []model.SubAttribute{
 					{
-						AttributeId:   subAttr.AttributeId,
+						AttributeID:   subAttr.AttributeID,
 						AttributeName: subAttr.AttributeName,
 					},
 				},
@@ -276,14 +276,14 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// 2️Level 3 parent (complex) → references level 4
 			l3 := model.ProfileSchemaAttribute{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.orders.payment.card",
 				ValueType:     constants.ComplexDataType,
 				MergeStrategy: "combine",
 				Mutability:    constants.MutabilityReadWrite,
 				SubAttributes: []model.SubAttribute{
-					{AttributeId: l4.AttributeId, AttributeName: l4.AttributeName},
+					{AttributeID: l4.AttributeID, AttributeName: l4.AttributeName},
 				},
 			}
 			_, err = svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{l3}, constants.Traits, SuperTenantOrg.ID)
@@ -291,14 +291,14 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// 3️ Level 2 parent → references level 3
 			l2 := model.ProfileSchemaAttribute{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.orders.payment",
 				ValueType:     constants.ComplexDataType,
 				MergeStrategy: "combine",
 				Mutability:    constants.MutabilityReadWrite,
 				SubAttributes: []model.SubAttribute{
-					{AttributeId: l3.AttributeId, AttributeName: l3.AttributeName},
+					{AttributeID: l3.AttributeID, AttributeName: l3.AttributeName},
 				},
 			}
 			_, err = svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{l2}, constants.Traits, SuperTenantOrg.ID)
@@ -306,14 +306,14 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 			// 4️Level 1 parent → references level 2
 			l1 := model.ProfileSchemaAttribute{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.orders",
 				ValueType:     constants.ComplexDataType,
 				MergeStrategy: "combine",
 				Mutability:    constants.MutabilityReadWrite,
 				SubAttributes: []model.SubAttribute{
-					{AttributeId: l2.AttributeId, AttributeName: l2.AttributeName},
+					{AttributeID: l2.AttributeID, AttributeName: l2.AttributeName},
 				},
 			}
 			_, err = svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{l1}, constants.Traits, SuperTenantOrg.ID)
@@ -334,8 +334,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 		// 2. Traits
 		traits := []model.ProfileSchemaAttribute{
 			{
-				OrgId:         SuperTenantOrg.ID,
-				AttributeId:   uuid.New().String(),
+				OrgID:         SuperTenantOrg.ID,
+				AttributeID:   uuid.New().String(),
 				AttributeName: "traits.interests",
 				ValueType:     constants.StringDataType,
 				MergeStrategy: "combine",
@@ -348,8 +348,8 @@ func Test_ProfileSchemaService(t *testing.T) {
 		// 3. Application Data
 		appData := []model.ProfileSchemaAttribute{
 			{
-				OrgId:                 SuperTenantOrg.ID,
-				AttributeId:           uuid.New().String(),
+				OrgID:                 SuperTenantOrg.ID,
+				AttributeID:           uuid.New().String(),
 				AttributeName:         "application_data.device_id",
 				ValueType:             constants.StringDataType,
 				MergeStrategy:         "combine",
@@ -374,7 +374,7 @@ func Test_ProfileSchemaService(t *testing.T) {
 			_, err := svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{attr}, constants.IdentityAttributes, SuperTenantOrg.ID)
 			require.NoError(t, err)
 
-			fetched, err := svc.GetProfileSchemaAttributeById(context.Background(), SuperTenantOrg.ID, attr.AttributeId)
+			fetched, err := svc.GetProfileSchemaAttributeByID(context.Background(), SuperTenantOrg.ID, attr.AttributeID)
 			require.NoError(t, err)
 			require.Equal(t, attr.AttributeName, fetched.AttributeName)
 		})
@@ -390,26 +390,26 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 	t.Run("Update Operations", func(t *testing.T) {
 		t.Run("Patch_ProfileSchemaAttribute_ById", func(t *testing.T) {
-			attrId := uuid.New().String()
+			attrID := uuid.New().String()
 			attr := createAttr(SuperTenantOrg.ID, "identity_attributes.temp_field", constants.StringDataType, "combine", constants.MutabilityReadWrite)
-			attr.AttributeId = attrId
+			attr.AttributeID = attrID
 
 			_, err := svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{attr}, constants.IdentityAttributes, SuperTenantOrg.ID)
 			require.NoError(t, err)
 
 			updates := map[string]interface{}{
 				"attribute_name": "identity_attributes.temp_field",
-				"attribute_id":   attrId,
+				"attribute_id":   attrID,
 				"value_type":     "integer",
 				"merge_strategy": constants.MergeStrategyOverwrite,
 				"mutability":     constants.MutabilityReadWrite,
 			}
 
-			err = svc.UpdateProfileSchemaAttributeById(context.Background(), SuperTenantOrg.ID, attrId, updates, "")
+			err = svc.UpdateProfileSchemaAttributeByID(context.Background(), SuperTenantOrg.ID, attrID, updates, "")
 			require.NoError(t, err, "Failed to patch profile schema attribute")
 
 			// Verify patch persisted
-			patched, err := svc.GetProfileSchemaAttributeById(context.Background(), SuperTenantOrg.ID, attrId)
+			patched, err := svc.GetProfileSchemaAttributeByID(context.Background(), SuperTenantOrg.ID, attrID)
 			require.NoError(t, err)
 			require.Equal(t, "integer", patched.ValueType)
 			require.Equal(t, constants.MergeStrategyOverwrite, patched.MergeStrategy)
@@ -422,7 +422,7 @@ func Test_ProfileSchemaService(t *testing.T) {
 			_, err := svc.AddProfileSchemaAttributesForScope(context.Background(), []model.ProfileSchemaAttribute{attr}, constants.Traits, SuperTenantOrg.ID)
 			require.NoError(t, err)
 
-			err = svc.DeleteProfileSchemaAttributeById(context.Background(), SuperTenantOrg.ID, attr.AttributeId)
+			err = svc.DeleteProfileSchemaAttributeByID(context.Background(), SuperTenantOrg.ID, attr.AttributeID)
 			require.NoError(t, err, "Expected no error when deleting schema attribute by ID")
 		})
 

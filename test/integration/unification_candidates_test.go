@@ -37,7 +37,7 @@ import (
 
 func insertCandidateFixture(t *testing.T, id, org, userID, status, attributes string, created time.Time) {
 	t.Helper()
-	args := []interface{}{id, resolveOrgId(t, org), userID, attributes, created}
+	args := []interface{}{id, resolveOrgID(t, org), userID, attributes, created}
 	if suiteDBType == database.TypeSQLite {
 		args = database.NormalizeSQLiteArgs(args)
 	}
@@ -57,11 +57,11 @@ func insertCandidateFixture(t *testing.T, id, org, userID, status, attributes st
 func findReferenceProfileCandidate(ctx context.Context, incoming profileModel.Profile,
 	property string, values []string) (string, error) {
 	if property == "" {
-		return profileStore.FindOldestReferenceProfileIDByUserID(ctx, incoming.OrgId, incoming.UserId,
-			incoming.ProfileId)
+		return profileStore.FindOldestReferenceProfileIDByUserID(ctx, incoming.OrgID, incoming.UserID,
+			incoming.ProfileID)
 	}
-	return profileStore.FindOldestReferenceProfileIDByAttributeValues(ctx, incoming.OrgId, property, values,
-		incoming.ProfileId, incoming.UserId)
+	return profileStore.FindOldestReferenceProfileIDByAttributeValues(ctx, incoming.OrgID, property, values,
+		incoming.ProfileID, incoming.UserID)
 }
 
 // Runs on both CI datasources: exact string comparisons must agree even for
@@ -100,7 +100,7 @@ func Test_UnificationCandidateMatching(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			org, id := uuid.NewString(), uuid.NewString()
 			insertCandidateFixture(t, id, org, "", "REFERENCE_PROFILE", tc.attributes, time.Now().UTC())
-			incoming := profileModel.Profile{ProfileId: "incoming", OrgId: setup.TestOrgId(org)}
+			incoming := profileModel.Profile{ProfileID: "incoming", OrgID: setup.TestOrgID(org)}
 			got, err := findReferenceProfileCandidate(context.Background(), incoming, tc.property, tc.values)
 			require.NoError(t, err)
 			if tc.match {
@@ -130,14 +130,14 @@ func Test_UnificationCandidateScopeAndOrder(t *testing.T) {
 		insertCandidateFixture(t, id, tenant, "same-user", status, `{"email":"shared"}`, created)
 		ids[name] = id
 	}
-	incoming := profileModel.Profile{ProfileId: ids["self"], OrgId: setup.TestOrgId(org), UserId: "same-user"}
+	incoming := profileModel.Profile{ProfileID: ids["self"], OrgID: setup.TestOrgID(org), UserID: "same-user"}
 	for _, property := range []string{"", "identity_attributes.email"} {
 		got, err := findReferenceProfileCandidate(context.Background(), incoming, property, []string{"shared"})
 		require.NoError(t, err)
 		require.Equal(t, ids["old-a"], got, "oldest match with ID tie-breaker")
 	}
 	// A rule candidate with a different nonempty user ID is not eligible.
-	incoming.UserId = "different-user"
+	incoming.UserID = "different-user"
 	got, err := findReferenceProfileCandidate(context.Background(), incoming, "", nil)
 	require.NoError(t, err)
 	require.Empty(t, got)
@@ -195,7 +195,7 @@ func Benchmark_UnificationCandidateLookup(b *testing.B) {
 	for _, count := range []int{1000, 100000, 1000000} {
 		b.Run(fmt.Sprintf("masters_%d", count), func(b *testing.B) {
 			org := "unification-bench-" + uuid.NewString()
-			key := resolveOrgId(b, org)
+			key := resolveOrgID(b, org)
 			_, err := suiteDB.Exec(`INSERT INTO profiles
 				(profile_id, org_id, user_id, created_at, identity_attributes)
 				SELECT $1 || '-' || n, $3, 'user-' || n,
@@ -212,7 +212,7 @@ func Benchmark_UnificationCandidateLookup(b *testing.B) {
 			require.NoError(b, err)
 			_, err = suiteDB.Exec(`ANALYZE profiles; ANALYZE profile_reference`)
 			require.NoError(b, err)
-			incoming := profileModel.Profile{ProfileId: "incoming", OrgId: setup.TestOrgId(org), UserId: fmt.Sprintf("user-%d", count)}
+			incoming := profileModel.Profile{ProfileID: "incoming", OrgID: setup.TestOrgID(org), UserID: fmt.Sprintf("user-%d", count)}
 			for _, tc := range []struct{ name, property, value string }{
 				{"user_id", "", ""},
 				{"rule_match", "identity_attributes.email", fmt.Sprintf("profile-%d@example.test", count)},
@@ -222,10 +222,10 @@ func Benchmark_UnificationCandidateLookup(b *testing.B) {
 				b.Run(tc.name, func(b *testing.B) {
 					lookupIncoming := incoming
 					if tc.property != "" {
-						lookupIncoming.UserId = ""
+						lookupIncoming.UserID = ""
 					}
 					query := scripts.FindOldestReferenceProfileIDByUserID
-					args := []interface{}{key, lookupIncoming.ProfileId, lookupIncoming.UserId}
+					args := []interface{}{key, lookupIncoming.ProfileID, lookupIncoming.UserID}
 					if tc.property != "" {
 						var matchArgs []interface{}
 						query, matchArgs, err = scripts.BuildFindOldestReferenceProfileIDByAttributeValuesQuery(

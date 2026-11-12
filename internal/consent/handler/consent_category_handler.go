@@ -77,8 +77,8 @@ func (h *ConsentCategoryHandler) AddConsentCategory(w http.ResponseWriter, r *ht
 	var req consentModel.ConsentCategoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.ADD_CONSENT_CATEGORY_BAD_REQUEST.Code,
-			Message:     errors.ADD_CONSENT_CATEGORY_BAD_REQUEST.Message,
+			Code:        errors.AddConsentCategoryBadRequest.Code,
+			Message:     errors.AddConsentCategoryBadRequest.Message,
 			Description: utils.HandleDecodeError(err, "consent category"),
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -114,11 +114,11 @@ func (h *ConsentCategoryHandler) GetConsentCategory(w http.ResponseWriter, r *ht
 		return
 	}
 
-	categoryId := r.PathValue("categoryId")
-	if categoryId == "" {
+	categoryID := r.PathValue("categoryId")
+	if categoryID == "" {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.CONSENT_CAT_ID.Code,
-			Message:     errors.CONSENT_CAT_ID.Message,
+			Code:        errors.ConsentCatID.Code,
+			Message:     errors.ConsentCatID.Message,
 			Description: "Category Id is required to fetch the consent category",
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -131,7 +131,7 @@ func (h *ConsentCategoryHandler) GetConsentCategory(w http.ResponseWriter, r *ht
 		return
 	}
 	service := provider.NewConsentCategoryProvider().GetConsentCategoryService()
-	category, err := service.GetConsentCategory(ctx, categoryId, org.ID)
+	category, err := service.GetConsentCategory(ctx, categoryID, org.ID)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
@@ -151,11 +151,11 @@ func (h *ConsentCategoryHandler) UpdateConsentCategory(w http.ResponseWriter, r 
 		return
 	}
 
-	categoryId := r.PathValue("categoryId")
-	if categoryId == "" {
+	categoryID := r.PathValue("categoryId")
+	if categoryID == "" {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.CONSENT_CAT_ID.Code,
-			Message:     errors.CONSENT_CAT_ID.Message,
+			Code:        errors.ConsentCatID.Code,
+			Message:     errors.ConsentCatID.Message,
 			Description: "Category Id is required to fetch the consent category",
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -165,8 +165,8 @@ func (h *ConsentCategoryHandler) UpdateConsentCategory(w http.ResponseWriter, r 
 	var req consentModel.ConsentCategoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.UPDATE_CONSENT_CATEGORY_BAD_REQUEST.Code,
-			Message:     errors.UPDATE_CONSENT_CATEGORY_BAD_REQUEST.Message,
+			Code:        errors.UpdateConsentCategoryBadRequest.Code,
+			Message:     errors.UpdateConsentCategoryBadRequest.Message,
 			Description: utils.HandleDecodeError(err, "consent category"),
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -178,7 +178,7 @@ func (h *ConsentCategoryHandler) UpdateConsentCategory(w http.ResponseWriter, r 
 		utils.HandleError(w, err)
 		return
 	}
-	category := req.ToCategory(org.ID, categoryId)
+	category := req.ToCategory(org.ID, categoryID)
 
 	service := provider.NewConsentCategoryProvider().GetConsentCategoryService()
 	if err := service.UpdateConsentCategory(ctx, org.ID, category); err != nil {
@@ -200,11 +200,11 @@ func (h *ConsentCategoryHandler) DeleteConsentCategory(w http.ResponseWriter, r 
 		utils.HandleError(w, err)
 		return
 	}
-	categoryId := r.PathValue("categoryId")
-	if categoryId == "" {
+	categoryID := r.PathValue("categoryId")
+	if categoryID == "" {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.CONSENT_CAT_ID.Code,
-			Message:     errors.CONSENT_CAT_ID.Message,
+			Code:        errors.ConsentCatID.Code,
+			Message:     errors.ConsentCatID.Message,
 			Description: "Category Id is required to fetch the consent category",
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -217,7 +217,7 @@ func (h *ConsentCategoryHandler) DeleteConsentCategory(w http.ResponseWriter, r 
 		return
 	}
 	service := provider.NewConsentCategoryProvider().GetConsentCategoryService()
-	if err := service.DeleteConsentCategory(ctx, categoryId, org.ID); err != nil {
+	if err := service.DeleteConsentCategory(ctx, categoryID, org.ID); err != nil {
 		utils.HandleError(w, err)
 		return
 	}

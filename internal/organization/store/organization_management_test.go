@@ -60,7 +60,7 @@ func TestLookupsReadNoTableWhenOrganizationManagementIsDisabled(t *testing.T) {
 	if org, err := GetOrganizationByHandle(ctx, "acme"); err != nil || org != nil {
 		t.Errorf("GetOrganizationByHandle: want nil, nil, got %v, %v", org, err)
 	}
-	if org, err := GetOrganizationById(ctx, "primary-id"); err != nil || org != nil {
+	if org, err := GetOrganizationByID(ctx, "primary-id"); err != nil || org != nil {
 		t.Errorf("GetOrganizationById: want nil, nil, got %v, %v", org, err)
 	}
 	if chain, err := GetOrganizationChain(ctx, "primary-id"); err != nil || len(chain) != 0 {

@@ -42,8 +42,8 @@ func DecodePolicyRequest(w http.ResponseWriter, r *http.Request) (model.PolicyRe
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.SHARE_BAD_REQUEST.Code,
-			Message:     errors2.SHARE_BAD_REQUEST.Message,
+			Code:        errors2.ShareBadRequest.Code,
+			Message:     errors2.ShareBadRequest.Message,
 			Description: utils.HandleDecodeError(err, "policy request"),
 		}, http.StatusBadRequest))
 		return req, false
@@ -65,9 +65,9 @@ func InitiatorOf(w http.ResponseWriter, r *http.Request, operation string) (*org
 	}
 	if !adminConfigService.GetAdminConfigService().IsCDSEnabled(r.Context(), ref.ID) {
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest))
 		return nil, false
 	}
@@ -88,8 +88,8 @@ func knownOrg(ctx context.Context, ref orgModel.Ref) (*orgModel.Organization, er
 	}
 	if org == nil {
 		return nil, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.ORGANIZATION_NOT_FOUND.Code,
-			Message:     errors2.ORGANIZATION_NOT_FOUND.Message,
+			Code:        errors2.OrganizationNotFound.Code,
+			Message:     errors2.OrganizationNotFound.Message,
 			Description: "CDS does not know the organization '" + ref.ID + "'.",
 		}, http.StatusNotFound)
 	}

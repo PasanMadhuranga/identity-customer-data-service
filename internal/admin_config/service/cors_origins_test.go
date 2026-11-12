@@ -146,12 +146,12 @@ func newCountingLoader(origins map[string][]string) *countingLoader {
 	return &countingLoader{reads: map[string]int{}, origins: origins}
 }
 
-func (l *countingLoader) load(_ context.Context, orgId string) ([]string, error) {
-	l.reads[orgId]++
+func (l *countingLoader) load(_ context.Context, orgID string) ([]string, error) {
+	l.reads[orgID]++
 	if l.err != nil {
 		return nil, l.err
 	}
-	return l.origins[orgId], nil
+	return l.origins[orgID], nil
 }
 
 func newTestCORSOriginsCache(t *testing.T, loader *countingLoader, ttl time.Duration) *corsOriginsCache {
@@ -265,28 +265,28 @@ func (l *countingOrgLookup) lookup(_ context.Context, orgHandle string) (orgMode
 	if l.err != nil {
 		return orgModel.Ref{}, false, l.err
 	}
-	orgId, found := l.orgs[orgHandle]
-	return orgModel.Ref{ID: orgId, Handle: orgHandle}, found, nil
+	orgID, found := l.orgs[orgHandle]
+	return orgModel.Ref{ID: orgID, Handle: orgHandle}, found, nil
 }
 
-func newTestCORSOrgIdResolver(t *testing.T, lookup *countingOrgLookup) *corsOrgIdResolver {
+func newTestCORSOrgIDResolver(t *testing.T, lookup *countingOrgLookup) *corsOrgIDResolver {
 	t.Helper()
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
 	}
-	return &corsOrgIdResolver{lookup: lookup.lookup, unknown: cache.NewCache(time.Hour)}
+	return &corsOrgIDResolver{lookup: lookup.lookup, unknown: cache.NewCache(time.Hour)}
 }
 
 // A handle CDS has no organization for, as an unauthenticated preflight may carry, is read once
 // and then answered without a read.
 func TestCORSOrgIdResolverRemembersUnknownHandles(t *testing.T) {
 	lookup := &countingOrgLookup{reads: map[string]int{}, orgs: map[string]string{"acme": "acme-id"}}
-	resolver := newTestCORSOrgIdResolver(t, lookup)
+	resolver := newTestCORSOrgIDResolver(t, lookup)
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
-		if orgId, found, err := resolver.resolve(ctx, "acme"); err != nil || !found || orgId != "acme-id" {
-			t.Errorf("resolve(acme) = %q, %v, %v, want acme-id", orgId, found, err)
+		if orgID, found, err := resolver.resolve(ctx, "acme"); err != nil || !found || orgID != "acme-id" {
+			t.Errorf("resolve(acme) = %q, %v, %v, want acme-id", orgID, found, err)
 		}
 		if _, found, err := resolver.resolve(ctx, "made-up"); err != nil || found {
 			t.Errorf("resolve(made-up) found = %v, err = %v, want not found", found, err)
@@ -300,15 +300,15 @@ func TestCORSOrgIdResolverRemembersUnknownHandles(t *testing.T) {
 // An organization stored after its handle was found unknown is resolved once it is forgotten.
 func TestCORSOrgIdResolverResolvesAForgottenHandle(t *testing.T) {
 	lookup := &countingOrgLookup{reads: map[string]int{}, orgs: map[string]string{}}
-	resolver := newTestCORSOrgIdResolver(t, lookup)
+	resolver := newTestCORSOrgIDResolver(t, lookup)
 	ctx := context.Background()
 
 	_, _, _ = resolver.resolve(ctx, "acme")
 	lookup.orgs["acme"] = "acme-id"
 	resolver.forget("acme")
 
-	if orgId, found, err := resolver.resolve(ctx, "acme"); err != nil || !found || orgId != "acme-id" {
-		t.Errorf("resolve(acme) = %q, %v, %v, want acme-id", orgId, found, err)
+	if orgID, found, err := resolver.resolve(ctx, "acme"); err != nil || !found || orgID != "acme-id" {
+		t.Errorf("resolve(acme) = %q, %v, %v, want acme-id", orgID, found, err)
 	}
 }
 
@@ -316,14 +316,14 @@ func TestCORSOrgIdResolverResolvesAForgottenHandle(t *testing.T) {
 func TestCORSOrgIdResolverDoesNotRememberAFailedLookup(t *testing.T) {
 	lookup := &countingOrgLookup{reads: map[string]int{}, orgs: map[string]string{"acme": "acme-id"},
 		err: fmt.Errorf("database unavailable")}
-	resolver := newTestCORSOrgIdResolver(t, lookup)
+	resolver := newTestCORSOrgIDResolver(t, lookup)
 	ctx := context.Background()
 
 	if _, _, err := resolver.resolve(ctx, "acme"); err == nil {
 		t.Fatal("expected the error of the lookup")
 	}
 	lookup.err = nil
-	if orgId, found, err := resolver.resolve(ctx, "acme"); err != nil || !found || orgId != "acme-id" {
-		t.Errorf("resolve(acme) = %q, %v, %v, want acme-id once the database answers", orgId, found, err)
+	if orgID, found, err := resolver.resolve(ctx, "acme"); err != nil || !found || orgID != "acme-id" {
+		t.Errorf("resolve(acme) = %q, %v, %v, want acme-id once the database answers", orgID, found, err)
 	}
 }

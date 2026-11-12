@@ -32,9 +32,9 @@ func Test_UnificationRule(t *testing.T) {
 	t.Run("Pre-requisite: Add_schema_attribute", func(t *testing.T) {
 		schemaAttributes := []profileSchema.ProfileSchemaAttribute{
 			{
-				OrgId:         SuperTenantOrg.ID,
+				OrgID:         SuperTenantOrg.ID,
 				AttributeName: "identity_attributes.email",
-				AttributeId:   uuid.New().String(),
+				AttributeID:   uuid.New().String(),
 				ValueType:     constants.StringDataType,
 				MergeStrategy: "combine",
 				Mutability:    constants.MutabilityReadWrite,
@@ -48,8 +48,8 @@ func Test_UnificationRule(t *testing.T) {
 
 	rule := model.UnificationRule{
 		RuleName:     "Email based",
-		RuleId:       uuid.New().String(),
-		OrgId:        SuperTenantOrg.ID,
+		RuleID:       uuid.New().String(),
+		OrgID:        SuperTenantOrg.ID,
 		PropertyName: "identity_attributes.email",
 		Priority:     1,
 		IsActive:     true,
@@ -65,8 +65,8 @@ func Test_UnificationRule(t *testing.T) {
 	t.Run("Reject_complex_attribute_in_unification_rule", func(t *testing.T) {
 		//  Add a valid sub-attribute
 		subAttr := profileSchema.ProfileSchemaAttribute{
-			OrgId:         SuperTenantOrg.ID,
-			AttributeId:   uuid.New().String(),
+			OrgID:         SuperTenantOrg.ID,
+			AttributeID:   uuid.New().String(),
 			AttributeName: "traits.orders.payment.method",
 			ValueType:     constants.StringDataType,
 			MergeStrategy: "combine",
@@ -77,15 +77,15 @@ func Test_UnificationRule(t *testing.T) {
 
 		//  Add parent complex attribute referencing sub-attribute
 		parentAttr := profileSchema.ProfileSchemaAttribute{
-			OrgId:         SuperTenantOrg.ID,
-			AttributeId:   uuid.New().String(),
+			OrgID:         SuperTenantOrg.ID,
+			AttributeID:   uuid.New().String(),
 			AttributeName: "traits.orders.payment",
 			ValueType:     constants.ComplexDataType,
 			MergeStrategy: "combine",
 			Mutability:    constants.MutabilityReadWrite,
 			SubAttributes: []profileSchema.SubAttribute{
 				{
-					AttributeId:   subAttr.AttributeId,
+					AttributeID:   subAttr.AttributeID,
 					AttributeName: subAttr.AttributeName,
 				},
 			},
@@ -96,8 +96,8 @@ func Test_UnificationRule(t *testing.T) {
 		// Try creating a unification rule with that complex attribute
 		rule := model.UnificationRule{
 			RuleName:     "Payment based",
-			RuleId:       uuid.New().String(),
-			OrgId:        SuperTenantOrg.ID,
+			RuleID:       uuid.New().String(),
+			OrgID:        SuperTenantOrg.ID,
 			PropertyName: "traits.orders.payment",
 			Priority:     2,
 			IsActive:     true,
@@ -118,16 +118,16 @@ func Test_UnificationRule(t *testing.T) {
 
 	t.Run("Update_unification_rule", func(t *testing.T) {
 		rule.IsActive = false // reflect change in local object
-		err := unificationRuleService.PatchUnificationRule(context.Background(), rule.RuleId, SuperTenantOrg.ID, rule)
+		err := unificationRuleService.PatchUnificationRule(context.Background(), rule.RuleID, SuperTenantOrg.ID, rule)
 		require.NoError(t, err, "Failed to patch unification rule")
 
-		updated, err := unificationRuleService.GetUnificationRule(context.Background(), rule.RuleId, SuperTenantOrg.ID)
+		updated, err := unificationRuleService.GetUnificationRule(context.Background(), rule.RuleID, SuperTenantOrg.ID)
 		require.NoError(t, err, "Failed to fetch updated rule")
 		require.False(t, updated.IsActive, "Expected is_active to be false")
 	})
 
 	t.Run("Delete_unification_rule", func(t *testing.T) {
-		err := unificationRuleService.DeleteUnificationRule(context.Background(), rule.RuleId, SuperTenantOrg.ID)
+		err := unificationRuleService.DeleteUnificationRule(context.Background(), rule.RuleID, SuperTenantOrg.ID)
 		require.NoError(t, err, "Failed to delete unification rule")
 	})
 
@@ -136,7 +136,7 @@ func Test_UnificationRule(t *testing.T) {
 	t.Cleanup(func() {
 		rules, _ := unificationRuleService.GetUnificationRules(context.Background(), SuperTenantOrg.ID)
 		for _, r := range rules {
-			_ = unificationRuleService.DeleteUnificationRule(context.Background(), r.RuleId, SuperTenantOrg.ID)
+			_ = unificationRuleService.DeleteUnificationRule(context.Background(), r.RuleID, SuperTenantOrg.ID)
 		}
 		_ = profileSchemaService.DeleteProfileSchema(context.Background(), SuperTenantOrg.ID)
 		_ = profileSchemaService.DeleteProfileSchemaAttributesByScope(context.Background(), SuperTenantOrg.ID, constants.IdentityAttributes)

@@ -65,7 +65,7 @@ func evaluateRules(
 		deterministic := rule.UnificationMethod != constants.UnificationMethodFuzzy
 
 		eval := model.RuleEvaluation{
-			RuleID:            rule.RuleId,
+			RuleID:            rule.RuleID,
 			RuleName:          rule.RuleName,
 			PropertyName:      rule.PropertyName,
 			AttributeType:     rule.AttributeType,
@@ -376,7 +376,7 @@ func clampScore(score float64) float64 {
 // simply not consulted and every value is treated as ordinary — scoring degrades to the
 // same decisions minus the rarity demotion, never to a wrong one.
 type ScoringContext struct {
-	OrgId          string
+	OrgID          string
 	Thresholds     model.Thresholds
 	ValueFrequency func(orgId, attributeName, keyValue string) (int, error)
 }
@@ -393,7 +393,7 @@ func (ctx ScoringContext) isCommonValue(eval *model.RuleEvaluation) bool {
 		return false
 	}
 
-	count, err := ctx.ValueFrequency(ctx.OrgId, eval.PropertyName, key)
+	count, err := ctx.ValueFrequency(ctx.OrgID, eval.PropertyName, key)
 	if err != nil {
 		// A frequency we cannot read must not silently license an auto-merge, but it also
 		// must not block one — treat the value as ordinary and let the other gates decide.

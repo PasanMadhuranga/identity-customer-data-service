@@ -43,7 +43,7 @@ type UnificationRuleAPIRequest struct {
 // original kept following the table, and would leave an editor unable to tell a deliberate
 // choice from an inherited one.
 type UnificationRuleAPIResponse struct {
-	RuleId            string `json:"rule_id" bson:"rule_id" binding:"required"`
+	RuleID            string `json:"rule_id" bson:"rule_id" binding:"required"`
 	RuleName          string `json:"rule_name" bson:"rule_name" binding:"required"`
 	PropertyName      string `json:"property_name" bson:"property_name" binding:"required"`
 	Priority          int    `json:"priority" bson:"priority" binding:"required"`
@@ -59,7 +59,7 @@ type UnificationRuleAPIResponse struct {
 // the caller sets when the server exposes them.
 func ToAPIResponse(rule UnificationRule) UnificationRuleAPIResponse {
 	return UnificationRuleAPIResponse{
-		RuleId:            rule.RuleId,
+		RuleID:            rule.RuleID,
 		RuleName:          rule.RuleName,
 		PropertyName:      rule.PropertyName,
 		Priority:          rule.Priority,

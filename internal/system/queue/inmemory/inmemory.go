@@ -58,13 +58,13 @@ func (q *ProfileQueue) Enqueue(profile profileModel.Profile) error {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 	if q.closed {
-		return fmt.Errorf("inmemory: profile queue closed, dropping profile %s", profile.ProfileId)
+		return fmt.Errorf("inmemory: profile queue closed, dropping profile %s", profile.ProfileID)
 	}
 	select {
 	case q.ch <- profile:
 		return nil
 	default:
-		return fmt.Errorf("inmemory: profile queue full, dropping profile %s", profile.ProfileId)
+		return fmt.Errorf("inmemory: profile queue full, dropping profile %s", profile.ProfileID)
 	}
 }
 

@@ -69,7 +69,7 @@ func newHandlerEnv(t *testing.T) *handlerEnv {
 		"unification_rules:share_update")
 
 	handle := fmt.Sprintf("acme-%d", handlerOrgCounter.Add(1))
-	env := &handlerEnv{db: testDB.DB, handle: handle, orgID: setup.TestOrgId(handle), auth: auth,
+	env := &handlerEnv{db: testDB.DB, handle: handle, orgID: setup.TestOrgID(handle), auth: auth,
 		h: NewUnificationRulesHandler()}
 	setup.TestOrg(t, handle)
 	env.enableCDS(t)
@@ -89,7 +89,7 @@ func (e *handlerEnv) addAttribute(t *testing.T, name string) {
 	t.Helper()
 	require.NoError(t, schemaStore.AddProfileSchemaAttributesForScope(context.Background(),
 		[]schemaModel.ProfileSchemaAttribute{{
-			AttributeId:   "attr-" + name,
+			AttributeID:   "attr-" + name,
 			AttributeName: name,
 			Scope:         constants.Traits,
 			ValueType:     constants.StringDataType,
@@ -154,7 +154,7 @@ func TestAddUnificationRuleCreatesTheRule(t *testing.T) {
 	require.Equal(t, http.StatusCreated, recorder.Code, recorder.Body.String())
 	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
 	rule := decodeRule(t, recorder)
-	assert.NotEmpty(t, rule.RuleId)
+	assert.NotEmpty(t, rule.RuleID)
 	assert.Equal(t, "City", rule.RuleName)
 	assert.Equal(t, "traits.city", rule.PropertyName)
 	assert.Equal(t, constants.UnificationMethodDeterministic, rule.UnificationMethod)
@@ -215,7 +215,7 @@ func TestAddUnificationRuleRefusals(t *testing.T) {
 func TestUnificationRuleHandlersRequireAuthentication(t *testing.T) {
 	env := newHandlerEnv(t)
 	rule := env.addRule(t, "City", "traits.city", 1)
-	ids := map[string]string{"ruleId": rule.RuleId}
+	ids := map[string]string{"ruleId": rule.RuleID}
 
 	calls := []struct {
 		name    string
@@ -300,9 +300,9 @@ func TestGetUnificationRule(t *testing.T) {
 	rule := env.addRule(t, "City", "traits.city", 1)
 
 	found := env.call(t, env.h.GetUnificationRule, http.MethodGet, env.auth.ValidToken, "",
-		map[string]string{"ruleId": rule.RuleId})
+		map[string]string{"ruleId": rule.RuleID})
 	require.Equal(t, http.StatusOK, found.Code, found.Body.String())
-	assert.Equal(t, rule.RuleId, decodeRule(t, found).RuleId)
+	assert.Equal(t, rule.RuleID, decodeRule(t, found).RuleID)
 
 	missing := env.call(t, env.h.GetUnificationRule, http.MethodGet, env.auth.ValidToken, "",
 		map[string]string{"ruleId": "missing"})
@@ -316,7 +316,7 @@ func TestPatchUnificationRule(t *testing.T) {
 	env := newHandlerEnv(t)
 	rule := env.addRule(t, "City", "traits.city", 1)
 	env.addRule(t, "Phone", "traits.phone", 2)
-	ids := map[string]string{"ruleId": rule.RuleId}
+	ids := map[string]string{"ruleId": rule.RuleID}
 
 	t.Run("changes only the fields that are sent", func(t *testing.T) {
 		recorder := env.call(t, env.h.PatchUnificationRule, http.MethodPatch, env.auth.ValidToken,
@@ -361,7 +361,7 @@ func TestPatchUnificationRule(t *testing.T) {
 func TestDeleteUnificationRule(t *testing.T) {
 	env := newHandlerEnv(t)
 	rule := env.addRule(t, "City", "traits.city", 1)
-	ids := map[string]string{"ruleId": rule.RuleId}
+	ids := map[string]string{"ruleId": rule.RuleID}
 
 	first := env.call(t, env.h.DeleteUnificationRule, http.MethodDelete, env.auth.ValidToken, "", ids)
 	assert.Equal(t, http.StatusNoContent, first.Code)

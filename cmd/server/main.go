@@ -98,7 +98,7 @@ func main() {
 	}
 
 	// Create the adapter of the identity provider.
-	adapter, err := idp.NewAdapter(cdsConfig.IdP.Type)
+	adapter, err := idp.NewAdapter(cdsConfig.IDP.Type)
 	if err != nil {
 		log.GetLogger().Error("Invalid identity provider configuration.", log.Error(err))
 		os.Exit(1)
@@ -264,11 +264,11 @@ func newCORSMiddleware(handler http.Handler) http.Handler {
 	return cors.Middleware(handler,
 		func(ctx context.Context, org cors.Org) ([]string, error) {
 			// A handle CDS has no organization for has configured no origins.
-			orgId, found, err := adminConfigService.LookupCORSOrgId(ctx, org.Handle)
+			orgID, found, err := adminConfigService.LookupCORSOrgID(ctx, org.Handle)
 			if err != nil || !found {
 				return nil, err
 			}
-			return adminConfigService.GetCORSAllowedOrigins(ctx, orgId, org.SubOrgId)
+			return adminConfigService.GetCORSAllowedOrigins(ctx, orgID, org.SubOrgID)
 		},
 		func() []string { return config.GetCDSRuntime().Config.Auth.CORSAllowedOrigins },
 	)

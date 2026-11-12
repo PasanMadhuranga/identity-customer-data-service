@@ -34,7 +34,7 @@ func EncodeProfileCursor(c ProfileCursor) string {
 	raw := fmt.Sprintf(
 		"%s|%s|%s",
 		c.CreatedAt.UTC().Format(time.RFC3339Nano),
-		strings.TrimSpace(c.ProfileId),
+		strings.TrimSpace(c.ProfileID),
 		dir,
 	)
 	return base64.RawURLEncoding.EncodeToString([]byte(raw))
@@ -78,7 +78,7 @@ func DecodeProfileCursor(s string) (*ProfileCursor, error) {
 
 	return &ProfileCursor{
 		CreatedAt: t.UTC(),
-		ProfileId: id,
+		ProfileID: id,
 		Direction: dir,
 	}, nil
 }

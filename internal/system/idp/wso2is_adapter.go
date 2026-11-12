@@ -101,13 +101,13 @@ func (a *WSO2ISAdapter) GetPrimaryOrganization(_ context.Context, primaryHandle 
 	// handle, so it is a client error.
 	if !found {
 		return Organization{}, errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.ORGANIZATION_NOT_FOUND.Code,
-			Message:     errors2.ORGANIZATION_NOT_FOUND.Message,
+			Code:        errors2.OrganizationNotFound.Code,
+			Message:     errors2.OrganizationNotFound.Message,
 			Description: fmt.Sprintf("The identity provider does not know the organization '%s'.", primaryHandle),
 		}, http.StatusNotFound)
 	}
 	primary := toOrganization(org)
-	primary.ParentId = ""
+	primary.ParentID = ""
 	return primary, nil
 }
 
@@ -119,7 +119,7 @@ func (a *WSO2ISAdapter) ListDescendants(_ context.Context, primaryHandle string)
 	result := make([]Organization, 0, len(listed))
 	for _, item := range listed {
 		// The list API does not return the parent. Read each organization to get it.
-		org, found, err := a.client.GetOrganization(primaryHandle, item.Id)
+		org, found, err := a.client.GetOrganization(primaryHandle, item.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -131,8 +131,8 @@ func (a *WSO2ISAdapter) ListDescendants(_ context.Context, primaryHandle string)
 	return result, nil
 }
 
-func (a *WSO2ISAdapter) GetOrganization(_ context.Context, primaryHandle, orgId string) (*Organization, error) {
-	org, found, err := a.client.GetOrganization(primaryHandle, orgId)
+func (a *WSO2ISAdapter) GetOrganization(_ context.Context, primaryHandle, orgID string) (*Organization, error) {
+	org, found, err := a.client.GetOrganization(primaryHandle, orgID)
 	if err != nil || !found {
 		return nil, err
 	}
@@ -148,13 +148,13 @@ func (a *WSO2ISAdapter) IdentityAttributeSourceHandle(_ string, primaryHandle st
 
 func toOrganization(org client.ISOrganization) Organization {
 	result := Organization{
-		Id:     org.Id,
+		ID:     org.ID,
 		Handle: org.OrgHandle,
 		Name:   org.Name,
 		Status: org.Status,
 	}
 	if org.Parent != nil {
-		result.ParentId = org.Parent.Id
+		result.ParentID = org.Parent.ID
 	}
 	return result
 }

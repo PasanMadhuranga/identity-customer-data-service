@@ -62,7 +62,7 @@ func candidateWorkerDB(t *testing.T) *sql.DB {
 	require.NoError(t, err)
 	provider.SetTestDB(db.DB, database.TypeSQLite)
 	t.Cleanup(func() { provider.SetTestDB(nil, ""); db.Terminate() })
-	require.NoError(t, setup.InsertTestOrganization(db.DB, setup.TestOrgId("tenant"), "tenant"))
+	require.NoError(t, setup.InsertTestOrganization(db.DB, setup.TestOrgID("tenant"), "tenant"))
 	return db.DB
 }
 
@@ -115,13 +115,13 @@ func TestUnificationUserIDPrecedesRulesAndPreservesApplicationData(t *testing.T)
 	var parent, reason string
 	require.NoError(t, db.QueryRow(`SELECT reference_profile_id, reference_reason FROM profile_reference WHERE profile_id='incoming'`).Scan(&parent, &reason))
 	require.Equal(t, "user-match", parent)
-	require.Equal(t, constants.SystemUserIdMatchReason, reason)
+	require.Equal(t, constants.SystemUserIDMatchReason, reason)
 	apps, err := profileStore.FetchApplicationData(context.Background(), "user-match")
 	require.NoError(t, err)
 	require.Len(t, apps, 2)
 	data := map[string]interface{}{}
 	for _, app := range apps {
-		data[app.AppId] = app.AppSpecificData
+		data[app.AppID] = app.AppSpecificData
 	}
 	require.Equal(t, map[string]interface{}{"language": "en"}, data["existing-app"])
 	require.Equal(t, map[string]interface{}{"theme": "dark"}, data["new-app"])
@@ -148,7 +148,7 @@ func TestRuleMatchingIsDelegatedToIdentityResolution(t *testing.T) {
 
 	var delegated []string
 	RegisterFuzzyResolveFunc(func(_ context.Context, _ string, p profileModel.Profile) {
-		delegated = append(delegated, p.ProfileId)
+		delegated = append(delegated, p.ProfileID)
 	})
 
 	unifyProfiles(context.Background(), tenantOrg.ID, incoming)
@@ -201,11 +201,11 @@ func TestCandidateDiscoveryDoesNotRequireApplicationDataTable(t *testing.T) {
 	incoming := workerProfile(t, db, "incoming", "", `{"email":"b"}`, 0)
 	_, err := db.Exec(`DROP TABLE application_data`)
 	require.NoError(t, err)
-	_, err = profileStore.GetProfileWithOptions(context.Background(), incoming.ProfileId, tenantOrg.ID,
+	_, err = profileStore.GetProfileWithOptions(context.Background(), incoming.ProfileID, tenantOrg.ID,
 		profileStore.GetProfileOptions{IncludeApplicationData: false})
 	require.NoError(t, err)
 	id, err := profileStore.FindOldestReferenceProfileIDByAttributeValues(context.Background(), tenantOrg.ID,
-		"identity_attributes.email", []string{"a"}, incoming.ProfileId, incoming.UserId)
+		"identity_attributes.email", []string{"a"}, incoming.ProfileID, incoming.UserID)
 	require.NoError(t, err)
 	require.Equal(t, "master", id)
 	unifyProfiles(context.Background(), tenantOrg.ID, incoming)

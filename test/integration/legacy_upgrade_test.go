@@ -147,16 +147,16 @@ func Test_LegacyOrganisation_KeepsExactMatchMerging(t *testing.T) {
 			}
 
 			// Both inputs must now resolve to the surviving master.
-			for _, id := range []string{existing.ProfileId, incoming.ProfileId} {
-				if id == master.ProfileId {
+			for _, id := range []string{existing.ProfileID, incoming.ProfileID} {
+				if id == master.ProfileID {
 					continue
 				}
 				child, err := profileStore.GetProfile(context.Background(), id, ref.ID)
 				if err != nil || child == nil {
 					t.Fatalf("load %s: %v", id, err)
 				}
-				if child.ProfileStatus == nil || child.ProfileStatus.ReferenceProfileId != master.ProfileId {
-					t.Errorf("profile %s was not attached to master %s", id, master.ProfileId)
+				if child.ProfileStatus == nil || child.ProfileStatus.ReferenceProfileID != master.ProfileID {
+					t.Errorf("profile %s was not attached to master %s", id, master.ProfileID)
 				}
 			}
 		})
@@ -193,17 +193,17 @@ func Test_LegacyOrganisation_RulesAreIndexedOnWrite(t *testing.T) {
 	profile := insertBareProfile(t, org, "", map[string]interface{}{"email": "legacy@acme.com"})
 
 	workers.EnqueueProfileForProcessing(profile)
-	waitForBlockingKeys(t, org, "traits.email", profile.ProfileId)
+	waitForBlockingKeys(t, org, "traits.email", profile.ProfileID)
 }
 
 // waitForBlockingKeys polls for the asynchronous indexing to land.
 func waitForBlockingKeys(t *testing.T, org, attribute, profileID string) {
 	t.Helper()
 
-	orgId := setup.TestOrg(t, org).ID
+	orgID := setup.TestOrg(t, org).ID
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
-		ids, err := irStore.FindCandidateIDsByKeys(context.Background(), orgId, attribute,
+		ids, err := irStore.FindCandidateIDsByKeys(context.Background(), orgID, attribute,
 			[]string{"legacy@acme.com"}, "none", 100)
 		if err == nil {
 			for _, id := range ids {

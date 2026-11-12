@@ -28,6 +28,6 @@ type ApplicationsListResponse struct {
 type ApplicationItem struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
-	ClientId string `json:"clientId"`
+	ClientID string `json:"clientId"`
 	Issuer   string `json:"issuer"`
 }

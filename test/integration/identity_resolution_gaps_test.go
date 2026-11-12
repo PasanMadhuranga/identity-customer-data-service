@@ -51,9 +51,9 @@ func insertBareProfile(t *testing.T, org, userID string, traits map[string]inter
 	ref := setup.TestOrg(t, org)
 
 	profile := profileModel.Profile{
-		ProfileId:          uuid.New().String(),
-		UserId:             userID,
-		OrgId:              ref.ID,
+		ProfileID:          uuid.New().String(),
+		UserID:             userID,
+		OrgID:              ref.ID,
 		Traits:             traits,
 		IdentityAttributes: map[string]interface{}{},
 		CreatedAt:          time.Now().UTC(),
@@ -84,8 +84,8 @@ func Test_MergeMatchedProfiles_ReturnsSurvivingMaster(t *testing.T) {
 		if master == nil {
 			t.Fatal("expected a surviving master")
 		}
-		if master.ProfileId != existing.ProfileId {
-			t.Errorf("master = %s, want the permanent profile %s", master.ProfileId, existing.ProfileId)
+		if master.ProfileID != existing.ProfileID {
+			t.Errorf("master = %s, want the permanent profile %s", master.ProfileID, existing.ProfileID)
 		}
 	})
 
@@ -102,9 +102,9 @@ func Test_MergeMatchedProfiles_ReturnsSurvivingMaster(t *testing.T) {
 			t.Fatal("expected a surviving master")
 		}
 		// The profile passed in first is NOT the survivor here.
-		if master.ProfileId != incoming.ProfileId {
+		if master.ProfileID != incoming.ProfileID {
 			t.Errorf("master = %s, want the permanent incoming profile %s",
-				master.ProfileId, incoming.ProfileId)
+				master.ProfileID, incoming.ProfileID)
 		}
 	})
 
@@ -120,9 +120,9 @@ func Test_MergeMatchedProfiles_ReturnsSurvivingMaster(t *testing.T) {
 		if master == nil {
 			t.Fatal("expected a surviving master")
 		}
-		if master.ProfileId == existing.ProfileId || master.ProfileId == incoming.ProfileId {
+		if master.ProfileID == existing.ProfileID || master.ProfileID == incoming.ProfileID {
 			t.Errorf("master = %s, want a newly created neutral master distinct from both inputs",
-				master.ProfileId)
+				master.ProfileID)
 		}
 	})
 
@@ -139,7 +139,7 @@ func Test_MergeMatchedProfiles_ReturnsSurvivingMaster(t *testing.T) {
 			// A non-nil master here makes callers write an audit row for a merge that
 			// never happened.
 			t.Errorf("expected no master for two permanents with different user IDs, got %s",
-				master.ProfileId)
+				master.ProfileID)
 		}
 	})
 }
@@ -154,10 +154,10 @@ func Test_BlockingKeyLookup_IsScopedToOrg(t *testing.T) {
 
 	refA, refB := setup.TestOrg(t, orgA), setup.TestOrg(t, orgB)
 	key := []irModel.BlockingKey{{AttributeName: "traits.email", KeyValue: "shared@acme.com"}}
-	if err := irStore.UpsertBlockingKeys(context.Background(), profileA.ProfileId, refA.ID, key); err != nil {
+	if err := irStore.UpsertBlockingKeys(context.Background(), profileA.ProfileID, refA.ID, key); err != nil {
 		t.Fatalf("index profile A: %v", err)
 	}
-	if err := irStore.UpsertBlockingKeys(context.Background(), profileB.ProfileId, refB.ID, key); err != nil {
+	if err := irStore.UpsertBlockingKeys(context.Background(), profileB.ProfileID, refB.ID, key); err != nil {
 		t.Fatalf("index profile B: %v", err)
 	}
 
@@ -168,7 +168,7 @@ func Test_BlockingKeyLookup_IsScopedToOrg(t *testing.T) {
 	}
 
 	for _, id := range found {
-		if id == profileB.ProfileId {
+		if id == profileB.ProfileID {
 			t.Errorf("org %s lookup returned profile %s from org %s", orgA, id, orgB)
 		}
 	}
@@ -186,9 +186,9 @@ func Test_ResolveReviewTask_RejectsForeignOrg(t *testing.T) {
 
 	refA, refB := setup.TestOrg(t, orgA), setup.TestOrg(t, orgB)
 	task := irModel.ReviewTask{
-		OrgId:              refB.ID,
-		IncomingProfileID:  incoming.ProfileId,
-		CandidateProfileID: candidate.ProfileId,
+		OrgID:              refB.ID,
+		IncomingProfileID:  incoming.ProfileID,
+		CandidateProfileID: candidate.ProfileID,
 		MatchScore:         0.8,
 		Status:             constants.ReviewStatusPending,
 		ScoreBreakdown:     map[string]float64{"traits.name": 1.0},
@@ -219,9 +219,9 @@ func Test_ReviewTask_CanBeRecreatedAfterCancellation(t *testing.T) {
 
 	ref := setup.TestOrg(t, org)
 	task := irModel.ReviewTask{
-		OrgId:              ref.ID,
-		IncomingProfileID:  incoming.ProfileId,
-		CandidateProfileID: candidate.ProfileId,
+		OrgID:              ref.ID,
+		IncomingProfileID:  incoming.ProfileID,
+		CandidateProfileID: candidate.ProfileID,
 		MatchScore:         0.80,
 		Status:             constants.ReviewStatusPending,
 	}
@@ -265,10 +265,10 @@ func Test_BlockingKeys_RemovedWhenProfileDeleted(t *testing.T) {
 
 	ref := setup.TestOrg(t, org)
 	key := []irModel.BlockingKey{{AttributeName: "traits.email", KeyValue: "gone@acme.com"}}
-	if err := irStore.UpsertBlockingKeys(context.Background(), profile.ProfileId, ref.ID, key); err != nil {
+	if err := irStore.UpsertBlockingKeys(context.Background(), profile.ProfileID, ref.ID, key); err != nil {
 		t.Fatalf("index profile: %v", err)
 	}
-	if err := profileService.GetProfilesService().DeleteProfile(context.Background(), profile.ProfileId, ref.ID); err != nil {
+	if err := profileService.GetProfilesService().DeleteProfile(context.Background(), profile.ProfileID, ref.ID); err != nil {
 		t.Fatalf("delete profile: %v", err)
 	}
 
@@ -278,7 +278,7 @@ func Test_BlockingKeys_RemovedWhenProfileDeleted(t *testing.T) {
 		t.Fatalf("candidate lookup: %v", err)
 	}
 	for _, id := range found {
-		if id == profile.ProfileId {
+		if id == profile.ProfileID {
 			t.Errorf("deleted profile %s is still a merge candidate", id)
 		}
 	}

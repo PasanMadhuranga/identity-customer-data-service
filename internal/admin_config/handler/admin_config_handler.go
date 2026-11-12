@@ -94,8 +94,8 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&config); err != nil {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-			Message:     errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+			Code:        errors.UpdateConfigBadRequest.Code,
+			Message:     errors.UpdateConfigBadRequest.Message,
 			Description: utils.HandleDecodeError(err, "admin configuration"),
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -111,7 +111,7 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	}
 
 	configToUpdate := model.AdminConfig{
-		OrgId:                      org.ID,
+		OrgID:                      org.ID,
 		InitialSchemaSyncDone:      existingConfig.InitialSchemaSyncDone,
 		CDSEnabled:                 existingConfig.CDSEnabled,
 		SystemApplications:         existingConfig.SystemApplications,

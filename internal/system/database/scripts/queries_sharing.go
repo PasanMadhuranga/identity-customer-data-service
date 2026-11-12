@@ -26,7 +26,7 @@ var InsertSharePolicy = newQuery("CDS-SHR-01",
 
 const sharePolicyColumns = `p.policy_id, p.resource_type, p.resource_id, p.owning_org_id, p.initiating_org_id`
 
-var GetSharePolicyById = newQuery("CDS-SHR-02",
+var GetSharePolicyByID = newQuery("CDS-SHR-02",
 	`SELECT `+sharePolicyColumns+` FROM resource_sharing_policy p WHERE p.policy_id = $1`)
 
 var GetSharePolicy = newQuery("CDS-SHR-03",
@@ -47,7 +47,7 @@ var DeleteSharePolicyTargets = newQuery("CDS-SHR-08",
 var DeleteSharePolicy = newQuery("CDS-SHR-09",
 	`DELETE FROM resource_sharing_policy WHERE policy_id = $1`)
 
-var GetSharePolicyIdsByResource = newQuery("CDS-SHR-10",
+var GetSharePolicyIDsByResource = newQuery("CDS-SHR-10",
 	`SELECT policy_id FROM resource_sharing_policy WHERE resource_type = $1 AND resource_id = $2`)
 
 // GetSharePoliciesByOwners returns the policies of the resource type $1 that the organizations

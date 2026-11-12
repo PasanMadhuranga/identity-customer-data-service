@@ -23,11 +23,11 @@ import (
 	"time"
 )
 
-const ApiBasePath = "/cds/api"
-const ProfileApiPath = "profiles"
-const UnificationRulesApiPath = "unification-rules"
-const ConsentApiPath = "consent"
-const ProfileSchemaApiPath = "profile-schema"
+const APIBasePath = "/cds/api"
+const ProfileAPIPath = "profiles"
+const UnificationRulesAPIPath = "unification-rules"
+const ConsentAPIPath = "consent"
+const ProfileSchemaAPIPath = "profile-schema"
 const IdentityServerDialectsPath = "/api/server/v1/claim-dialects"
 const Filter = "filter"
 const FuzzyFilter = "fuzzyFilter"
@@ -38,13 +38,13 @@ const SpaceSeparator = " "
 const SystemAppHeader = "SystemApp"
 const DefaultQueueSize = 1000
 const DefaultLimit = 50
-const CONSOLE_APP = "CONSOLE"
+const ConsoleApp = "CONSOLE"
 const AZPClaim = "azp"
 const SUBClaim = "sub"
-const ClientIdClaim = "client_id"
+const ClientIDClaim = "client_id"
 const ActiveClaim = "active"
 const OrgHandleClaim = "org_handle"
-const OrgIdClaim = "org_id"
+const OrgIDClaim = "org_id"
 const AudienceClaim = "aud"
 const ExpiryClaim = "exp"
 const FilterRegex = `^[a-zA-Z0-9._-]+$`
@@ -61,8 +61,8 @@ const TenantContextKey contextKey = "org_handle"
 // OrgBasePathContextKey holds the path of the organization of the request.
 const OrgBasePathContextKey contextKey = "org_base_path"
 
-// OrgIdContextKey holds the organization ID of a sub organization path.
-const OrgIdContextKey contextKey = "org_id"
+// OrgIDContextKey holds the organization ID of a sub organization path.
+const OrgIDContextKey contextKey = "org_id"
 
 // PrimaryOrgHandleContextKey holds the handle of the primary organization of the path.
 const PrimaryOrgHandleContextKey contextKey = "primary_org_handle"
@@ -184,9 +184,9 @@ var AllowedConsentAttributeScopes = map[string]bool{
 
 // Merge usecases
 const (
-	TempProfile_TempProfile_Merge = "TEMP_TEMP"
-	TempProfile_PermProfile_Merge = "TEMP_PERM"
-	PermProfile_PermProfile_Merge = "PERM_PERM"
+	TempProfileTempProfileMerge = "TEMP_TEMP"
+	TempProfilePermProfileMerge = "TEMP_PERM"
+	PermProfilePermProfileMerge = "PERM_PERM"
 )
 
 // Sync Profile usecases
@@ -325,7 +325,7 @@ const (
 )
 
 const (
-	SystemUserIdMatchReason = "system:user_id_match"
+	SystemUserIDMatchReason = "system:user_id_match"
 )
 
 const (

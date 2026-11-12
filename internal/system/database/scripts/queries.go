@@ -50,9 +50,9 @@ var GetProfileSchemaByOrg = newQuery("CDS-SCH-02",
        multi_valued, CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values
        FROM profile_schema WHERE org_id = $1`)
 
-// GetProfileSchemaAttributesByIds returns the attributes with the IDs. The %s is the IN list of
+// GetProfileSchemaAttributesByIDs returns the attributes with the IDs. The %s is the IN list of
 // attribute IDs.
-var GetProfileSchemaAttributesByIds = newQuery("CDS-SCH-16",
+var GetProfileSchemaAttributesByIDs = newQuery("CDS-SCH-16",
 	`SELECT attribute_id, attribute_name, scope, display_name, value_type, merge_strategy, mutability,
 	application_identifier, multi_valued, CAST(sub_attributes AS TEXT) AS sub_attributes,
 	CAST(canonical_values AS TEXT) AS canonical_values, org_id FROM profile_schema WHERE attribute_id IN (%s)`)
@@ -121,7 +121,7 @@ var UpdateProfileSchemaAttributesForSchema = newQuery("CDS-SCH-09",
 var DeleteProfileSchemaAttributeForScope = newQuery("CDS-SCH-10",
 	`DELETE FROM profile_schema WHERE org_id = $1 AND scope =  $2`)
 
-var GetProfileSchemaAttributeById = newQuery("CDS-SCH-11",
+var GetProfileSchemaAttributeByID = newQuery("CDS-SCH-11",
 	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued, sub_attributes::text,
   canonical_values::text, scope
 	          FROM profile_schema WHERE org_id = $1 AND attribute_id = $2`,
@@ -135,7 +135,7 @@ var FilterProfileSchemaAttributes = newQuery("CDS-SCH-12",
 	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued,
   CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values FROM profile_schema WHERE org_id = $1`)
 
-var DeleteProfileSchemaAttributeById = newQuery("CDS-SCH-13",
+var DeleteProfileSchemaAttributeByID = newQuery("CDS-SCH-13",
 	`DELETE FROM profile_schema WHERE org_id = $1 AND attribute_id = $2`)
 
 // DeleteStaleIdentityClaimsForProfileSchema removes the identity attributes the
@@ -154,8 +154,8 @@ var GetUnificationRules = newQuery("CDS-UNR-01",
 	 match_strength, mismatch_strength, created_at, updated_at
 FROM unification_rules WHERE org_id = $1`)
 
-// GetUnificationRulesByIds returns the rules with the IDs. The %s is the IN list of rule IDs.
-var GetUnificationRulesByIds = newQuery("CDS-UNR-06",
+// GetUnificationRulesByIDs returns the rules with the IDs. The %s is the IN list of rule IDs.
+var GetUnificationRulesByIDs = newQuery("CDS-UNR-06",
 	`SELECT rule_id, org_id, rule_name, property_name, property_id, priority, is_active, attribute_type,
 	 unification_method, match_strength, mismatch_strength, created_at, updated_at
 	 FROM unification_rules WHERE rule_id IN (%s)`)
@@ -190,7 +190,7 @@ var InsertProfileReference = newQuery("CDS-PRF-02",
 		VALUES ($1,$2,$3,$4, $5, $6)
 		ON CONFLICT (profile_id) DO NOTHING;`)
 
-var GetProfileById = newQuery("CDS-PRF-03",
+var GetProfileByID = newQuery("CDS-PRF-03",
 	`
 		SELECT p.profile_id, p.user_id, p.created_at, p.updated_at, p.org_id, p.list_profile, p.delete_profile, 
 		       p.traits, p.identity_attributes, r.profile_status, r.reference_profile_id, r.reference_reason
@@ -202,22 +202,22 @@ var GetProfileById = newQuery("CDS-PRF-03",
 			p.profile_id = $1
 			AND p.org_id = $2;`)
 
-var GetProfileConsentsByProfileId = newQuery("CDS-CON-01",
+var GetProfileConsentsByProfileID = newQuery("CDS-CON-01",
 	`SELECT profile_id, category_id, consent_status, consented_at FROM profile_consents WHERE profile_id = $1;`)
 
-var DeleteProfileConsentsByProfileId = newQuery("CDS-CON-02",
+var DeleteProfileConsentsByProfileID = newQuery("CDS-CON-02",
 	`DELETE FROM profile_consents WHERE profile_id = $1;`)
 
-var InsertProfileConsentsByProfileId = newQuery("CDS-CON-03",
+var InsertProfileConsentsByProfileID = newQuery("CDS-CON-03",
 	`INSERT INTO profile_consents (profile_id, category_id, consent_status, consented_at) VALUES ($1, $2, $3, $4)`)
 
-var GetAppDataByProfileId = newQuery("CDS-PRF-04",
+var GetAppDataByProfileID = newQuery("CDS-PRF-04",
 	`SELECT app_id, application_data FROM application_data WHERE profile_id = $1;`)
 
-var GetAppDataByProfileIds = newQuery("CDS-PRF-05",
+var GetAppDataByProfileIDs = newQuery("CDS-PRF-05",
 	`SELECT profile_id, app_id, application_data FROM application_data WHERE profile_id IN (%s);`)
 
-var GetAppDataByAppId = newQuery("CDS-PRF-06",
+var GetAppDataByAppID = newQuery("CDS-PRF-06",
 	`SELECT app_id, application_data FROM application_data WHERE profile_id = $1 AND app_id = $2;`)
 
 var UpdateProfile = newQuery("CDS-PRF-07",
@@ -247,7 +247,7 @@ var UpdateProfileReference = newQuery("CDS-PRF-09",
 			profile_status = $3
 		WHERE profile_id = $4`)
 
-var GetProfilesByOrgId = newQuery("CDS-PRF-10",
+var GetProfilesByOrgID = newQuery("CDS-PRF-10",
 	`
 		SELECT 
 			p.profile_id, 
@@ -315,7 +315,7 @@ var GetProfilesByOrgId = newQuery("CDS-PRF-10",
 			CASE WHEN $4 <> 'prev' THEN p.profile_id END DESC
 		LIMIT $5;`)
 
-var DeleteProfileByProfileId = newQuery("CDS-PRF-11",
+var DeleteProfileByProfileID = newQuery("CDS-PRF-11",
 	`DELETE FROM application_data WHERE profile_id = $1`)
 
 // DeleteProfile removes the profile row, after its application data is gone.
@@ -360,7 +360,7 @@ var FetchReferencedProfiles = newQuery("CDS-PRF-16",
 		FROM profile_reference 
 		WHERE reference_profile_id = $1;`)
 
-var GetProfileByUserId = newQuery("CDS-PRF-17",
+var GetProfileByUserID = newQuery("CDS-PRF-17",
 	`
 		SELECT p.profile_id, p.user_id, p.created_at, p.updated_at, p.org_id, p.list_profile, p.delete_profile, 
 		       p.traits, p.identity_attributes, r.profile_status, r.reference_profile_id, r.reference_reason
@@ -448,16 +448,16 @@ var UpsertDefaultIdentityDataCategory = newQuery("CDS-CON-05",
 var GetAllConsentCategories = newQuery("CDS-CON-06",
 	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories WHERE org_id = $1`)
 
-var GetConsentCategoryById = newQuery("CDS-CON-07",
+var GetConsentCategoryByID = newQuery("CDS-CON-07",
 	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories WHERE category_identifier = $1 AND org_id = $2`)
 
 var GetConsentCategoryByName = newQuery("CDS-CON-08",
 	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories WHERE category_name = $1 AND org_id = $2`)
 
-var GetConsentCategoryIdsByOrg = newQuery("CDS-CON-16",
+var GetConsentCategoryIDsByOrg = newQuery("CDS-CON-16",
 	`SELECT category_identifier FROM consent_categories WHERE org_id = $1`)
 
-var GetMandatoryConsentCategoryIdsByOrg = newQuery("CDS-CON-09",
+var GetMandatoryConsentCategoryIDsByOrg = newQuery("CDS-CON-09",
 	`SELECT category_identifier FROM consent_categories WHERE org_id = $1 AND is_mandatory = TRUE`)
 
 var UpdateConsentCategory = newQuery("CDS-CON-10",
@@ -471,39 +471,39 @@ var InsertConsentCategoryAttribute = newQuery("CDS-CON-12",
 				VALUES ($1, $2, $3, $4, $5)
 				ON CONFLICT (category_id, scope, attribute_name, application_identifier) DO NOTHING`)
 
-var GetConsentCategoryAttributesByCategoryId = newQuery("CDS-CON-13",
+var GetConsentCategoryAttributesByCategoryID = newQuery("CDS-CON-13",
 	`SELECT scope, attribute_name, attribute_id, application_identifier FROM consent_category_attributes WHERE category_id = $1`)
 
-var DeleteConsentCategoryAttributesByCategoryId = newQuery("CDS-CON-14",
+var DeleteConsentCategoryAttributesByCategoryID = newQuery("CDS-CON-14",
 	`DELETE FROM consent_category_attributes WHERE category_id = $1`)
 
-// GetConsentCategoryAttributesByCategoryIds fetches the attributes of several
+// GetConsentCategoryAttributesByCategoryIDs fetches the attributes of several
 // categories in one round trip. The %s is the IN list.
-var GetConsentCategoryAttributesByCategoryIds = newQuery("CDS-CON-15",
+var GetConsentCategoryAttributesByCategoryIDs = newQuery("CDS-CON-15",
 	`SELECT category_id, scope, attribute_name, attribute_id, application_identifier
 	 FROM consent_category_attributes WHERE category_id IN (%s)`)
 
 var InsertCookie = newQuery("CDS-CKI-01",
 	`INSERT INTO profile_cookies (cookie_id, profile_id, is_active) VALUES ($1, $2, $3)`)
 
-var GetCookieByCookieId = newQuery("CDS-CKI-02",
+var GetCookieByCookieID = newQuery("CDS-CKI-02",
 	`SELECT c.cookie_id, c.profile_id, c.is_active FROM profile_cookies c
 		JOIN profiles p ON p.profile_id = c.profile_id
 		WHERE c.cookie_id = $1 AND p.org_id = $2`)
 
-var GetCookieByProfileId = newQuery("CDS-CKI-03",
+var GetCookieByProfileID = newQuery("CDS-CKI-03",
 	`SELECT cookie_id, profile_id, is_active FROM profile_cookies WHERE profile_id = $1`)
 
-var UpdateCookieStatusByProfileId = newQuery("CDS-CKI-04",
+var UpdateCookieStatusByProfileID = newQuery("CDS-CKI-04",
 	`UPDATE profile_cookies SET is_active = $1 WHERE profile_id = $2`)
 
-var UpdateCookieStatusByCookieId = newQuery("CDS-CKI-05",
+var UpdateCookieStatusByCookieID = newQuery("CDS-CKI-05",
 	`UPDATE profile_cookies SET is_active = $1 WHERE cookie_id = $2`)
 
-var DeleteCookieById = newQuery("CDS-CKI-06",
+var DeleteCookieByID = newQuery("CDS-CKI-06",
 	`DELETE FROM profile_cookies WHERE cookie_id = $1`)
 
-var DeleteCookieByProfileId = newQuery("CDS-CKI-07",
+var DeleteCookieByProfileID = newQuery("CDS-CKI-07",
 	`DELETE FROM profile_cookies WHERE profile_id = $1`)
 
 var DeleteInactiveCookies = newQuery("CDS-CKI-08",

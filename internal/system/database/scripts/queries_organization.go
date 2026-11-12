@@ -34,7 +34,7 @@ var UpsertOrganization = newQuery("CDS-ORG-01",
 	parent_org_id = excluded.parent_org_id, primary_org_id = excluded.primary_org_id, status = excluded.status,
 	updated_at = excluded.updated_at`)
 
-var GetOrganizationById = newQuery("CDS-ORG-02",
+var GetOrganizationByID = newQuery("CDS-ORG-02",
 	`SELECT `+organizationColumns+` FROM organizations WHERE org_id = $1`)
 
 var GetOrganizationByHandle = newQuery("CDS-ORG-03",
@@ -64,8 +64,8 @@ var GetOrganizationChain = newQuery("CDS-ORG-07",
 	chainOf+`SELECT `+organizationColumnsOfO+` FROM organizations o JOIN chain c ON c.org_id = o.org_id
 	ORDER BY c.hops DESC`)
 
-// GetOrganizationsByIds returns the organizations with the IDs. The %s is the IN list.
-var GetOrganizationsByIds = newQuery("CDS-ORG-08",
+// GetOrganizationsByIDs returns the organizations with the IDs. The %s is the IN list.
+var GetOrganizationsByIDs = newQuery("CDS-ORG-08",
 	`SELECT `+organizationColumns+` FROM organizations WHERE org_id IN (%s)`)
 
 // GetOrganizationAncestors returns the ancestors of the organization $1, the parent first. hops is

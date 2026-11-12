@@ -31,8 +31,8 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/idp"
 )
 
-// TestOrgId is the org ID that the test identity provider gives a primary organization.
-func TestOrgId(handle string) string {
+// TestOrgID is the org ID that the test identity provider gives a primary organization.
+func TestOrgID(handle string) string {
 	return "org-id-" + handle
 }
 
@@ -62,7 +62,7 @@ type testIdentityProvider struct{}
 
 func (testIdentityProvider) GetPrimaryOrganization(_ context.Context, primaryHandle string) (idp.Organization,
 	error) {
-	return idp.Organization{Id: TestOrgId(primaryHandle), Handle: primaryHandle, Name: primaryHandle,
+	return idp.Organization{ID: TestOrgID(primaryHandle), Handle: primaryHandle, Name: primaryHandle,
 		Status: orgModel.StatusActive}, nil
 }
 
@@ -92,18 +92,18 @@ func ensureTestOrg(ctx context.Context, handle string) (orgModel.Ref, error) {
 	if len(results) > 0 {
 		return orgModel.Ref{ID: rows.String(results[0], "org_id"), Handle: handle}, nil
 	}
-	orgId := TestOrgId(handle)
-	if _, err := dbClient.ExecuteQueryContext(ctx, scripts.UpsertOrganization, orgId, handle, handle, nil, orgId,
+	orgID := TestOrgID(handle)
+	if _, err := dbClient.ExecuteQueryContext(ctx, scripts.UpsertOrganization, orgID, handle, handle, nil, orgID,
 		orgModel.StatusActive, time.Now().UTC()); err != nil {
 		return orgModel.Ref{}, err
 	}
-	return orgModel.Ref{ID: orgId, Handle: handle}, nil
+	return orgModel.Ref{ID: orgID, Handle: handle}, nil
 }
 
 // InsertTestOrganization stores a primary organization with the ID and the handle, for a test that
 // writes rows keyed by org ID itself. It does nothing when the organization is stored.
-func InsertTestOrganization(db *sql.DB, orgId, handle string) error {
+func InsertTestOrganization(db *sql.DB, orgID, handle string) error {
 	_, err := db.Exec(`INSERT INTO organizations (org_id, org_handle, primary_org_id, status)
-		VALUES ($1, $2, $1, 'ACTIVE') ON CONFLICT DO NOTHING`, orgId, handle)
+		VALUES ($1, $2, $1, 'ACTIVE') ON CONFLICT DO NOTHING`, orgID, handle)
 	return err
 }

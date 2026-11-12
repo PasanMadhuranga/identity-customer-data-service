@@ -41,15 +41,15 @@ func DefaultConfig() Config {
 	return Config{
 		ProfileUnificationMode: []ProfileUnificationMode{
 			{
-				MergeType: constants.TempProfile_TempProfile_Merge,
+				MergeType: constants.TempProfileTempProfileMerge,
 				Rule:      constants.MergeOnTrigger,
 			},
 			{
-				MergeType: constants.PermProfile_PermProfile_Merge,
+				MergeType: constants.PermProfilePermProfileMerge,
 				Rule:      constants.MergeOnTrigger,
 			},
 			{
-				MergeType: constants.TempProfile_PermProfile_Merge,
+				MergeType: constants.TempProfilePermProfileMerge,
 				Rule:      constants.MergeOnTrigger,
 			},
 		},

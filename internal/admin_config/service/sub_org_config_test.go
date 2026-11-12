@@ -55,7 +55,7 @@ func TestGetAdminConfigReturnsTheIdentityResolutionSettingsOfThePrimaryOrganizat
 	}
 	ctx := context.Background()
 	primaryConfig := model.AdminConfig{
-		OrgId:                      "primary",
+		OrgID:                      "primary",
 		CDSEnabled:                 true,
 		SystemApplications:         []string{},
 		AutoMergeEnabled:           false,

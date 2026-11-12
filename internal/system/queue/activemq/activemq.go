@@ -386,21 +386,21 @@ func NewProfileQueue(addr, username, password, destination string, tlsCfg config
 func (q *ProfileQueue) Enqueue(profile profileModel.Profile) error {
 	data, err := json.Marshal(profile)
 	if err != nil {
-		return fmt.Errorf("activemq: failed to marshal profile %s: %w", profile.ProfileId, err)
+		return fmt.Errorf("activemq: failed to marshal profile %s: %w", profile.ProfileID, err)
 	}
 
 	if err := q.mc.getConn().Send(q.destination, contentTypeJSON, data); err != nil {
 		log.GetLogger().Error(fmt.Sprintf(
 			"activemq: send failed for profile %s, will reconnect and retry: %v",
-			profile.ProfileId, err))
+			profile.ProfileID, err))
 
 		if reconnErr := q.mc.reconnectWithBackoff("profile enqueue", 1); reconnErr != nil {
-			return fmt.Errorf("activemq: send failed for profile %s: %w", profile.ProfileId, reconnErr)
+			return fmt.Errorf("activemq: send failed for profile %s: %w", profile.ProfileID, reconnErr)
 		}
 
 		// Single retry after reconnect.
 		if retryErr := q.mc.getConn().Send(q.destination, contentTypeJSON, data); retryErr != nil {
-			return fmt.Errorf("activemq: retry send failed for profile %s: %w", profile.ProfileId, retryErr)
+			return fmt.Errorf("activemq: retry send failed for profile %s: %w", profile.ProfileID, retryErr)
 		}
 	}
 	return nil

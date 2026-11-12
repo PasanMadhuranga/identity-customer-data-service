@@ -76,7 +76,12 @@ func Test_ConsentFilter(t *testing.T) {
 				Mutability:    constants.MutabilityReadWrite,
 			},
 		}
-		_, err := schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), identityAttrs, constants.IdentityAttributes, org.ID)
+		_, err := schemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			identityAttrs,
+			constants.IdentityAttributes,
+			org.ID,
+		)
 		require.NoError(t, err)
 
 		traitAttrs := []profileSchemaModel.ProfileSchemaAttribute{
@@ -90,7 +95,12 @@ func Test_ConsentFilter(t *testing.T) {
 				Mutability:    constants.MutabilityReadWrite,
 			},
 		}
-		_, err = schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), traitAttrs, constants.Traits, org.ID)
+		_, err = schemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			traitAttrs,
+			constants.Traits,
+			org.ID,
+		)
 		require.NoError(t, err)
 	})
 
@@ -148,7 +158,13 @@ func Test_ConsentFilter(t *testing.T) {
 		profile, err := profileSvc.GetProfile(context.Background(), profileID, org.ID)
 		require.NoError(t, err)
 
-		filtered, err := profileService.FilterProfileByConsent(context.Background(), *profile, profileID, org.ID, []string{marketingCategoryID})
+		filtered, err := profileService.FilterProfileByConsent(
+			context.Background(),
+			*profile,
+			profileID,
+			org.ID,
+			[]string{marketingCategoryID},
+		)
 		require.NoError(t, err)
 
 		assert.NotEmpty(t, filtered.IdentityAttributes)
@@ -164,7 +180,13 @@ func Test_ConsentFilter(t *testing.T) {
 		profile, err := profileSvc.GetProfile(context.Background(), profileID, org.ID)
 		require.NoError(t, err)
 
-		filtered, err := profileService.FilterProfileByConsent(context.Background(), *profile, profileID, org.ID, []string{marketingCategoryID})
+		filtered, err := profileService.FilterProfileByConsent(
+			context.Background(),
+			*profile,
+			profileID,
+			org.ID,
+			[]string{marketingCategoryID},
+		)
 		require.NoError(t, err)
 
 		assert.Contains(t, filtered.IdentityAttributes, "email")

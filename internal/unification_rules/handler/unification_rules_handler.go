@@ -127,20 +127,28 @@ func (urh *UnificationRulesHandler) AddUnificationRule(w http.ResponseWriter, r 
 	// Validate AttributeType.
 	if !constants.AllowedAttributeTypes[ruleInRequest.AttributeType] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BadRequest.Code,
-			Message:     errors2.BadRequest.Message,
-			Description: fmt.Sprintf("Invalid attribute_type: '%s'. Allowed values: PRIMITIVE_EXACT, FUZZY_STRING, NAME, EMAIL, PHONE, LOCATION, DATE, UNIQUE_ID.", ruleInRequest.AttributeType),
+			Code:    errors2.BadRequest.Code,
+			Message: errors2.BadRequest.Message,
+			Description: fmt.Sprintf(
+				"Invalid attribute_type: '%s'. Allowed values: PRIMITIVE_EXACT, FUZZY_STRING, NAME, EMAIL, PHONE, "+
+					"LOCATION, DATE, UNIQUE_ID.",
+				ruleInRequest.AttributeType,
+			),
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
 	}
 
 	// Validate UnificationMethod.
-	if ruleInRequest.UnificationMethod != constants.UnificationMethodFuzzy && ruleInRequest.UnificationMethod != constants.UnificationMethodDeterministic {
+	if ruleInRequest.UnificationMethod != constants.UnificationMethodFuzzy &&
+		ruleInRequest.UnificationMethod != constants.UnificationMethodDeterministic {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BadRequest.Code,
-			Message:     errors2.BadRequest.Message,
-			Description: fmt.Sprintf("Invalid unification_method: '%s'. Allowed values: fuzzy, deterministic.", ruleInRequest.UnificationMethod),
+			Code:    errors2.BadRequest.Code,
+			Message: errors2.BadRequest.Message,
+			Description: fmt.Sprintf(
+				"Invalid unification_method: '%s'. Allowed values: fuzzy, deterministic.",
+				ruleInRequest.UnificationMethod,
+			),
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
@@ -152,11 +160,15 @@ func (urh *UnificationRulesHandler) AddUnificationRule(w http.ResponseWriter, r 
 	}
 
 	// Reject fuzzy for attribute types that only support exact matching.
-	if ruleInRequest.UnificationMethod == constants.UnificationMethodFuzzy && !constants.FuzzyCapableAttributeTypes[ruleInRequest.AttributeType] {
+	if ruleInRequest.UnificationMethod == constants.UnificationMethodFuzzy &&
+		!constants.FuzzyCapableAttributeTypes[ruleInRequest.AttributeType] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BadRequest.Code,
-			Message:     errors2.BadRequest.Message,
-			Description: fmt.Sprintf("Attribute type '%s' does not support fuzzy matching. Use 'deterministic' instead.", ruleInRequest.AttributeType),
+			Code:    errors2.BadRequest.Code,
+			Message: errors2.BadRequest.Message,
+			Description: fmt.Sprintf(
+				"Attribute type '%s' does not support fuzzy matching. Use 'deterministic' instead.",
+				ruleInRequest.AttributeType,
+			),
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
@@ -362,9 +374,13 @@ func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, 
 	if ruleUpdateRequest.AttributeType != nil {
 		if !constants.AllowedAttributeTypes[*ruleUpdateRequest.AttributeType] {
 			clientError := errors2.NewClientError(errors2.ErrorMessage{
-				Code:        errors2.BadRequest.Code,
-				Message:     errors2.BadRequest.Message,
-				Description: fmt.Sprintf("Invalid attribute_type: '%s'. Allowed values: PRIMITIVE_EXACT, FUZZY_STRING, NAME, EMAIL, PHONE, LOCATION, DATE, UNIQUE_ID.", *ruleUpdateRequest.AttributeType),
+				Code:    errors2.BadRequest.Code,
+				Message: errors2.BadRequest.Message,
+				Description: fmt.Sprintf(
+					"Invalid attribute_type: '%s'. Allowed values: PRIMITIVE_EXACT, FUZZY_STRING, NAME, EMAIL, PHONE, "+
+						"LOCATION, DATE, UNIQUE_ID.",
+					*ruleUpdateRequest.AttributeType,
+				),
 			}, http.StatusBadRequest)
 			utils.WriteErrorResponse(w, clientError)
 			return
@@ -373,11 +389,15 @@ func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, 
 	}
 
 	if ruleUpdateRequest.UnificationMethod != nil {
-		if *ruleUpdateRequest.UnificationMethod != constants.UnificationMethodFuzzy && *ruleUpdateRequest.UnificationMethod != constants.UnificationMethodDeterministic {
+		if *ruleUpdateRequest.UnificationMethod != constants.UnificationMethodFuzzy &&
+			*ruleUpdateRequest.UnificationMethod != constants.UnificationMethodDeterministic {
 			clientError := errors2.NewClientError(errors2.ErrorMessage{
-				Code:        errors2.BadRequest.Code,
-				Message:     errors2.BadRequest.Message,
-				Description: fmt.Sprintf("Invalid unification_method: '%s'. Allowed values: fuzzy, deterministic.", *ruleUpdateRequest.UnificationMethod),
+				Code:    errors2.BadRequest.Code,
+				Message: errors2.BadRequest.Message,
+				Description: fmt.Sprintf(
+					"Invalid unification_method: '%s'. Allowed values: fuzzy, deterministic.",
+					*ruleUpdateRequest.UnificationMethod,
+				),
 			}, http.StatusBadRequest)
 			utils.WriteErrorResponse(w, clientError)
 			return
@@ -391,11 +411,15 @@ func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, 
 	}
 
 	// Cross-validate: reject fuzzy for attribute types that only support exact matching.
-	if updatedRule.UnificationMethod == constants.UnificationMethodFuzzy && !constants.FuzzyCapableAttributeTypes[updatedRule.AttributeType] {
+	if updatedRule.UnificationMethod == constants.UnificationMethodFuzzy &&
+		!constants.FuzzyCapableAttributeTypes[updatedRule.AttributeType] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.BadRequest.Code,
-			Message:     errors2.BadRequest.Message,
-			Description: fmt.Sprintf("Attribute type '%s' does not support fuzzy matching. Use 'deterministic' instead.", updatedRule.AttributeType),
+			Code:    errors2.BadRequest.Code,
+			Message: errors2.BadRequest.Message,
+			Description: fmt.Sprintf(
+				"Attribute type '%s' does not support fuzzy matching. Use 'deterministic' instead.",
+				updatedRule.AttributeType,
+			),
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
@@ -435,7 +459,10 @@ func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, 
 		utils.SafeGo("unification rule index backfill", func() { worker.IndexNewAttribute(ctx, org.ID, *newRule) })
 	}
 	if wasActive && !nowActive {
-		utils.SafeGo("unification rule index removal", func() { worker.RemoveAttributeIndex(ctx, org.ID, newRule.PropertyName) })
+		utils.SafeGo(
+			"unification rule index removal",
+			func() { worker.RemoveAttributeIndex(ctx, org.ID, newRule.PropertyName) },
+		)
 	}
 
 	// Either of these changes the shape of the keys the rule writes, so what is already in
@@ -507,7 +534,10 @@ func (urh *UnificationRulesHandler) DeleteUnificationRule(w http.ResponseWriter,
 
 	// If the deleted rule was active, trigger cleanup of its blocking keys.
 	if rule != nil && rule.IsActive {
-		utils.SafeGo("unification rule index removal", func() { worker.RemoveAttributeIndex(ctx, org.ID, rule.PropertyName) })
+		utils.SafeGo(
+			"unification rule index removal",
+			func() { worker.RemoveAttributeIndex(ctx, org.ID, rule.PropertyName) },
+		)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -377,9 +377,17 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 		var fuzzyErr error
 
 		if hasDeterministic {
-			fuzzyResults, fuzzyErr = profilesService.GetProfilesHybrid(r.Context(), org.ID, fuzzyFilters, filters, threshold, limit)
+			fuzzyResults, fuzzyErr = profilesService.GetProfilesHybrid(
+				r.Context(),
+				org.ID,
+				fuzzyFilters,
+				filters,
+				threshold,
+				limit,
+			)
 		} else {
-			fuzzyResults, fuzzyErr = profilesService.GetProfilesWithFuzzyResolution(r.Context(), org.ID, fuzzyFilters, threshold, limit)
+			fuzzyResults, fuzzyErr = profilesService.GetProfilesWithFuzzyResolution(r.Context(), org.ID, fuzzyFilters,
+				threshold, limit)
 		}
 
 		if fuzzyErr != nil {
@@ -488,7 +496,10 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 	utils.RespondJSON(w, http.StatusOK, resp, constants.ProfileResource)
 }
 
-func buildProfileListResponse(profiles []model.ProfileResponse, requestedAttrs map[string][]string) []model.ProfileListResponse {
+func buildProfileListResponse(
+	profiles []model.ProfileResponse,
+	requestedAttrs map[string][]string,
+) []model.ProfileListResponse {
 	result := make([]model.ProfileListResponse, 0, len(profiles))
 
 	for _, profile := range profiles {
@@ -665,7 +676,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profileResponse.AnonymousProfileTracker = cookie.CookieID
+	profileResponse.AnonymousTracker = cookie.CookieID
 
 	// Construct Location header for created resource
 	serverURL := config.GetCDSRuntime().Config.ServerURL
@@ -702,7 +713,7 @@ func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Re
 	}
 
 	_ = setProfileCookie(w, cookieObj.CookieID, r)
-	profileResponse.AnonymousProfileTracker = cookieObj.CookieID
+	profileResponse.AnonymousTracker = cookieObj.CookieID
 	utils.RespondJSON(w, http.StatusOK, profileResponse, constants.ProfileResource)
 	return true
 }
@@ -1150,14 +1161,18 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 
 	if profileSync.Event == constants.AddUserEvent {
 		if profileSync.ProfileCookie != "" && profileSync.UserID != "" {
-			logger.Debug("Syncing profile for user id: " + profileSync.UserID + " with profile cookie: " + profileSync.ProfileCookie)
+			logger.Debug(
+				"Syncing profile for user id: " + profileSync.UserID +
+					" with profile cookie: " + profileSync.ProfileCookie,
+			)
 			cookieObj, err := profilesService.GetProfileCookieByID(ctx, profileSync.ProfileCookie, org.ID)
 			if err == nil && cookieObj != nil && cookieObj.IsActive {
 				profileID = cookieObj.ProfileID
 				logger.Debug("Found active profile cookie with profile id: " + profileID)
 			}
 
-			// This scenario is when the user anonymously tried and then trying to signup or login. So profile with profile id exists
+			// This scenario is when the user anonymously tried and then trying to signup or login. So profile with
+			// profile id exists
 			existingProfile, err = profilesService.GetProfile(ctx, profileID, org.ID)
 			if err != nil {
 				utils.HandleError(writer, err)
@@ -1679,7 +1694,10 @@ func parseFilterStrings(raw []string) []string {
 
 // buildFuzzyResponseItems converts a slice of FuzzyMatchResult into ProfileListResponse
 // items, applying requestedAttrs field filtering if specified.
-func buildFuzzyResponseItems(fuzzyResults []model.FuzzyMatchResult, requestedAttrs map[string][]string) []model.ProfileListResponse {
+func buildFuzzyResponseItems(
+	fuzzyResults []model.FuzzyMatchResult,
+	requestedAttrs map[string][]string,
+) []model.ProfileListResponse {
 	items := make([]model.ProfileListResponse, 0, len(fuzzyResults))
 	for _, fr := range fuzzyResults {
 		score := fr.MatchScore

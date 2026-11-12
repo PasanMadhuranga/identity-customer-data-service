@@ -132,7 +132,8 @@ func Test_initializedSchemaAcceptsWrites(t *testing.T) {
 	// created_at and updated_at have defaults, so they must be readable as times.
 	var createdAt, updatedAt string
 	if err := db.QueryRow(
-		`SELECT created_at, updated_at FROM profiles WHERE profile_id = 'p1'`).Scan(&createdAt, &updatedAt); err != nil {
+		`SELECT created_at, updated_at FROM profiles WHERE profile_id = 'p1'`,
+	).Scan(&createdAt, &updatedAt); err != nil {
 		t.Fatal(err)
 	}
 	if createdAt == "" || updatedAt == "" {

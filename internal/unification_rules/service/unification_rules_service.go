@@ -122,7 +122,8 @@ func (urs *UnificationRuleService) AddUnificationRule(ctx context.Context,
 		return errors2.NewClientError(errors2.ErrorMessage{
 			Code:    errors2.AddUnificationRule.Code,
 			Message: errors2.AddUnificationRule.Message,
-			Description: "Unification rule with property " + rule.PropertyName + " is not allowed as it is a complex data type. " +
+			Description: "Unification rule with property " + rule.PropertyName +
+				" is not allowed as it is a complex data type. " +
 				"Choose the sub-attribute instead.",
 		}, http.StatusBadRequest)
 	}

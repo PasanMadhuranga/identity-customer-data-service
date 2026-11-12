@@ -248,7 +248,8 @@ func TestCORSOriginsCacheDoesNotCacheAFailedRead(t *testing.T) {
 		t.Fatal("expected the error of the read")
 	}
 	loader.err = nil
-	if got, err := origins.get(ctx, "acme-id"); err != nil || !reflect.DeepEqual(got, []string{"https://app.acme.com"}) {
+	if got, err := origins.get(ctx, "acme-id"); err != nil ||
+		!reflect.DeepEqual(got, []string{"https://app.acme.com"}) {
 		t.Errorf("origins of acme = %v, %v, want those read once the database answers", got, err)
 	}
 }

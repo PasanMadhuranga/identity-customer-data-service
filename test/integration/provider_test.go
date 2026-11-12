@@ -45,7 +45,8 @@ const providerPoolLimit = 3
 
 // useProductionProvider points the runtime at the test container and takes the
 // test override away, so the DSN, the pool settings, the check before the
-// handle is published, the reuse of one pool and the shutdown all run. The rest of the suite installs the container's own handle with SetTestDB
+// handle is published, the reuse of one pool and the shutdown all run. The rest of the suite installs the container's
+// own handle with SetTestDB
 // and bypasses them.
 func useProductionProvider(t *testing.T) {
 	t.Helper()

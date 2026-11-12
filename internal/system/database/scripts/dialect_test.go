@@ -141,7 +141,9 @@ func Test_JSONEqCondition(t *testing.T) {
 
 	t.Run("an invalid key is rejected", func(t *testing.T) {
 		for _, dbType := range []string{database.TypeSQLite, database.TypePostgres} {
-			if _, _, err := JSONEqCondition(dbType, "p.traits", []string{`e"; DROP TABLE profiles; --`}, "x", 1); err == nil {
+			if _, _, err := JSONEqCondition(
+				dbType, "p.traits", []string{`e"; DROP TABLE profiles; --`}, "x", 1,
+			); err == nil {
 				t.Errorf("expected an error for %s", dbType)
 			}
 		}

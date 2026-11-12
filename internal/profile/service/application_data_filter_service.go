@@ -48,7 +48,10 @@ func FilterApplicationData(
 	return filterForRegularApp(appData, callerAppID)
 }
 
-func filterForSystemApp(appData map[string]map[string]interface{}, requestedAppIDs []string) map[string]map[string]interface{} {
+func filterForSystemApp(
+	appData map[string]map[string]interface{},
+	requestedAppIDs []string,
+) map[string]map[string]interface{} {
 	if len(requestedAppIDs) == 0 {
 		return appData
 	}
@@ -69,7 +72,10 @@ func filterForSystemApp(appData map[string]map[string]interface{}, requestedAppI
 	return filtered
 }
 
-func filterForRegularApp(appData map[string]map[string]interface{}, callerAppID string) map[string]map[string]interface{} {
+func filterForRegularApp(
+	appData map[string]map[string]interface{},
+	callerAppID string,
+) map[string]map[string]interface{} {
 	filtered := make(map[string]map[string]interface{})
 
 	if callerAppID != "" {

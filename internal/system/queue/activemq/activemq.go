@@ -442,7 +442,8 @@ func (q *ProfileQueue) Start(handler func(profileModel.Profile)) error {
 				// connection instead of reconnecting again.
 				if subGen != currentGen {
 					log.GetLogger().Info(
-						"activemq: profile queue subscription closed on retired connection, re-subscribing on current connection",
+						"activemq: profile queue subscription closed on retired connection, " +
+							"re-subscribing on current connection",
 					)
 					newSub, newGen, err := q.mc.subscribeCurrent(q.destination)
 					if err != nil {
@@ -518,7 +519,10 @@ type SchemaSyncQueue struct {
 }
 
 // NewSchemaSyncQueue connects to the broker and returns a SchemaSyncQueue that sends to the destination.
-func NewSchemaSyncQueue(addr, username, password, destination string, tlsCfg config.TLSConfig) (*SchemaSyncQueue, error) {
+func NewSchemaSyncQueue(
+	addr, username, password, destination string,
+	tlsCfg config.TLSConfig,
+) (*SchemaSyncQueue, error) {
 	mc, err := newManagedConn(addr, username, password, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("activemq: failed to connect for schema sync queue: %w", err)
@@ -572,7 +576,8 @@ func (q *SchemaSyncQueue) Start(handler func(schemaModel.ProfileSchemaSync)) err
 
 				if subGen != currentGen {
 					log.GetLogger().Info(
-						"activemq: schema sync subscription closed on retired connection, re-subscribing on current connection",
+						"activemq: schema sync subscription closed on retired connection, " +
+							"re-subscribing on current connection",
 					)
 					newSub, newGen, err := q.mc.subscribeCurrent(q.destination)
 					if err != nil {

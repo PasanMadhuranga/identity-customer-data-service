@@ -39,7 +39,11 @@ import (
 type ConsentCategoryServiceInterface interface {
 	GetAllConsentCategories(ctx context.Context, orgID string) ([]model.ConsentCategory, error)
 	GetConsentCategory(ctx context.Context, id string, orgID string) (*model.ConsentCategory, error)
-	AddConsentCategory(ctx context.Context, orgID string, category model.ConsentCategory) (*model.ConsentCategory, error)
+	AddConsentCategory(
+		ctx context.Context,
+		orgID string,
+		category model.ConsentCategory,
+	) (*model.ConsentCategory, error)
 	UpdateConsentCategory(ctx context.Context, orgID string, category model.ConsentCategory) error
 	DeleteConsentCategory(ctx context.Context, id string, orgID string) error
 	SeedDefaultConsentCategory(ctx context.Context, orgID string) error
@@ -68,7 +72,11 @@ func (cs *ConsentCategoryService) GetAllConsentCategories(ctx context.Context,
 }
 
 // GetConsentCategory retrieves a category by ID.
-func (cs *ConsentCategoryService) GetConsentCategory(ctx context.Context, id string, orgID string) (*model.ConsentCategory, error) {
+func (cs *ConsentCategoryService) GetConsentCategory(
+	ctx context.Context,
+	id string,
+	orgID string,
+) (*model.ConsentCategory, error) {
 	consentCat, err := store.GetConsentCategoryByID(ctx, id, orgID)
 	if err != nil {
 		return nil, err
@@ -181,16 +189,25 @@ func resolveAttributeScopes(ctx context.Context,
 		if attr.Scope == constants.ApplicationData {
 			if attr.ApplicationIdentifier == "" {
 				return nil, errors2.NewClientError(errors2.ErrorMessage{
-					Code:        errors2.ConsentCatValidation.Code,
-					Message:     errors2.ConsentCatValidation.Message,
-					Description: fmt.Sprintf("application_identifier is required for applicationData attribute '%s'.", attr.AttributeName),
+					Code:    errors2.ConsentCatValidation.Code,
+					Message: errors2.ConsentCatValidation.Message,
+					Description: fmt.Sprintf(
+						"application_identifier is required for applicationData attribute '%s'.",
+						attr.AttributeName,
+					),
 				}, http.StatusBadRequest)
 			}
 			if schemaAttr.ApplicationIdentifier != attr.ApplicationIdentifier {
 				return nil, errors2.NewClientError(errors2.ErrorMessage{
-					Code:        errors2.ConsentCatValidation.Code,
-					Message:     errors2.ConsentCatValidation.Message,
-					Description: fmt.Sprintf("application_identifier '%s' does not match the application_identifier '%s' registered in the schema for attribute '%s'.", attr.ApplicationIdentifier, schemaAttr.ApplicationIdentifier, attr.AttributeName),
+					Code:    errors2.ConsentCatValidation.Code,
+					Message: errors2.ConsentCatValidation.Message,
+					Description: fmt.Sprintf(
+						"application_identifier '%s' does not match the application_identifier '%s' "+
+							"registered in the schema for attribute '%s'.",
+						attr.ApplicationIdentifier,
+						schemaAttr.ApplicationIdentifier,
+						attr.AttributeName,
+					),
 				}, http.StatusBadRequest)
 			}
 		}
@@ -215,7 +232,11 @@ func inferScope(attributeName string) string {
 }
 
 // UpdateConsentCategory updates an existing category.
-func (cs *ConsentCategoryService) UpdateConsentCategory(ctx context.Context, orgID string, category model.ConsentCategory) error {
+func (cs *ConsentCategoryService) UpdateConsentCategory(
+	ctx context.Context,
+	orgID string,
+	category model.ConsentCategory,
+) error {
 	if err := suborg.RejectWrite(ctx, orgID); err != nil {
 		return err
 	}

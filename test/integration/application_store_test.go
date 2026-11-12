@@ -107,7 +107,13 @@ func Test_ApplicationStore(t *testing.T) {
 		samlB := "saml-2222-e8bf-4d92-9545-dddddddddddd"
 
 		// SAML-only apps have no clientId; two of them in the same org must both persist without colliding.
-		require.NoError(t, appStore.UpsertApplication(context.Background(), org.ID, appModel.Application{AppID: samlA, OrgID: org.ID}))
-		require.NoError(t, appStore.UpsertApplication(context.Background(), org.ID, appModel.Application{AppID: samlB, OrgID: org.ID}))
+		require.NoError(
+			t,
+			appStore.UpsertApplication(context.Background(), org.ID, appModel.Application{AppID: samlA, OrgID: org.ID}),
+		)
+		require.NoError(
+			t,
+			appStore.UpsertApplication(context.Background(), org.ID, appModel.Application{AppID: samlB, OrgID: org.ID}),
+		)
 	})
 }

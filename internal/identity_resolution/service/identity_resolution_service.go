@@ -58,7 +58,11 @@ func GetIdentityResolutionService() IdentityResolutionServiceInterface {
 }
 
 // GetPendingReviewTasks returns a page of the organization's pending review tasks with their total count.
-func (s *IdentityResolutionService) GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) (*model.ReviewTaskListResponse, error) {
+func (s *IdentityResolutionService) GetPendingReviewTasks(
+	ctx context.Context,
+	orgID string,
+	pageSize int,
+) (*model.ReviewTaskListResponse, error) {
 	tasks, totalCount, err := irStore.GetPendingReviewTasks(ctx, orgID, pageSize)
 	if err != nil {
 		return nil, err
@@ -75,7 +79,12 @@ func (s *IdentityResolutionService) GetPendingReviewTasks(ctx context.Context, o
 
 // GetPendingReviewTasksByProfile returns a page of the pending review tasks raised for the profile, with the
 // total count of pending tasks that involve it.
-func (s *IdentityResolutionService) GetPendingReviewTasksByProfile(ctx context.Context, orgID string, profileID string, pageSize int) (*model.ReviewTaskListResponse, error) {
+func (s *IdentityResolutionService) GetPendingReviewTasksByProfile(
+	ctx context.Context,
+	orgID string,
+	profileID string,
+	pageSize int,
+) (*model.ReviewTaskListResponse, error) {
 	tasks, totalCount, err := irStore.GetPendingReviewTasksByProfile(ctx, orgID, profileID, pageSize)
 	if err != nil {
 		return nil, err
@@ -219,7 +228,8 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 			constants.UnificationMethodDeterministic, constants.DefaultMatchStrength,
 			constants.DefaultMismatchStrength)
 		thresholds := model.LoadThresholds(ctx, orgID)
-		if ruleName, found := urModel.PrimaryRuleName(task.ScoreBreakdown, rules, thresholds.ManualReview, thresholds.DeterministicMatchDecisive); found {
+		if ruleName, found := urModel.PrimaryRuleName(task.ScoreBreakdown, rules, thresholds.ManualReview,
+			thresholds.DeterministicMatchDecisive); found {
 			mergeReason = ruleName
 		}
 	}
@@ -256,7 +266,9 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 	for _, incomingID := range cancelledIncomingIDs {
 		affected, loadErr := profileStore.GetProfile(ctx, incomingID, orgID)
 		if loadErr != nil || affected == nil {
-			logger.Warn(fmt.Sprintf("Service: skipping re-evaluation for '%s' — profile not found or error", incomingID))
+			logger.Warn(
+				fmt.Sprintf("Service: skipping re-evaluation for '%s' — profile not found or error", incomingID),
+			)
 			continue
 		}
 

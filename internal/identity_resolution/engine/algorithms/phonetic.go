@@ -330,7 +330,8 @@ func DoubleMetaphone(s string) (primary, alternate string) {
 				if current == 0 && !stringAt(current, 4, "JOSE") {
 					addPri("J")
 					addAlt("A")
-				} else if isVowel(current-1) && !slavoGermanic && (charAt(current+1) == 'A' || charAt(current+1) == 'O') {
+				} else if isVowel(current-1) && !slavoGermanic &&
+					(charAt(current+1) == 'A' || charAt(current+1) == 'O') {
 					addPri("J")
 					addAlt("H")
 				} else if current == last {
@@ -592,7 +593,8 @@ func DoubleMetaphone(s string) (primary, alternate string) {
 	return primary, alternate
 }
 
-// DoubleMetaphonePhrase computes Double Metaphone codes for each word in a phrase, sorts them, and joins then producing two keys.
+// DoubleMetaphonePhrase computes Double Metaphone codes for each word in a phrase, sorts them, and joins then producing
+// two keys.
 func DoubleMetaphonePhrase(phrase string) (primary, alternate string) {
 	norm := normalization.NormalizeName(phrase)
 	tokens := strings.Fields(norm)

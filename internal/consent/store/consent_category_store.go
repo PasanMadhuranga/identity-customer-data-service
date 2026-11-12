@@ -40,7 +40,10 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get db client for inserting consent category: %s", category.CategoryIdentifier)
+		errorMsg := fmt.Sprintf(
+			"Failed to get db client for inserting consent category: %s",
+			category.CategoryIdentifier,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.AddConsentCategory.Code,
@@ -53,7 +56,10 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 	query := scripts.InsertConsentCategory
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to begin transaction for inserting consent category: %s", category.CategoryIdentifier)
+		errorMsg := fmt.Sprintf(
+			"Failed to begin transaction for inserting consent category: %s",
+			category.CategoryIdentifier,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.AddConsentCategory.Code,
@@ -75,7 +81,10 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 				Description: errorMsg,
 			}, errRollback)
 		}
-		errorMsg := fmt.Sprintf("Failed to execute query for inserting consent category: %s", category.CategoryIdentifier)
+		errorMsg := fmt.Sprintf(
+			"Failed to execute query for inserting consent category: %s",
+			category.CategoryIdentifier,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.AddConsentCategory.Code,
@@ -86,10 +95,22 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 
 	attrQuery := scripts.InsertConsentCategoryAttribute
 	for _, attr := range category.Attributes {
-		_, err = tx.ExecContext(ctx, attrQuery, category.CategoryIdentifier, attr.Scope, attr.AttributeName, attr.AttributeID, attr.ApplicationIdentifier)
+		_, err = tx.ExecContext(
+			ctx,
+			attrQuery,
+			category.CategoryIdentifier,
+			attr.Scope,
+			attr.AttributeName,
+			attr.AttributeID,
+			attr.ApplicationIdentifier,
+		)
 		if err != nil {
 			_ = tx.Rollback()
-			errorMsg := fmt.Sprintf("Failed to insert attribute %s for consent category: %s", attr.AttributeName, category.CategoryIdentifier)
+			errorMsg := fmt.Sprintf(
+				"Failed to insert attribute %s for consent category: %s",
+				attr.AttributeName,
+				category.CategoryIdentifier,
+			)
 			logger.Debug(errorMsg, log.Error(err))
 			return errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.AddConsentCategory.Code,
@@ -280,7 +301,10 @@ func UpdateConsentCategory(ctx context.Context, orgID string, category model.Con
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get db client for updating consent category: %s", category.CategoryIdentifier)
+		errorMsg := fmt.Sprintf(
+			"Failed to get db client for updating consent category: %s",
+			category.CategoryIdentifier,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		return errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.UpdateConsentCategory.Code,
@@ -332,10 +356,22 @@ func UpdateConsentCategory(ctx context.Context, orgID string, category model.Con
 
 	insertAttrQuery := scripts.InsertConsentCategoryAttribute
 	for _, attr := range category.Attributes {
-		_, err = tx.ExecContext(ctx, insertAttrQuery, category.CategoryIdentifier, attr.Scope, attr.AttributeName, attr.AttributeID, attr.ApplicationIdentifier)
+		_, err = tx.ExecContext(
+			ctx,
+			insertAttrQuery,
+			category.CategoryIdentifier,
+			attr.Scope,
+			attr.AttributeName,
+			attr.AttributeID,
+			attr.ApplicationIdentifier,
+		)
 		if err != nil {
 			_ = tx.Rollback()
-			errorMsg := fmt.Sprintf("Failed to insert attribute %s for consent category: %s", attr.AttributeName, category.CategoryIdentifier)
+			errorMsg := fmt.Sprintf(
+				"Failed to insert attribute %s for consent category: %s",
+				attr.AttributeName,
+				category.CategoryIdentifier,
+			)
 			logger.Debug(errorMsg, log.Error(err))
 			return errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.UpdateConsentCategory.Code,
@@ -410,8 +446,15 @@ func SeedDefaultIdentityDataCategory(ctx context.Context, orgID string) error {
 
 	dbType := dbClient.DBType()
 	upsertQuery := scripts.UpsertDefaultIdentityDataCategory
-	_, err = dbClient.ExecuteQueryContext(ctx, upsertQuery, constants.DefaultIdentityDataCategoryName, uuid.New().String(), orgID,
-		constants.DefaultIdentityDataCategoryPurpose, scripts.EncodeStringArray(dbType, []string{}))
+	_, err = dbClient.ExecuteQueryContext(
+		ctx,
+		upsertQuery,
+		constants.DefaultIdentityDataCategoryName,
+		uuid.New().String(),
+		orgID,
+		constants.DefaultIdentityDataCategoryPurpose,
+		scripts.EncodeStringArray(dbType, []string{}),
+	)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to upsert identity data category for org: %s", orgID)
 		logger.Debug(errorMsg, log.Error(err))

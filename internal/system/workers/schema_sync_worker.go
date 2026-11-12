@@ -120,7 +120,9 @@ func StopSchemaSyncWorker(ctx context.Context) error {
 // processSchemaSyncJob processes a schema sync job
 func processSchemaSyncJob(ctx context.Context, schemaSync model.ProfileSchemaSync) {
 	logger := log.GetLogger()
-	logger.Info(fmt.Sprintf("Processing schema sync job for tenant: %s, event: %s", schemaSync.OrgHandle, schemaSync.Event))
+	logger.Info(
+		fmt.Sprintf("Processing schema sync job for tenant: %s, event: %s", schemaSync.OrgHandle, schemaSync.Event),
+	)
 
 	schemaProvider := provider.NewProfileSchemaProvider()
 	schemaService := schemaProvider.GetProfileSchemaService()

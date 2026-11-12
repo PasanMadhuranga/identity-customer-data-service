@@ -188,7 +188,7 @@ func TestInitProfileReturnsTheProfileOfAnActiveCookie(t *testing.T) {
 	got := decodeProfile(t, recorder)
 	assert.Equal(t, existing.ProfileID, got.ProfileID, "no new profile is created")
 	assert.Equal(t, "Colombo", got.Traits["city"])
-	assert.Equal(t, cookieID, got.AnonymousProfileTracker)
+	assert.Equal(t, cookieID, got.AnonymousTracker)
 }
 
 func TestInitProfileCreatesANewProfileWhenTheCookieIsInactive(t *testing.T) {

@@ -88,7 +88,8 @@ func workerRule(t *testing.T, db *sql.DB, id, property string, priority int, act
 	_, err := db.Exec(`INSERT INTO profile_schema
 		(attribute_id, org_id, attribute_name, display_name, value_type, merge_strategy,
 		application_identifier, mutability, scope)
-		VALUES (?, 'org-id-tenant', ?, ?, 'string', 'combine', '', 'readWrite', 'identity_attributes')`, id, property, property)
+		VALUES (?, 'org-id-tenant', ?, ?, 'string', 'combine', '', 'readWrite', 'identity_attributes')`,
+		id, property, property)
 	require.NoError(t, err)
 	_, err = db.Exec(`INSERT INTO unification_rules
 		(rule_id, org_id, rule_name, property_name, property_id, priority, is_active)
@@ -108,12 +109,21 @@ func TestUnificationUserIDPrecedesRulesAndPreservesApplicationData(t *testing.T)
 		{"user-match", "existing-app", `{"app_specific_data":{"language":"en"}}`},
 		{"incoming", "new-app", `{"app_specific_data":{"theme":"dark"}}`},
 	} {
-		_, err = db.Exec(`INSERT INTO application_data (profile_id, app_id, application_data) VALUES (?, ?, ?)`, row.profile, row.app, row.data)
+		_, err = db.Exec(
+			`INSERT INTO application_data (profile_id, app_id, application_data) VALUES (?, ?, ?)`,
+			row.profile,
+			row.app,
+			row.data,
+		)
 		require.NoError(t, err)
 	}
 	unifyProfiles(context.Background(), tenantOrg.ID, incoming)
 	var parent, reason string
-	require.NoError(t, db.QueryRow(`SELECT reference_profile_id, reference_reason FROM profile_reference WHERE profile_id='incoming'`).Scan(&parent, &reason))
+	require.NoError(
+		t,
+		db.QueryRow(`SELECT reference_profile_id, reference_reason FROM profile_reference WHERE profile_id='incoming'`).
+			Scan(&parent, &reason),
+	)
 	require.Equal(t, "user-match", parent)
 	require.Equal(t, constants.SystemUserIDMatchReason, reason)
 	apps, err := profileStore.FetchApplicationData(context.Background(), "user-match")
@@ -214,6 +224,9 @@ func TestCandidateDiscoveryDoesNotRequireApplicationDataTable(t *testing.T) {
 	incoming.IdentityAttributes["email"] = "a"
 	unifyProfiles(context.Background(), tenantOrg.ID, incoming)
 	var status string
-	require.NoError(t, db.QueryRow(`SELECT profile_status FROM profile_reference WHERE profile_id='incoming'`).Scan(&status))
+	require.NoError(
+		t,
+		db.QueryRow(`SELECT profile_status FROM profile_reference WHERE profile_id='incoming'`).Scan(&status),
+	)
 	require.Equal(t, "REFERENCE_PROFILE", status)
 }

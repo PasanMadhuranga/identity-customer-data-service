@@ -76,7 +76,15 @@ func Test_RejectedPair_ReconsideredIsReviewedNotMerged(t *testing.T) {
 	ctx := context.Background()
 	org := newOrg("reject-reconsider")
 	ref := setup.TestOrg(t, org)
-	emailRule := insertRule(t, org, "email", "traits.email", 1, constants.AttributeTypeEmail, constants.UnificationMethodDeterministic)
+	emailRule := insertRule(
+		t,
+		org,
+		"email",
+		"traits.email",
+		1,
+		constants.AttributeTypeEmail,
+		constants.UnificationMethodDeterministic,
+	)
 	insertRule(t, org, "name", "traits.name", 2, constants.AttributeTypeName, constants.UnificationMethodFuzzy)
 
 	// Same name, different emails: the name agrees, the email disagrees, so the pair is
@@ -164,7 +172,11 @@ func Test_RejectedPair_ReconsideredIsReviewedNotMerged(t *testing.T) {
 		t.Fatalf("the reconsidered task does not say it was reconsidered: %v", explanationCodes(reopened[0]))
 	}
 	if !reflect.DeepEqual(reconsideredReason.RuleIDs, []string{emailRule}) {
-		t.Errorf("the reconsidered reason names rules %v, want the email rule %s", reconsideredReason.RuleIDs, emailRule)
+		t.Errorf(
+			"the reconsidered reason names rules %v, want the email rule %s",
+			reconsideredReason.RuleIDs,
+			emailRule,
+		)
 	}
 	if reconsideredReason.PreviousSimilarity == nil || *reconsideredReason.PreviousSimilarity != 1.0 {
 		t.Errorf("the reconsidered reason does not carry the similarity the pair was rejected at")

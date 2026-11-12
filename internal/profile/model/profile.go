@@ -44,15 +44,15 @@ type Reference struct {
 
 // Profile is a stored customer profile of an organization.
 type Profile struct {
-	ProfileID          string                 `json:"profile_id" bson:"profile_id"`
-	UserID             string                 `json:"user_id" bson:"user_id"`
-	OrgID              string                 `json:"org_id" bson:"org_id"`
-	CreatedAt          time.Time              `json:"created_at" bson:"created_at"`
-	UpdatedAt          time.Time              `json:"updated_at" bson:"updated_at"`
-	IdentityAttributes map[string]interface{} `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
-	Traits             map[string]interface{} `json:"traits,omitempty" bson:"traits,omitempty"`
-	ApplicationData    []ApplicationData      `json:"application_data,omitempty" bson:"application_data,omitempty"`
-	ProfileStatus      *ProfileStatus         `json:"profile_status,omitempty" bson:"profile_status,omitempty"`
+	ProfileID          string            `json:"profile_id" bson:"profile_id"`
+	UserID             string            `json:"user_id" bson:"user_id"`
+	OrgID              string            `json:"org_id" bson:"org_id"`
+	CreatedAt          time.Time         `json:"created_at" bson:"created_at"`
+	UpdatedAt          time.Time         `json:"updated_at" bson:"updated_at"`
+	IdentityAttributes map[string]any    `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`
+	Traits             map[string]any    `json:"traits,omitempty" bson:"traits,omitempty"`
+	ApplicationData    []ApplicationData `json:"application_data,omitempty" bson:"application_data,omitempty"`
+	ProfileStatus      *ProfileStatus    `json:"profile_status,omitempty" bson:"profile_status,omitempty"`
 }
 
 // ProfileCookie maps a profile cookie ID to the profile it identifies.
@@ -69,9 +69,12 @@ type ProfileConsent struct {
 
 // ConsentRecord represents an individual consent record for a profile
 type ConsentRecord struct {
-	CategoryIdentifier string    `json:"category_identifier" bson:"category_identifier"` // References the consent category
-	IsConsented        bool      `json:"is_consented" bson:"is_consented"`               // Whether the user has given consent
-	ConsentedAt        time.Time `json:"consented_at" bson:"consented_at"`               // Timestamp when consent was given/updated
+	// References the consent category
+	CategoryIdentifier string `json:"category_identifier" bson:"category_identifier"`
+	// Whether the user has given consent
+	IsConsented bool `json:"is_consented" bson:"is_consented"`
+	// Timestamp when consent was given/updated
+	ConsentedAt time.Time `json:"consented_at" bson:"consented_at"`
 }
 
 // ProfileConsentResponse is the response model for profile consents API

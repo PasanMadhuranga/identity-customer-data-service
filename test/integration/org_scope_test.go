@@ -335,11 +335,13 @@ func setUpOrgScopeFixture(t *testing.T) *orgScopeFixture {
 		_, err = schemaSvc.AddProfileSchemaAttributesForScope(ctx, []profileSchemaModel.ProfileSchemaAttribute{
 			{
 				OrgID: org.ID, AttributeID: uuid.New().String(), AttributeName: "traits.interests",
-				ValueType: constants.StringDataType, MergeStrategy: "combine", Mutability: constants.MutabilityReadWrite,
+				ValueType: constants.StringDataType, MergeStrategy: "combine",
+				Mutability: constants.MutabilityReadWrite,
 			},
 			{
 				OrgID: org.ID, AttributeID: uuid.New().String(), AttributeName: "traits.loyalty_id",
-				ValueType: constants.StringDataType, MergeStrategy: "combine", Mutability: constants.MutabilityReadWrite,
+				ValueType: constants.StringDataType, MergeStrategy: "combine",
+				Mutability: constants.MutabilityReadWrite,
 			},
 		}, constants.Traits, org.ID)
 		require.NoError(t, err)

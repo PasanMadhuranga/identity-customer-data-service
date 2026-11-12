@@ -70,7 +70,10 @@ func GetCORSAllowedOrigins(ctx context.Context, orgID string) ([]string, error) 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get db client for fetching the CORS allowed origins of organization: %s", orgID)
+		errorMsg := fmt.Sprintf(
+			"Failed to get db client for fetching the CORS allowed origins of organization: %s",
+			orgID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAdminConfig.Code,
@@ -83,7 +86,10 @@ func GetCORSAllowedOrigins(ctx context.Context, orgID string) ([]string, error) 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrgConfiguration, orgID,
 		constants.ConfigCORSAllowedOrigins)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to execute query for fetching the CORS allowed origins of organization: %s", orgID)
+		errorMsg := fmt.Sprintf(
+			"Failed to execute query for fetching the CORS allowed origins of organization: %s",
+			orgID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAdminConfig.Code,
@@ -273,7 +279,8 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 	return tx.Commit()
 }
 
-// UpdateInitialSchemaSyncConfig updates organization-level admin configuration (e.g., CDS enablement, schema sync flags).
+// UpdateInitialSchemaSyncConfig updates organization-level admin configuration (e.g., CDS enablement, schema sync
+// flags).
 func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string) error {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()

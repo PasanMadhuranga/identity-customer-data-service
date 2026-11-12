@@ -24,19 +24,23 @@ import "github.com/wso2/identity-customer-data-service/internal/system/constants
 // ProfileSchemaAttribute defines an attribute of the profile schema: its scope, value type, merge strategy
 // and mutability.
 type ProfileSchemaAttribute struct {
-	OrgID                 string           `json:"org_id,omitempty" bson:"org_id,omitempty"`
-	AttributeID           string           `json:"attribute_id" bson:"attribute_id"`
-	AttributeName         string           `json:"attribute_name" bson:"attribute_name" binding:"required"`
-	Scope                 string           `json:"scope,omitempty" bson:"scope,omitempty"`
-	DisplayName           string           `json:"display_name,omitempty" bson:"display_name,omitempty"`
-	ValueType             string           `json:"value_type" bson:"value_type" binding:"required"`
-	MergeStrategy         string           `json:"merge_strategy" bson:"merge_strategy" binding:"required"`
-	Mutability            string           `json:"mutability" bson:"mutability"`
-	ApplicationIdentifier string           `json:"application_identifier,omitempty" bson:"application_identifier,omitempty"`
-	MultiValued           bool             `json:"multi_valued,omitempty" bson:"multi_valued,omitempty"`         // Means the data type is an array of chosen data type
-	CanonicalValues       []CanonicalValue `json:"canonical_values,omitempty" bson:"canonical_values,omitempty"` // String of options for the attribute
-	SubAttributes         []SubAttribute   `json:"sub_attributes,omitempty" bson:"sub_attributes,omitempty"`     // If the datatype is object
-	SCIMDialect           string           `json:"scim_dialect,omitempty" bson:"scim_dialect,omitempty"`         // Need to skip this in the response
+	OrgID                 string `json:"org_id,omitempty" bson:"org_id,omitempty"`
+	AttributeID           string `json:"attribute_id" bson:"attribute_id"`
+	AttributeName         string `json:"attribute_name" bson:"attribute_name" binding:"required"`
+	Scope                 string `json:"scope,omitempty" bson:"scope,omitempty"`
+	DisplayName           string `json:"display_name,omitempty" bson:"display_name,omitempty"`
+	ValueType             string `json:"value_type" bson:"value_type" binding:"required"`
+	MergeStrategy         string `json:"merge_strategy" bson:"merge_strategy" binding:"required"`
+	Mutability            string `json:"mutability" bson:"mutability"`
+	ApplicationIdentifier string `json:"application_identifier,omitempty" bson:"application_identifier,omitempty"`
+	// Means the data type is an array of chosen data type
+	MultiValued bool `json:"multi_valued,omitempty" bson:"multi_valued,omitempty"`
+	// String of options for the attribute
+	CanonicalValues []CanonicalValue `json:"canonical_values,omitempty" bson:"canonical_values,omitempty"`
+	// If the datatype is object
+	SubAttributes []SubAttribute `json:"sub_attributes,omitempty" bson:"sub_attributes,omitempty"`
+	// Need to skip this in the response
+	SCIMDialect string `json:"scim_dialect,omitempty" bson:"scim_dialect,omitempty"`
 	// Set only on reads of the effective schema.
 	Origin     string `json:"origin,omitempty" bson:"-"` // OWNED, SHARED, or INHERITED
 	OwnerOrgID string `json:"-" bson:"-"`                // The owner org of a shared attribute, for the owner check

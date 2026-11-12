@@ -66,7 +66,13 @@ type ProfilesServiceInterface interface {
 		profileID string, orgID string, update profileModel.ProfileRequest) (*profileModel.ProfileResponse, error)
 	GetProfile(ctx context.Context, profileID string, orgID string) (*profileModel.ProfileResponse, error)
 	FindProfileByUserID(ctx context.Context, userID string, orgID string) (*profileModel.ProfileResponse, error)
-	GetAllProfilesWithFilterCursor(ctx context.Context, orgID string, filters []string, limit int, cursor *profileModel.ProfileCursor) ([]profileModel.ProfileResponse, bool, error)
+	GetAllProfilesWithFilterCursor(
+		ctx context.Context,
+		orgID string,
+		filters []string,
+		limit int,
+		cursor *profileModel.ProfileCursor,
+	) ([]profileModel.ProfileResponse, bool, error)
 	GetProfileConsents(ctx context.Context, profileID string, orgID string) ([]profileModel.ConsentRecord, error)
 	UpdateProfileConsents(ctx context.Context,
 		profileID string, orgID string, consents []profileModel.ConsentRecord) error
@@ -149,7 +155,10 @@ func (ps *ProfilesService) CreateProfile(ctx context.Context,
 	var schema model.ProfileSchema
 	schemaBytes, _ := json.Marshal(rawSchema) // serialize
 	if err := json.Unmarshal(schemaBytes, &schema); err != nil {
-		errMsg := fmt.Sprintf("Invalid schema format for organization: %s while validating for profile creation.", orgID)
+		errMsg := fmt.Sprintf(
+			"Invalid schema format for organization: %s while validating for profile creation.",
+			orgID,
+		)
 		logger.Debug(errMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.AddProfile.Code,
@@ -288,7 +297,8 @@ func ValidateProfileAgainstSchema(profile profileModel.ProfileRequest, existingP
 			}, http.StatusBadRequest)
 		}
 		for key, val := range attrs {
-			if err := rejectIfFlattenedSubAttribute(key, "application_data", schema.ApplicationData[appID]); err != nil {
+			if err := rejectIfFlattenedSubAttribute(key, "application_data",
+				schema.ApplicationData[appID]); err != nil {
 				return err
 			}
 			attrName := "application_data." + key
@@ -307,8 +317,8 @@ func ValidateProfileAgainstSchema(profile profileModel.ProfileRequest, existingP
 				existingVal, _ = getAppDataValue(existingProfile.ApplicationData, appID, key)
 			}
 
-			if err := validateAttributeValueAgainstSchema(attr, val, existingVal, isUpdate, schema.ApplicationData[appID],
-				"application_data", appID+"."+key, false); err != nil {
+			if err := validateAttributeValueAgainstSchema(attr, val, existingVal, isUpdate,
+				schema.ApplicationData[appID], "application_data", appID+"."+key, false); err != nil {
 				return err
 			}
 		}
@@ -322,7 +332,14 @@ func validateAttributeValueAgainstSchema(attr model.ProfileSchemaAttribute, val,
 	if !skipMutability {
 		logger := log.GetLogger()
 		if err := validateMutability(attr.Mutability, isUpdate, existingVal, val); err != nil {
-			logger.Debug(fmt.Sprintf("Mutability validation failed for attribute '%s' at path '%s'", attr.AttributeName, attributePath), log.Error(err))
+			logger.Debug(
+				fmt.Sprintf(
+					"Mutability validation failed for attribute '%s' at path '%s'",
+					attr.AttributeName,
+					attributePath,
+				),
+				log.Error(err),
+			)
 			return err
 		}
 	}
@@ -344,7 +361,8 @@ func validateAttributeValueAgainstSchema(attr model.ProfileSchemaAttribute, val,
 	}
 
 	if attr.ValueType == constants.ComplexDataType {
-		if err := validateComplexSubAttributes(attr, val, existingVal, isUpdate, scopeAttrs, attributeLabel, attributePath); err != nil {
+		if err := validateComplexSubAttributes(attr, val, existingVal, isUpdate, scopeAttrs, attributeLabel,
+			attributePath); err != nil {
 			return err
 		}
 	}
@@ -380,7 +398,8 @@ func validateComplexSubAttributes(parentAttr model.ProfileSchemaAttribute, val, 
 			}
 
 			indexedPath := fmt.Sprintf("%s[%d]", attributePath, i)
-			if err := validateComplexObject(parentAttr, itemMap, existingMap, isUpdate, scopeAttrs, attributeLabel, indexedPath); err != nil {
+			if err := validateComplexObject(parentAttr, itemMap, existingMap, isUpdate, scopeAttrs, attributeLabel,
+				indexedPath); err != nil {
 				return err
 			}
 		}
@@ -388,17 +407,27 @@ func validateComplexSubAttributes(parentAttr model.ProfileSchemaAttribute, val, 
 	return nil
 }
 
-func validateComplexObject(parentAttr model.ProfileSchemaAttribute, objVal map[string]interface{}, existingObj map[string]interface{},
-	isUpdate bool, scopeAttrs []model.ProfileSchemaAttribute, attributeLabel, attributePath string) error {
+func validateComplexObject(
+	parentAttr model.ProfileSchemaAttribute,
+	objVal map[string]interface{},
+	existingObj map[string]interface{},
+	isUpdate bool,
+	scopeAttrs []model.ProfileSchemaAttribute,
+	attributeLabel, attributePath string,
+) error {
 	subAttrSchema := make(map[string]model.ProfileSchemaAttribute, len(parentAttr.SubAttributes))
 	prefix := parentAttr.AttributeName + "."
 	for _, subAttr := range parentAttr.SubAttributes {
 		attr, found := findAttributeInSchema(scopeAttrs, subAttr.AttributeName)
 		if !found {
 			return errors2.NewServerError(errors2.ErrorMessage{
-				Code:        errors2.UpdateProfile.Code,
-				Message:     errors2.UpdateProfile.Message,
-				Description: fmt.Sprintf("sub-attribute '%s' referenced by '%s' not found in schema", subAttr.AttributeName, parentAttr.AttributeName),
+				Code:    errors2.UpdateProfile.Code,
+				Message: errors2.UpdateProfile.Message,
+				Description: fmt.Sprintf(
+					"sub-attribute '%s' referenced by '%s' not found in schema",
+					subAttr.AttributeName,
+					parentAttr.AttributeName,
+				),
 			}, fmt.Errorf("sub-attribute '%s' not found", subAttr.AttributeName))
 		}
 
@@ -491,8 +520,14 @@ func rejectIfFlattenedSubAttribute(key, scope string, scopeAttrs []model.Profile
 	return errors2.NewClientError(errors2.ErrorMessage{
 		Code:    errors2.UpdateProfile.Code,
 		Message: errors2.UpdateProfile.Message,
-		Description: fmt.Sprintf("'%s' is a sub-attribute of complex attribute '%s'; provide '%s' as a nested object instead of using flattened key '%s'",
-			scope+"."+key, parentAttrName, key[:dotIdx], key),
+		Description: fmt.Sprintf(
+			"'%s' is a sub-attribute of complex attribute '%s'; provide '%s' as a nested object "+
+				"instead of using flattened key '%s'",
+			scope+"."+key,
+			parentAttrName,
+			key[:dotIdx],
+			key,
+		),
 	}, http.StatusBadRequest)
 }
 
@@ -505,7 +540,10 @@ func findAttributeInSchema(attrs []model.ProfileSchemaAttribute, name string) (m
 	return model.ProfileSchemaAttribute{}, false
 }
 
-func findAppAttributeInSchema(appSchema map[string][]model.ProfileSchemaAttribute, appID, name string) (model.ProfileSchemaAttribute, bool) {
+func findAppAttributeInSchema(
+	appSchema map[string][]model.ProfileSchemaAttribute,
+	appID, name string,
+) (model.ProfileSchemaAttribute, bool) {
 	attrs, ok := appSchema[appID]
 	if !ok {
 		return model.ProfileSchemaAttribute{}, false
@@ -802,7 +840,10 @@ func (ps *ProfilesService) UpdateProfile(ctx context.Context,
 	var schema model.ProfileSchema
 	schemaBytes, _ := json.Marshal(rawSchema) // serialize
 	if err := json.Unmarshal(schemaBytes, &schema); err != nil {
-		errMsg := fmt.Sprintf("Invalid schema format for profile: %s while validating for profile update.", profile.ProfileID)
+		errMsg := fmt.Sprintf(
+			"Invalid schema format for profile: %s while validating for profile update.",
+			profile.ProfileID,
+		)
 		logger.Debug(errMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.UpdateProfile.Code,
@@ -928,7 +969,11 @@ func ConvertAppDataToMap(appDataList []profileModel.ApplicationData) map[string]
 }
 
 // GetProfile retrieves a profile
-func (ps *ProfilesService) GetProfile(ctx context.Context, ProfileID string, orgID string) (*profileModel.ProfileResponse, error) {
+func (ps *ProfilesService) GetProfile(
+	ctx context.Context,
+	ProfileID string,
+	orgID string,
+) (*profileModel.ProfileResponse, error) {
 	profile, err := profileStore.GetProfile(ctx, ProfileID, orgID)
 	if err != nil {
 		return nil, err
@@ -1067,9 +1112,12 @@ func (ps *ProfilesService) UpdateProfileConsents(ctx context.Context,
 	for _, c := range consents {
 		if mandatorySet[c.CategoryIdentifier] {
 			return errors2.NewClientError(errors2.ErrorMessage{
-				Code:        errors2.ConsentCatMandatory.Code,
-				Message:     errors2.ConsentCatMandatory.Message,
-				Description: fmt.Sprintf("Consent for mandatory category '%s' cannot be modified.", c.CategoryIdentifier),
+				Code:    errors2.ConsentCatMandatory.Code,
+				Message: errors2.ConsentCatMandatory.Message,
+				Description: fmt.Sprintf(
+					"Consent for mandatory category '%s' cannot be modified.",
+					c.CategoryIdentifier,
+				),
 			}, http.StatusForbidden)
 		}
 	}
@@ -1150,7 +1198,10 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 		// Delete the parent with no children
 		err = profileStore.DeleteProfile(ctx, ProfileID)
 		if err != nil {
-			errorMsg := fmt.Sprintf("Error deleting profile with profile_id: %s which is a parent and no children", ProfileID)
+			errorMsg := fmt.Sprintf(
+				"Error deleting profile with profile_id: %s which is a parent and no children",
+				ProfileID,
+			)
 			logger.Debug(errorMsg, log.Error(err))
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.DeleteProfile.Code,
@@ -1251,7 +1302,8 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 			logger.Info(fmt.Sprintf("Deleted current profile: %s with parent: %s", ProfileID,
 				profile.ProfileStatus.ReferenceProfileID))
 		} else {
-			err = profileStore.DetachRefererProfileFromReference(ctx, profile.ProfileStatus.ReferenceProfileID, ProfileID)
+			err = profileStore.DetachRefererProfileFromReference(ctx, profile.ProfileStatus.ReferenceProfileID,
+				ProfileID)
 			if err != nil {
 				errorMsg := fmt.Sprintf("Error while current profile from parent: %s ", ProfileID)
 				logger.Debug(errorMsg, log.Error(err))
@@ -1555,7 +1607,8 @@ func (ps *ProfilesService) PatchProfile(ctx context.Context,
 	// cause UpdateProfile to overwrite the master with incomplete data, losing all
 	// accumulated merged data that only exists on the master.
 	profileForBase := existingProfile
-	if existingProfile.ProfileStatus != nil && !existingProfile.ProfileStatus.IsReferenceProfile && existingProfile.ProfileStatus.ReferenceProfileID != "" {
+	if existingProfile.ProfileStatus != nil && !existingProfile.ProfileStatus.IsReferenceProfile &&
+		existingProfile.ProfileStatus.ReferenceProfileID != "" {
 		masterProfile, err := profileStore.GetProfile(ctx, existingProfile.ProfileStatus.ReferenceProfileID, orgID)
 		if err != nil {
 			return nil, err
@@ -1975,7 +2028,10 @@ func parseFuzzyFiltersToFlatAttrs(filters []string) map[string]interface{} {
 // resolveAndLoadCandidates loads the given profile IDs into a map and resolves any child
 // profile IDs to their master reference profile ID. Returns the deduplicated master IDs
 // and the profile map (keyed by profile ID).
-func resolveAndLoadCandidates(ctx context.Context, candidateIDs []string) ([]string, map[string]*irModel.ProfileData, error) {
+func resolveAndLoadCandidates(
+	ctx context.Context,
+	candidateIDs []string,
+) ([]string, map[string]*irModel.ProfileData, error) {
 	logger := log.GetLogger()
 
 	candidateProfiles, err := irStore.GetProfilesByIDs(ctx, candidateIDs)
@@ -2006,8 +2062,10 @@ func resolveAndLoadCandidates(ctx context.Context, candidateIDs []string) ([]str
 			if _, ok := profileMap[masterID]; !ok {
 				masterProfiles, loadErr := irStore.GetProfilesByIDs(ctx, []string{masterID})
 				if loadErr != nil || len(masterProfiles) == 0 {
-					logger.Warn(fmt.Sprintf("resolveAndLoadCandidates: could not load master '%s' for child '%s', skipping",
-						masterID, cid))
+					logger.Warn(
+						fmt.Sprintf("resolveAndLoadCandidates: could not load master '%s' for child '%s', skipping",
+							masterID, cid),
+					)
 					continue
 				}
 				profileMap[masterID] = &masterProfiles[0]

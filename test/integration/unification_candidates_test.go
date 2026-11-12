@@ -83,9 +83,27 @@ func Test_UnificationCandidateMatching(t *testing.T) {
 		{"object leaf", `{"email":{"value":"a"}}`, "identity_attributes.email", []string{"a"}, false},
 		{"mixed array", `{"email":[123,null,true,"a"]}`, "identity_attributes.email", []string{"a"}, true},
 		{"nested object", `{"contact":{"email":["a","b"]}}`, "identity_attributes.contact.email", []string{"b"}, true},
-		{"nested object array", `{"contact":[{"email":"a"},{"email":["b"]}]}`, "identity_attributes.contact.email", []string{"b"}, true},
-		{"array of arrays before member", `{"contact":[[{"email":"a"}]]}`, "identity_attributes.contact.email", []string{"a"}, false},
-		{"multiple nested objects", `{"contact":{"details":{"email":["a"]}}}`, "identity_attributes.contact.details.email", []string{"a"}, true},
+		{
+			"nested object array",
+			`{"contact":[{"email":"a"},{"email":["b"]}]}`,
+			"identity_attributes.contact.email",
+			[]string{"b"},
+			true,
+		},
+		{
+			"array of arrays before member",
+			`{"contact":[[{"email":"a"}]]}`,
+			"identity_attributes.contact.email",
+			[]string{"a"},
+			false,
+		},
+		{
+			"multiple nested objects",
+			`{"contact":{"details":{"email":["a"]}}}`,
+			"identity_attributes.contact.details.email",
+			[]string{"a"},
+			true,
+		},
 		{"empty array", `{"email":[]}`, "identity_attributes.email", []string{""}, false},
 		{"wrong nested key", `{"other":{"email":"a"}}`, "identity_attributes.contact.email", []string{"a"}, false},
 		{"nested array leaf", `{"email":[["a"]]}`, "identity_attributes.email", []string{"a"}, false},
@@ -141,7 +159,12 @@ func Test_UnificationCandidateScopeAndOrder(t *testing.T) {
 	got, err := findReferenceProfileCandidate(context.Background(), incoming, "", nil)
 	require.NoError(t, err)
 	require.Empty(t, got)
-	got, err = findReferenceProfileCandidate(context.Background(), incoming, "identity_attributes.email", []string{"shared"})
+	got, err = findReferenceProfileCandidate(
+		context.Background(),
+		incoming,
+		"identity_attributes.email",
+		[]string{"shared"},
+	)
 	require.NoError(t, err)
 	require.Empty(t, got)
 
@@ -164,7 +187,9 @@ func Test_UnificationCandidateGINEligibility(t *testing.T) {
 	tx, err := suiteDB.Begin()
 	require.NoError(t, err)
 	defer func() { _ = tx.Rollback() }()
-	_, err = tx.Exec(`CREATE INDEX IF NOT EXISTS idx_profiles_identity_attributes_gin ON profiles USING GIN (identity_attributes)`)
+	_, err = tx.Exec(
+		`CREATE INDEX IF NOT EXISTS idx_profiles_identity_attributes_gin ON profiles USING GIN (identity_attributes)`,
+	)
 	require.NoError(t, err)
 	_, err = tx.Exec(`SET LOCAL enable_seqscan = off; SET LOCAL enable_indexscan = off`)
 	require.NoError(t, err)
@@ -173,7 +198,10 @@ func Test_UnificationCandidateGINEligibility(t *testing.T) {
 	require.NoError(t, err)
 	// Isolate the generated JSONPath predicate so a competing tenant index
 	// cannot hide GIN eligibility on this small fixture.
-	rows, err := tx.Query("EXPLAIN SELECT profile_id FROM profiles WHERE identity_attributes @? $1::jsonpath", values[0])
+	rows, err := tx.Query(
+		"EXPLAIN SELECT profile_id FROM profiles WHERE identity_attributes @? $1::jsonpath",
+		values[0],
+	)
 	require.NoError(t, err)
 	defer func() { _ = rows.Close() }()
 	plan := ""
@@ -212,7 +240,11 @@ func Benchmark_UnificationCandidateLookup(b *testing.B) {
 			require.NoError(b, err)
 			_, err = suiteDB.Exec(`ANALYZE profiles; ANALYZE profile_reference`)
 			require.NoError(b, err)
-			incoming := profileModel.Profile{ProfileID: "incoming", OrgID: setup.TestOrgID(org), UserID: fmt.Sprintf("user-%d", count)}
+			incoming := profileModel.Profile{
+				ProfileID: "incoming",
+				OrgID:     setup.TestOrgID(org),
+				UserID:    fmt.Sprintf("user-%d", count),
+			}
 			for _, tc := range []struct{ name, property, value string }{
 				{"user_id", "", ""},
 				{"rule_match", "identity_attributes.email", fmt.Sprintf("profile-%d@example.test", count)},

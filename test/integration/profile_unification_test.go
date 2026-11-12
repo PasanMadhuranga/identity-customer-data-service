@@ -81,22 +81,57 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	profileSchemaSvc := schemaService.GetProfileSchemaService()
 
 	identityAttr := []schemaModel.ProfileSchemaAttribute{
-		{OrgID: SuperTenantOrg.ID, AttributeID: uuid.New().String(), AttributeName: "identity_attributes.email", ValueType: constants.StringDataType, MergeStrategy: "combine",
-			Mutability: constants.MutabilityReadWrite, MultiValued: true},
-		{OrgID: SuperTenantOrg.ID, AttributeID: uuid.New().String(), AttributeName: "identity_attributes.phone_number", ValueType: constants.StringDataType,
-			MergeStrategy: "combine", Mutability: constants.MutabilityReadWrite, MultiValued: true},
-		{OrgID: SuperTenantOrg.ID, AttributeID: uuid.New().String(), AttributeName: "identity_attributes.user_id", ValueType: constants.StringDataType, MergeStrategy: "combine",
-			Mutability: constants.MutabilityReadWrite},
+		{
+			OrgID:         SuperTenantOrg.ID,
+			AttributeID:   uuid.New().String(),
+			AttributeName: "identity_attributes.email",
+			ValueType:     constants.StringDataType,
+			MergeStrategy: "combine",
+			Mutability:    constants.MutabilityReadWrite,
+			MultiValued:   true,
+		},
+		{
+			OrgID:         SuperTenantOrg.ID,
+			AttributeID:   uuid.New().String(),
+			AttributeName: "identity_attributes.phone_number",
+			ValueType:     constants.StringDataType,
+			MergeStrategy: "combine",
+			Mutability:    constants.MutabilityReadWrite,
+			MultiValued:   true,
+		},
+		{
+			OrgID:         SuperTenantOrg.ID,
+			AttributeID:   uuid.New().String(),
+			AttributeName: "identity_attributes.user_id",
+			ValueType:     constants.StringDataType,
+			MergeStrategy: "combine",
+			Mutability:    constants.MutabilityReadWrite,
+		},
 	}
 
 	traits := []schemaModel.ProfileSchemaAttribute{
-		{OrgID: SuperTenantOrg.ID, AttributeID: uuid.New().String(), AttributeName: "traits.interests", ValueType: constants.StringDataType, MergeStrategy: "combine",
-			Mutability: constants.MutabilityReadWrite, MultiValued: true},
+		{
+			OrgID:         SuperTenantOrg.ID,
+			AttributeID:   uuid.New().String(),
+			AttributeName: "traits.interests",
+			ValueType:     constants.StringDataType,
+			MergeStrategy: "combine",
+			Mutability:    constants.MutabilityReadWrite,
+			MultiValued:   true,
+		},
 	}
 
 	appData := []schemaModel.ProfileSchemaAttribute{
-		{OrgID: SuperTenantOrg.ID, AttributeID: uuid.New().String(), AttributeName: "application_data.device_id", ValueType: constants.StringDataType, MergeStrategy: "combine",
-			Mutability: constants.MutabilityReadWrite, MultiValued: true, ApplicationIdentifier: AppID},
+		{
+			OrgID:                 SuperTenantOrg.ID,
+			AttributeID:           uuid.New().String(),
+			AttributeName:         "application_data.device_id",
+			ValueType:             constants.StringDataType,
+			MergeStrategy:         "combine",
+			Mutability:            constants.MutabilityReadWrite,
+			MultiValued:           true,
+			ApplicationIdentifier: AppID,
+		},
 		{OrgID: SuperTenantOrg.ID, AttributeID: uuid.New().String(),
 			AttributeName: "application_data.ui_mode",
 			ValueType:     constants.StringDataType, MergeStrategy: "overwrite",
@@ -107,9 +142,24 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 			Mutability: constants.MutabilityReadWrite, ApplicationIdentifier: AppBID},
 	}
 
-	_, err := profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), identityAttr, constants.IdentityAttributes, SuperTenantOrg.ID)
-	_, err1 := profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), traits, constants.Traits, SuperTenantOrg.ID)
-	_, err2 := profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), appData, constants.ApplicationData, SuperTenantOrg.ID)
+	_, err := profileSchemaSvc.AddProfileSchemaAttributesForScope(
+		context.Background(),
+		identityAttr,
+		constants.IdentityAttributes,
+		SuperTenantOrg.ID,
+	)
+	_, err1 := profileSchemaSvc.AddProfileSchemaAttributesForScope(
+		context.Background(),
+		traits,
+		constants.Traits,
+		SuperTenantOrg.ID,
+	)
+	_, err2 := profileSchemaSvc.AddProfileSchemaAttributesForScope(
+		context.Background(),
+		appData,
+		constants.ApplicationData,
+		SuperTenantOrg.ID,
+	)
 	require.NoError(t, err)
 	require.NoError(t, err1)
 	require.NoError(t, err2)
@@ -156,8 +206,13 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 
 	t.Run("Scenario1_TempProfiles_Email_Then_Phone_Unify", func(t *testing.T) {
 		p1 := mustUnmarshalProfile(`{"identity_attributes":{"email":["a@wso2.com"]},"traits":{"interests":["music"]}}`)
-		p2 := mustUnmarshalProfile(`{"identity_attributes":{"email":["a@wso2.com"],"phone_number":["0771234567"]},"traits":{"interests":["sports"]}}`)
-		p3 := mustUnmarshalProfile(`{"identity_attributes":{"phone_number":["0771234567"]},"traits":{"interests":["art"]}}`)
+		p2 := mustUnmarshalProfile(
+			`{"identity_attributes":{"email":["a@wso2.com"],"phone_number":["0771234567"]},` +
+				`"traits":{"interests":["sports"]}}`,
+		)
+		p3 := mustUnmarshalProfile(
+			`{"identity_attributes":{"phone_number":["0771234567"]},"traits":{"interests":["art"]}}`,
+		)
 
 		prof1, _ := profileSvc.CreateProfile(context.Background(), p1, SuperTenantOrg.ID)
 		prof2, _ := profileSvc.CreateProfile(context.Background(), p2, SuperTenantOrg.ID)
@@ -182,8 +237,14 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	})
 
 	t.Run("Scenario2_TempAndPerm_Merge_UserId_Inherit", func(t *testing.T) {
-		temp := mustUnmarshalProfile(`{"identity_attributes":{"email":["b@wso2.com"],"phone_number":["0774567890"]},"traits":{"interests":["music"]}}`)
-		perm := mustUnmarshalProfile(`{"user_id":"user-123","identity_attributes":{"user_id": "user-123", "email":["b@wso2.com","b2@wso2.com"]},"traits":{"interests":["sports"]}}`)
+		temp := mustUnmarshalProfile(
+			`{"identity_attributes":{"email":["b@wso2.com"],"phone_number":["0774567890"]},` +
+				`"traits":{"interests":["music"]}}`,
+		)
+		perm := mustUnmarshalProfile(
+			`{"user_id":"user-123","identity_attributes":{"user_id": "user-123", "email":["b@wso2.com",` +
+				`"b2@wso2.com"]},"traits":{"interests":["sports"]}}`,
+		)
 
 		p1, _ := profileSvc.CreateProfile(context.Background(), temp, SuperTenantOrg.ID)
 		p2, _ := profileSvc.CreateProfile(context.Background(), perm, SuperTenantOrg.ID)
@@ -203,9 +264,15 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	})
 
 	t.Run("Scenario3_TempTempThenPerm_Merge", func(t *testing.T) {
-		temp1 := mustUnmarshalProfile(`{"identity_attributes":{"email":["c@wso2.com"],"phone_number":["0771111111"]},"traits":{"interests":["music"]}}`)
+		temp1 := mustUnmarshalProfile(
+			`{"identity_attributes":{"email":["c@wso2.com"],"phone_number":["0771111111"]},` +
+				`"traits":{"interests":["music"]}}`,
+		)
 		temp2 := mustUnmarshalProfile(`{"identity_attributes":{"email":["c@wso2.com"]},"traits":{"interests":["art"]}}`)
-		perm := mustUnmarshalProfile(`{"user_id":"perm-789","identity_attributes":{"user_id": "perm-789","phone_number":["0771111111"]},"traits":{"interests":["sports"]}}`)
+		perm := mustUnmarshalProfile(
+			`{"user_id":"perm-789","identity_attributes":{"user_id": "perm-789","phone_number":["0771111111"]},` +
+				`"traits":{"interests":["sports"]}}`,
+		)
 
 		p1, _ := profileSvc.CreateProfile(context.Background(), temp1, SuperTenantOrg.ID)
 		p2, _ := profileSvc.CreateProfile(context.Background(), temp2, SuperTenantOrg.ID)
@@ -232,9 +299,17 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	})
 
 	t.Run("Scenario4_TempPermThenAnotherTemp", func(t *testing.T) {
-		perm := mustUnmarshalProfile(`{"user_id":"perm-001","identity_attributes":{"user_id":"perm-001","email":["d@wso2.com"]},"traits":{"interests":["music"]}}`)
-		temp := mustUnmarshalProfile(`{"identity_attributes":{"email":["d@wso2.com"],"phone_number":["0775554444"]},"traits":{"interests":["art"]}}`)
-		temp2 := mustUnmarshalProfile(`{"identity_attributes":{"phone_number":["0775554444"]},"traits":{"interests":["sports"]}}`)
+		perm := mustUnmarshalProfile(
+			`{"user_id":"perm-001","identity_attributes":{"user_id":"perm-001","email":["d@wso2.com"]},` +
+				`"traits":{"interests":["music"]}}`,
+		)
+		temp := mustUnmarshalProfile(
+			`{"identity_attributes":{"email":["d@wso2.com"],"phone_number":["0775554444"]},` +
+				`"traits":{"interests":["art"]}}`,
+		)
+		temp2 := mustUnmarshalProfile(
+			`{"identity_attributes":{"phone_number":["0775554444"]},"traits":{"interests":["sports"]}}`,
+		)
 
 		p1, _ := profileSvc.CreateProfile(context.Background(), perm, SuperTenantOrg.ID)
 		p2, _ := profileSvc.CreateProfile(context.Background(), temp, SuperTenantOrg.ID)
@@ -341,10 +416,22 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	t.Run("Scenario9_CrossTenantProfiles_ShouldNotUnify", func(t *testing.T) {
 		OtherTenant := setup.TestOrg(t, fmt.Sprintf("other.org-%d", time.Now().UnixNano()))
 		identityAttr := []schemaModel.ProfileSchemaAttribute{
-			{OrgID: OtherTenant.ID, AttributeID: uuid.New().String(), AttributeName: "identity_attributes.email", ValueType: constants.StringDataType, MergeStrategy: "combine",
-				Mutability: constants.MutabilityReadWrite, MultiValued: true},
+			{
+				OrgID:         OtherTenant.ID,
+				AttributeID:   uuid.New().String(),
+				AttributeName: "identity_attributes.email",
+				ValueType:     constants.StringDataType,
+				MergeStrategy: "combine",
+				Mutability:    constants.MutabilityReadWrite,
+				MultiValued:   true,
+			},
 		}
-		_, err = profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), identityAttr, constants.IdentityAttributes, OtherTenant.ID)
+		_, err = profileSchemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			identityAttr,
+			constants.IdentityAttributes,
+			OtherTenant.ID,
+		)
 
 		emailRuleID := uuid.New().String()
 		jsonData := []byte(`{
@@ -382,10 +469,12 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 	})
 
 	t.Run("Scenario10_AppAttribute_Separation", func(t *testing.T) {
-		p1JSON := `{ "identity_attributes":{"email":["shared-app-test@wso2.com"]}, "application_data":{"` + AppAID + `":{"ui_mode":"dark"},"` + AppBID + `":{"ui_mode":"light"}}}`
+		p1JSON := `{ "identity_attributes":{"email":["shared-app-test@wso2.com"]}, "application_data":{"` +
+			AppAID + `":{"ui_mode":"dark"},"` + AppBID + `":{"ui_mode":"light"}}}`
 		p1Req := mustUnmarshalProfile(p1JSON)
 
-		p2JSON := `{"identity_attributes":{"email":["shared-app-test@wso2.com"]}, "application_data":{"` + AppBID + `":{"ui_mode":"light"}}}`
+		p2JSON := `{"identity_attributes":{"email":["shared-app-test@wso2.com"]}, "application_data":{"` +
+			AppBID + `":{"ui_mode":"light"}}}`
 		p2Req := mustUnmarshalProfile(p2JSON)
 
 		prof1, err1 := profileSvc.CreateProfile(context.Background(), p1Req, SuperTenantOrg.ID)
@@ -442,7 +531,11 @@ func Test_Profile_Unification_Scenarios(t *testing.T) {
 		}
 		cleanProfiles(profileSvc, SuperTenantOrg)
 		_ = profileSchemaSvc.DeleteProfileSchema(context.Background(), SuperTenantOrg.ID)
-		_ = profileSchemaSvc.DeleteProfileSchemaAttributesByScope(context.Background(), SuperTenantOrg.ID, constants.IdentityAttributes)
+		_ = profileSchemaSvc.DeleteProfileSchemaAttributesByScope(
+			context.Background(),
+			SuperTenantOrg.ID,
+			constants.IdentityAttributes,
+		)
 	})
 }
 

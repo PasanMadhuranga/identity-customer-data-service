@@ -40,7 +40,12 @@ func Test_UnificationRule(t *testing.T) {
 				Mutability:    constants.MutabilityReadWrite,
 			},
 		}
-		_, err := profileSchemaService.AddProfileSchemaAttributesForScope(context.Background(), schemaAttributes, constants.IdentityAttributes, SuperTenantOrg.ID)
+		_, err := profileSchemaService.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			schemaAttributes,
+			constants.IdentityAttributes,
+			SuperTenantOrg.ID,
+		)
 		require.NoError(t, err, "Failed to add enrichment rule dependency")
 	})
 
@@ -72,7 +77,12 @@ func Test_UnificationRule(t *testing.T) {
 			MergeStrategy: "combine",
 			Mutability:    constants.MutabilityReadWrite,
 		}
-		_, err := profileSchemaService.AddProfileSchemaAttributesForScope(context.Background(), []profileSchema.ProfileSchemaAttribute{subAttr}, constants.Traits, SuperTenantOrg.ID)
+		_, err := profileSchemaService.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			[]profileSchema.ProfileSchemaAttribute{subAttr},
+			constants.Traits,
+			SuperTenantOrg.ID,
+		)
 		require.NoError(t, err, "Failed to add sub-attribute to schema")
 
 		//  Add parent complex attribute referencing sub-attribute
@@ -90,7 +100,12 @@ func Test_UnificationRule(t *testing.T) {
 				},
 			},
 		}
-		_, err = profileSchemaService.AddProfileSchemaAttributesForScope(context.Background(), []profileSchema.ProfileSchemaAttribute{parentAttr}, constants.Traits, SuperTenantOrg.ID)
+		_, err = profileSchemaService.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			[]profileSchema.ProfileSchemaAttribute{parentAttr},
+			constants.Traits,
+			SuperTenantOrg.ID,
+		)
 		require.NoError(t, err, "Failed to add complex attribute to schema")
 
 		// Try creating a unification rule with that complex attribute
@@ -107,7 +122,12 @@ func Test_UnificationRule(t *testing.T) {
 
 		err = unificationRuleService.AddUnificationRule(context.Background(), rule, SuperTenantOrg.ID)
 		errDesc := utils.ExtractErrorDescription(err)
-		require.Contains(t, errDesc, "not allowed as it is a complex data type", "Expected validation message for complex attribute rejection")
+		require.Contains(
+			t,
+			errDesc,
+			"not allowed as it is a complex data type",
+			"Expected validation message for complex attribute rejection",
+		)
 	})
 
 	t.Run("Get_all_unification_rules", func(t *testing.T) {
@@ -139,6 +159,10 @@ func Test_UnificationRule(t *testing.T) {
 			_ = unificationRuleService.DeleteUnificationRule(context.Background(), r.RuleID, SuperTenantOrg.ID)
 		}
 		_ = profileSchemaService.DeleteProfileSchema(context.Background(), SuperTenantOrg.ID)
-		_ = profileSchemaService.DeleteProfileSchemaAttributesByScope(context.Background(), SuperTenantOrg.ID, constants.IdentityAttributes)
+		_ = profileSchemaService.DeleteProfileSchemaAttributesByScope(
+			context.Background(),
+			SuperTenantOrg.ID,
+			constants.IdentityAttributes,
+		)
 	})
 }

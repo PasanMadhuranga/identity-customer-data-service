@@ -64,10 +64,14 @@ func RegisterFuzzyResolveFunc(fn func(ctx context.Context, orgId string, profile
 }
 
 // reindexAfterMergeFunc is called after a merge to update blocking keys.
-var reindexAfterMergeFunc func(ctx context.Context, primaryID, secondaryID string, orgId string, merged profileModel.Profile)
+var reindexAfterMergeFunc func(
+	ctx context.Context, primaryID, secondaryID string, orgId string, merged profileModel.Profile,
+)
 
 // RegisterReindexAfterMergeFunc sets the callback for post-merge blocking key reindex.
-func RegisterReindexAfterMergeFunc(fn func(ctx context.Context, primaryID, secondaryID string, orgId string, merged profileModel.Profile)) {
+func RegisterReindexAfterMergeFunc(
+	fn func(ctx context.Context, primaryID, secondaryID string, orgId string, merged profileModel.Profile),
+) {
 	reindexAfterMergeFunc = fn
 }
 
@@ -337,8 +341,11 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 	// Merge profile data using schema rules
 	schemaRules, err := schemaService.GetEffectiveProfileSchemaAttributes(ctx, orgID)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to fetch profile schema attributes for org %s during unification of profile %s",
-			orgID, newProfile.ProfileID), log.Error(err))
+		logger.Error(
+			fmt.Sprintf("Failed to fetch profile schema attributes for org %s during unification of profile %s",
+				orgID, newProfile.ProfileID),
+			log.Error(err),
+		)
 		return nil, fmt.Errorf("fetch schema rules for org '%s': %w", orgID, err)
 	}
 	newMasterProfile := MergeProfiles(existingMasterProfile, newProfile, schemaRules)
@@ -358,11 +365,28 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 
 	// ── Case: perm-temp or temp-perm ──
 	if hasUserIDExisting != hasUserIDNew {
-		return mergePermanentAndTemporary(ctx, orgID, existingMasterProfile, newProfile, newMasterProfile, reason, hasExistingChildren)
+		return mergePermanentAndTemporary(
+			ctx,
+			orgID,
+			existingMasterProfile,
+			newProfile,
+			newMasterProfile,
+			reason,
+			hasExistingChildren,
+		)
 	}
 
 	// ── Case: Both permanent with same userId OR both temporary ──
-	return mergeSameKindProfiles(ctx, orgID, existingMasterProfile, newProfile, newMasterProfile, reason, hasUserIDExisting, hasExistingChildren)
+	return mergeSameKindProfiles(
+		ctx,
+		orgID,
+		existingMasterProfile,
+		newProfile,
+		newMasterProfile,
+		reason,
+		hasUserIDExisting,
+		hasExistingChildren,
+	)
 }
 
 // mergePermanentAndTemporary merges a permanent profile (has userId) with a temporary one.
@@ -408,7 +432,9 @@ func mergePermanentAndTemporary(ctx context.Context, orgID string,
 
 		// If the existing master had children, re-parent them to the new master
 		if hasExistingChildren {
-			if err := profileStore.UpdateProfileReferences(ctx, newMasterProfile, existingMasterProfile.ProfileStatus.References); err != nil {
+			if err := profileStore.UpdateProfileReferences(
+				ctx, newMasterProfile, existingMasterProfile.ProfileStatus.References,
+			); err != nil {
 				logger.Error(fmt.Sprintf("Failed to re-parent references from %s to %s",
 					existingMasterProfile.ProfileID, newMasterProfile.ProfileID), log.Error(err))
 				return nil, fmt.Errorf("re-parent children from '%s' to '%s': %w",
@@ -546,7 +572,9 @@ func persistMergedProfileData(ctx context.Context, orgID string, masterProfile p
 	logger := log.GetLogger()
 
 	for _, appCtx := range masterProfile.ApplicationData {
-		if err := profileStore.InsertMergedMasterProfileAppData(ctx, masterProfile.ProfileID, orgID, appCtx); err != nil {
+		if err := profileStore.InsertMergedMasterProfileAppData(
+			ctx, masterProfile.ProfileID, orgID, appCtx,
+		); err != nil {
 			logger.Error(fmt.Sprintf("Failed to update app data for master profile %s while unifying profile %s",
 				masterProfile.ProfileID, triggerProfileID), log.Error(err))
 			return fmt.Errorf("persist app data for master '%s': %w", masterProfile.ProfileID, err)
@@ -554,7 +582,9 @@ func persistMergedProfileData(ctx context.Context, orgID string, masterProfile p
 	}
 
 	if masterProfile.Traits != nil {
-		if err := profileStore.InsertMergedMasterProfileTraitData(ctx, masterProfile.ProfileID, orgID, masterProfile.Traits); err != nil {
+		if err := profileStore.InsertMergedMasterProfileTraitData(
+			ctx, masterProfile.ProfileID, orgID, masterProfile.Traits,
+		); err != nil {
 			logger.Error(fmt.Sprintf("Failed to update traits for master profile %s while unifying profile %s",
 				masterProfile.ProfileID, triggerProfileID), log.Error(err))
 			return fmt.Errorf("persist traits for master '%s': %w", masterProfile.ProfileID, err)
@@ -562,7 +592,9 @@ func persistMergedProfileData(ctx context.Context, orgID string, masterProfile p
 	}
 
 	if masterProfile.IdentityAttributes != nil {
-		if err := profileStore.MergeIdentityDataOfProfiles(ctx, masterProfile.ProfileID, orgID, masterProfile.IdentityAttributes); err != nil {
+		if err := profileStore.MergeIdentityDataOfProfiles(
+			ctx, masterProfile.ProfileID, orgID, masterProfile.IdentityAttributes,
+		); err != nil {
 			logger.Error(fmt.Sprintf("Failed to update identity data for master profile %s while unifying profile %s",
 				masterProfile.ProfileID, triggerProfileID), log.Error(err))
 			return fmt.Errorf("persist identity attributes for master '%s': %w", masterProfile.ProfileID, err)
@@ -576,7 +608,11 @@ func persistMergedProfileData(ctx context.Context, orgID string, masterProfile p
 }
 
 // MergeProfiles merges two profiles based on schema rules and returns the merged profile.
-func MergeProfiles(existingProfile profileModel.Profile, incomingProfile profileModel.Profile, schemaRules []schemaModel.ProfileSchemaAttribute) profileModel.Profile {
+func MergeProfiles(
+	existingProfile profileModel.Profile,
+	incomingProfile profileModel.Profile,
+	schemaRules []schemaModel.ProfileSchemaAttribute,
+) profileModel.Profile {
 	logger := log.GetLogger()
 	logger.Info("Merging profiles, " + existingProfile.ProfileID + " and " + incomingProfile.ProfileID)
 
@@ -585,7 +621,12 @@ func MergeProfiles(existingProfile profileModel.Profile, incomingProfile profile
 	appRuleMap := buildApplicationSchemaRuleMap(schemaRules)
 
 	merged.Traits = mergeNamespaceMap(existingProfile.Traits, incomingProfile.Traits, "traits", ruleMap)
-	merged.IdentityAttributes = mergeNamespaceMap(existingProfile.IdentityAttributes, incomingProfile.IdentityAttributes, "identity_attributes", ruleMap)
+	merged.IdentityAttributes = mergeNamespaceMap(
+		existingProfile.IdentityAttributes,
+		incomingProfile.IdentityAttributes,
+		"identity_attributes",
+		ruleMap,
+	)
 	merged.ApplicationData = mergeAppData(existingProfile.ApplicationData, incomingProfile.ApplicationData, appRuleMap)
 
 	if incomingProfile.UserID != "" {
@@ -685,7 +726,11 @@ func mergeByPath(existing, incoming interface{}, currentPath string,
 }
 
 // matchesUnificationCandidate uses the same attribute traversal as the new database lookups.
-func matchesUnificationCandidate(existingProfile profileModel.Profile, newProfile profileModel.Profile, rule model.UnificationRule) bool {
+func matchesUnificationCandidate(
+	existingProfile profileModel.Profile,
+	newProfile profileModel.Profile,
+	rule model.UnificationRule,
+) bool {
 	values := make(map[string]bool)
 	for _, value := range unificationRuleValues(existingProfile, rule.PropertyName) {
 		values[value] = true
@@ -757,7 +802,13 @@ func collectUnificationStrings(value interface{}, path []string, result *[]strin
 
 // MergeAttributeValue merges an incoming attribute value into the existing one by the merge strategy:
 // overwrite, ignore, or combine. An unknown strategy takes the incoming value.
-func MergeAttributeValue(existing interface{}, incoming interface{}, strategy string, valueType string, multiValued bool) interface{} {
+func MergeAttributeValue(
+	existing interface{},
+	incoming interface{},
+	strategy string,
+	valueType string,
+	multiValued bool,
+) interface{} {
 	switch strings.ToLower(strategy) {
 	case "overwrite":
 		if isEmptyValue(incoming) {
@@ -1090,7 +1141,9 @@ func mergeAppData(existingAppData, incomingAppData []profileModel.ApplicationDat
 	return mergedList
 }
 
-func buildApplicationSchemaRuleMap(rules []schemaModel.ProfileSchemaAttribute) map[string]map[string]schemaModel.ProfileSchemaAttribute {
+func buildApplicationSchemaRuleMap(
+	rules []schemaModel.ProfileSchemaAttribute,
+) map[string]map[string]schemaModel.ProfileSchemaAttribute {
 	result := make(map[string]map[string]schemaModel.ProfileSchemaAttribute)
 
 	for _, rule := range rules {

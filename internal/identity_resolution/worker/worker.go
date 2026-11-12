@@ -160,8 +160,10 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 				if _, ok := profileMap[masterID]; !ok {
 					masterProfiles, loadErr := irStore.GetProfilesByIDs(ctx, []string{masterID})
 					if loadErr != nil || len(masterProfiles) == 0 {
-						logger.Warn(fmt.Sprintf("AsyncWorker: could not load master '%s' for child '%s', skipping child",
-							masterID, cid))
+						logger.Warn(
+							fmt.Sprintf("AsyncWorker: could not load master '%s' for child '%s', skipping child",
+								masterID, cid),
+						)
 						continue
 					}
 					profileMap[masterID] = &masterProfiles[0]
@@ -277,7 +279,14 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 			matchedProfile, loadErr := profileStore.GetProfile(ctx, sc.id, orgID)
 			if loadErr != nil || matchedProfile == nil {
 				logger.Error(fmt.Sprintf("AsyncWorker: failed to load matched profile '%s' for auto-merge", sc.id))
-				insertReviewTask(ctx, orgID, freshProfile.ProfileID, sc.withReason(model.ReasonAutoMergeFailed), thresholds.ManualReview, rejections)
+				insertReviewTask(
+					ctx,
+					orgID,
+					freshProfile.ProfileID,
+					sc.withReason(model.ReasonAutoMergeFailed),
+					thresholds.ManualReview,
+					rejections,
+				)
 				continue
 			}
 
@@ -286,25 +295,46 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 			// Attribute the merge to the rule that drove it, so the child reference
 			// records why rather than a generic "auto_merge".
 			mergeReason := constants.MergeReasonAutoMerge
-			if ruleName, found := urModel.PrimaryRuleName(sc.breakdown, rules, thresholds.ManualReview, thresholds.DeterministicMatchDecisive); found {
+			if ruleName, found := urModel.PrimaryRuleName(sc.breakdown, rules, thresholds.ManualReview,
+				thresholds.DeterministicMatchDecisive); found {
 				mergeReason = ruleName
 			}
 
 			// The surviving master is whichever profile the merge promoted — it is not
 			// necessarily matchedProfile. A permanent profile wins over a temporary one,
 			// and two temporary profiles are both demoted under a brand-new master.
-			survivingMaster, mergeErr := workers.MergeMatchedProfiles(ctx, orgID, *matchedProfile, *freshProfile, mergeReason)
+			survivingMaster, mergeErr := workers.MergeMatchedProfiles(
+				ctx,
+				orgID,
+				*matchedProfile,
+				*freshProfile,
+				mergeReason,
+			)
 			if mergeErr != nil {
 				// Merge failed so not mark merged=true, not write audit log, not
 				// cascade-cancel related tasks.
 				logger.Error(fmt.Sprintf("AsyncWorker: auto-merge failed for '%s' → '%s' — falling back to review task",
 					matchedProfile.ProfileID, freshProfile.ProfileID), log.Error(mergeErr))
-				insertReviewTask(ctx, orgID, freshProfile.ProfileID, sc.withReason(model.ReasonAutoMergeFailed), thresholds.ManualReview, rejections)
+				insertReviewTask(
+					ctx,
+					orgID,
+					freshProfile.ProfileID,
+					sc.withReason(model.ReasonAutoMergeFailed),
+					thresholds.ManualReview,
+					rejections,
+				)
 				continue
 			}
 			if survivingMaster == nil {
 				// Pair turned out to be unmergeable — surface it for review instead.
-				insertReviewTask(ctx, orgID, freshProfile.ProfileID, sc.withReason(model.ReasonAutoMergeFailed), thresholds.ManualReview, rejections)
+				insertReviewTask(
+					ctx,
+					orgID,
+					freshProfile.ProfileID,
+					sc.withReason(model.ReasonAutoMergeFailed),
+					thresholds.ManualReview,
+					rejections,
+				)
 				continue
 			}
 			merged = true

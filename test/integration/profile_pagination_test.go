@@ -100,22 +100,32 @@ func Test_ProfileCursorPagination(t *testing.T) {
 		require.Len(t, firstPage, pageSize)
 
 		last := firstPage[len(firstPage)-1]
-		secondPage, _, err := profileSvc.GetAllProfilesCursor(context.Background(), org.ID, pageSize, &profileModel.ProfileCursor{
-			CreatedAt: last.Meta.CreatedAt,
-			ProfileID: last.ProfileID,
-			Direction: "next",
-		})
+		secondPage, _, err := profileSvc.GetAllProfilesCursor(
+			context.Background(),
+			org.ID,
+			pageSize,
+			&profileModel.ProfileCursor{
+				CreatedAt: last.Meta.CreatedAt,
+				ProfileID: last.ProfileID,
+				Direction: "next",
+			},
+		)
 		require.NoError(t, err)
 		require.Len(t, secondPage, pageSize)
 
 		// Stepping back from the start of the second page must reproduce the
 		// first page.
 		first := secondPage[0]
-		backwards, _, err := profileSvc.GetAllProfilesCursor(context.Background(), org.ID, pageSize, &profileModel.ProfileCursor{
-			CreatedAt: first.Meta.CreatedAt,
-			ProfileID: first.ProfileID,
-			Direction: "prev",
-		})
+		backwards, _, err := profileSvc.GetAllProfilesCursor(
+			context.Background(),
+			org.ID,
+			pageSize,
+			&profileModel.ProfileCursor{
+				CreatedAt: first.Meta.CreatedAt,
+				ProfileID: first.ProfileID,
+				Direction: "prev",
+			},
+		)
 		require.NoError(t, err)
 		require.Len(t, backwards, pageSize)
 

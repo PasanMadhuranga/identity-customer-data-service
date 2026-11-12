@@ -138,7 +138,13 @@ func Test_LegacyOrganisation_KeepsExactMatchMerging(t *testing.T) {
 			existing := insertBareProfile(t, org, "", shared)
 			incoming := insertBareProfile(t, org, "", shared)
 
-			master, mergeErr := workers.MergeMatchedProfiles(context.Background(), ref.ID, existing, incoming, constants.MergeReasonAutoMerge)
+			master, mergeErr := workers.MergeMatchedProfiles(
+				context.Background(),
+				ref.ID,
+				existing,
+				incoming,
+				constants.MergeReasonAutoMerge,
+			)
 			if mergeErr != nil {
 				t.Fatalf("merge: %v", mergeErr)
 			}

@@ -140,7 +140,7 @@ func TestInitProfileCreatesAProfileAndSetsTheCookie(t *testing.T) {
 	profile := decodeProfile(t, recorder)
 	assert.NotEmpty(t, profile.ProfileID)
 	assert.Equal(t, "Colombo", profile.Traits["city"])
-	assert.NotEmpty(t, profile.AnonymousProfileTracker)
+	assert.NotEmpty(t, profile.AnonymousTracker)
 	assert.Contains(t, recorder.Header().Get("Location"), "/profiles/"+profile.ProfileID)
 	var cookie *http.Cookie
 	for _, c := range recorder.Result().Cookies() {
@@ -149,7 +149,7 @@ func TestInitProfileCreatesAProfileAndSetsTheCookie(t *testing.T) {
 		}
 	}
 	require.NotNil(t, cookie, "the profile cookie is set")
-	assert.Equal(t, profile.AnonymousProfileTracker, cookie.Value)
+	assert.Equal(t, profile.AnonymousTracker, cookie.Value)
 }
 
 func TestInitProfileRefusals(t *testing.T) {

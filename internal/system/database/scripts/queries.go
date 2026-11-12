@@ -47,12 +47,14 @@ var DeleteProfileSchemaForOrg = newQuery("CDS-SCH-01",
         DELETE FROM profile_schema WHERE org_id = $1 AND scope != 'identity_attributes' `)
 
 // GetProfileSchemaByOrg returns every schema attribute of an org.
-var GetProfileSchemaByOrg = newQuery("CDS-SCH-02",
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy , application_identifier, mutability, 
-       multi_valued, sub_attributes::text, canonical_values::text FROM profile_schema WHERE org_id = $1`,
+var GetProfileSchemaByOrg = newQuery(
+	"CDS-SCH-02",
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy , application_identifier,
+       mutability, multi_valued, sub_attributes::text, canonical_values::text FROM profile_schema WHERE org_id = $1`,
 	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy , application_identifier, mutability,
        multi_valued, CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values
-       FROM profile_schema WHERE org_id = $1`)
+       FROM profile_schema WHERE org_id = $1`,
+)
 
 // GetProfileSchemaAttributesByIDs returns the attributes with the IDs. The %s is the IN list of
 // attribute IDs.
@@ -97,7 +99,8 @@ var GetProfileSchemaAttributeByName = newQuery("CDS-SCH-06",
        multi_valued, sub_attributes::text, canonical_values::text, scope FROM profile_schema WHERE org_id = $1
        AND attribute_name = $2 LIMIT 1`,
 	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
-       multi_valued, CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values, scope
+       multi_valued, CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values,
+       scope
        FROM profile_schema WHERE org_id = $1
        AND attribute_name = $2 LIMIT 1`)
 
@@ -105,15 +108,20 @@ var GetProfileSchemaAttributeByName = newQuery("CDS-SCH-06",
 // appends the VALUES list.
 var InsertProfileSchemaAttributesForScope = newQuery("CDS-SCH-07",
 	`INSERT INTO profile_schema (org_id, attribute_id, attribute_name, value_type, merge_strategy, 
-                            application_identifier, mutability, multi_valued, sub_attributes, canonical_values, scope, display_name) VALUES `)
+                            application_identifier, mutability, multi_valued, sub_attributes, canonical_values, scope,
+                            display_name) VALUES `)
 
 // GetProfileSchemaAttributeByScope returns the schema attributes of an org in one scope.
-var GetProfileSchemaAttributeByScope = newQuery("CDS-SCH-08",
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued,   sub_attributes::text,
+var GetProfileSchemaAttributeByScope = newQuery(
+	"CDS-SCH-08",
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
+  multi_valued,   sub_attributes::text,
   canonical_values::text FROM profile_schema WHERE org_id = $1 AND scope = $2`,
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued,
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
+  multi_valued,
   CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values
-  FROM profile_schema WHERE org_id = $1 AND scope = $2`)
+  FROM profile_schema WHERE org_id = $1 AND scope = $2`,
+)
 
 // UpdateProfileSchemaAttributesForSchema replaces the fields of one schema attribute, matched by org, ID and scope.
 var UpdateProfileSchemaAttributesForSchema = newQuery("CDS-SCH-09",
@@ -136,21 +144,30 @@ var DeleteProfileSchemaAttributeForScope = newQuery("CDS-SCH-10",
 	`DELETE FROM profile_schema WHERE org_id = $1 AND scope =  $2`)
 
 // GetProfileSchemaAttributeByID returns the schema attribute of an org with the given ID.
-var GetProfileSchemaAttributeByID = newQuery("CDS-SCH-11",
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued, sub_attributes::text,
+var GetProfileSchemaAttributeByID = newQuery(
+	"CDS-SCH-11",
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
+  multi_valued, sub_attributes::text,
   canonical_values::text, scope
 	          FROM profile_schema WHERE org_id = $1 AND attribute_id = $2`,
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued,
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
+  multi_valued,
   CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values, scope
-	          FROM profile_schema WHERE org_id = $1 AND attribute_id = $2`)
+	          FROM profile_schema WHERE org_id = $1 AND attribute_id = $2`,
+)
 
 // FilterProfileSchemaAttributes is the base of a filtered schema attribute lookup for an org. The caller
 // appends the filter conditions.
-var FilterProfileSchemaAttributes = newQuery("CDS-SCH-12",
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued, sub_attributes::text,
+var FilterProfileSchemaAttributes = newQuery(
+	"CDS-SCH-12",
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
+  multi_valued, sub_attributes::text,
   canonical_values::text FROM profile_schema WHERE org_id = $1`,
-	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier, multi_valued,
-  CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values FROM profile_schema WHERE org_id = $1`)
+	`SELECT attribute_id, attribute_name, display_name, value_type, merge_strategy, mutability, application_identifier,
+  multi_valued,
+  CAST(sub_attributes AS TEXT) AS sub_attributes, CAST(canonical_values AS TEXT) AS canonical_values
+  FROM profile_schema WHERE org_id = $1`,
+)
 
 // DeleteProfileSchemaAttributeByID removes the schema attribute of an org with the given ID.
 var DeleteProfileSchemaAttributeByID = newQuery("CDS-SCH-13",
@@ -168,10 +185,12 @@ var UpdateProfileSchemaAttributeFields = newQuery("CDS-SCH-15",
 	`UPDATE profile_schema SET `)
 
 // GetUnificationRules returns every unification rule of an org.
-var GetUnificationRules = newQuery("CDS-UNR-01",
-	`SELECT rule_id, org_id, rule_name, property_name, property_id, priority, is_active, attribute_type, unification_method,
-	 match_strength, mismatch_strength, created_at, updated_at
-FROM unification_rules WHERE org_id = $1`)
+var GetUnificationRules = newQuery(
+	"CDS-UNR-01",
+	`SELECT rule_id, org_id, rule_name, property_name, property_id, priority, is_active, attribute_type,
+	 unification_method, match_strength, mismatch_strength, created_at, updated_at
+FROM unification_rules WHERE org_id = $1`,
+)
 
 // GetUnificationRulesByIDs returns the rules with the IDs. The %s is the IN list of rule IDs.
 var GetUnificationRulesByIDs = newQuery("CDS-UNR-06",
@@ -180,10 +199,12 @@ var GetUnificationRulesByIDs = newQuery("CDS-UNR-06",
 	 FROM unification_rules WHERE rule_id IN (%s)`)
 
 // GetUnificationRule returns the unification rule of an org with the given ID.
-var GetUnificationRule = newQuery("CDS-UNR-02",
-	`SELECT rule_id, org_id, rule_name, property_name, property_id, priority, is_active, attribute_type, unification_method,
-	 match_strength, mismatch_strength, created_at, updated_at
-	 FROM unification_rules WHERE rule_id = $1 AND org_id = $2`)
+var GetUnificationRule = newQuery(
+	"CDS-UNR-02",
+	`SELECT rule_id, org_id, rule_name, property_name, property_id, priority, is_active, attribute_type,
+	 unification_method, match_strength, mismatch_strength, created_at, updated_at
+	 FROM unification_rules WHERE rule_id = $1 AND org_id = $2`,
+)
 
 // DeleteUnificationRule removes the unification rule of an org with the given ID.
 var DeleteUnificationRule = newQuery("CDS-UNR-03",
@@ -212,7 +233,8 @@ var InsertProfile = newQuery("CDS-PRF-01",
 // InsertProfileReference stores the reference row of a profile. An existing row is left unchanged.
 var InsertProfileReference = newQuery("CDS-PRF-02",
 	`
-		INSERT INTO profile_reference (profile_id, profile_status, reference_profile_id, reference_reason, org_id, reference_profile_org_id)
+		INSERT INTO profile_reference (profile_id, profile_status, reference_profile_id, reference_reason, org_id,
+			reference_profile_org_id)
 		VALUES ($1,$2,$3,$4, $5, $6)
 		ON CONFLICT (profile_id) DO NOTHING;`)
 
@@ -493,16 +515,25 @@ var UpsertDefaultIdentityDataCategory = newQuery("CDS-CON-05",
 				)`)
 
 // GetAllConsentCategories returns every consent category of an org.
-var GetAllConsentCategories = newQuery("CDS-CON-06",
-	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories WHERE org_id = $1`)
+var GetAllConsentCategories = newQuery(
+	"CDS-CON-06",
+	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories
+	 WHERE org_id = $1`,
+)
 
 // GetConsentCategoryByID returns the consent category of an org with the given identifier.
-var GetConsentCategoryByID = newQuery("CDS-CON-07",
-	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories WHERE category_identifier = $1 AND org_id = $2`)
+var GetConsentCategoryByID = newQuery(
+	"CDS-CON-07",
+	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories
+	 WHERE category_identifier = $1 AND org_id = $2`,
+)
 
 // GetConsentCategoryByName returns the consent category of an org with the given name.
-var GetConsentCategoryByName = newQuery("CDS-CON-08",
-	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories WHERE category_name = $1 AND org_id = $2`)
+var GetConsentCategoryByName = newQuery(
+	"CDS-CON-08",
+	`SELECT category_name, category_identifier, org_id, purpose, destinations, is_mandatory FROM consent_categories
+	 WHERE category_name = $1 AND org_id = $2`,
+)
 
 // GetConsentCategoryIDsByOrg returns the identifiers of every consent category of an org.
 var GetConsentCategoryIDsByOrg = newQuery("CDS-CON-16",
@@ -513,8 +544,11 @@ var GetMandatoryConsentCategoryIDsByOrg = newQuery("CDS-CON-09",
 	`SELECT category_identifier FROM consent_categories WHERE org_id = $1 AND is_mandatory = TRUE`)
 
 // UpdateConsentCategory replaces the name, purpose and destinations of a consent category.
-var UpdateConsentCategory = newQuery("CDS-CON-10",
-	`UPDATE consent_categories SET category_name=$1, purpose=$2, destinations=$3 WHERE category_identifier=$4 AND org_id=$5`)
+var UpdateConsentCategory = newQuery(
+	"CDS-CON-10",
+	`UPDATE consent_categories SET category_name=$1, purpose=$2, destinations=$3
+	 WHERE category_identifier=$4 AND org_id=$5`,
+)
 
 // DeleteConsentCategory removes the consent category of an org with the given identifier.
 var DeleteConsentCategory = newQuery("CDS-CON-11",
@@ -527,8 +561,11 @@ var InsertConsentCategoryAttribute = newQuery("CDS-CON-12",
 				ON CONFLICT (category_id, scope, attribute_name, application_identifier) DO NOTHING`)
 
 // GetConsentCategoryAttributesByCategoryID returns the attributes linked to a consent category.
-var GetConsentCategoryAttributesByCategoryID = newQuery("CDS-CON-13",
-	`SELECT scope, attribute_name, attribute_id, application_identifier FROM consent_category_attributes WHERE category_id = $1`)
+var GetConsentCategoryAttributesByCategoryID = newQuery(
+	"CDS-CON-13",
+	`SELECT scope, attribute_name, attribute_id, application_identifier FROM consent_category_attributes
+	 WHERE category_id = $1`,
+)
 
 // DeleteConsentCategoryAttributesByCategoryID removes every attribute linked to a consent category.
 var DeleteConsentCategoryAttributesByCategoryID = newQuery("CDS-CON-14",
@@ -673,13 +710,16 @@ var IRCountProfilesByBlockingKey = newQuery("CDS-IDR-07",
 // IRInsertReviewTask raises a task, reopening the pair's existing row where there is one. A
 // REJECTED row is reopened too: the worker raises a task for a rejected pair only once the
 // rejection is reconsidered, and the decision itself is kept in rejection_pairs.
-var IRInsertReviewTask = newQuery("CDS-IDR-08",
-	`INSERT INTO review_tasks (id, org_id, incoming_profile_id, candidate_profile_id, match_score, status, score_breakdown, match_reason)
+var IRInsertReviewTask = newQuery(
+	"CDS-IDR-08",
+	`INSERT INTO review_tasks (id, org_id, incoming_profile_id, candidate_profile_id, match_score, status,
+				 score_breakdown, match_reason)
 				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 				 ON CONFLICT (incoming_profile_id, candidate_profile_id)
 				 DO UPDATE SET match_score = $5, score_breakdown = $7, match_reason = $8, status = $6,
 				               resolved_at = NULL, resolved_by = NULL, resolution_notes = NULL
-				 WHERE review_tasks.status IN ('PENDING', 'CANCELLED', 'REJECTED')`)
+				 WHERE review_tasks.status IN ('PENDING', 'CANCELLED', 'REJECTED')`,
+)
 
 // IRMirrorReviewTaskExists checks whether a PENDING task exists for the reverse pair (candidate→incoming).
 var IRMirrorReviewTaskExists = newQuery("CDS-IDR-09",
@@ -700,7 +740,8 @@ var IRCancelRelatedReviewTasks = newQuery("CDS-IDR-11",
 				 WHERE id != $4 AND status = $5
 				   AND (incoming_profile_id IN ($6, $7) OR candidate_profile_id IN ($6, $7))`,
 	`UPDATE review_tasks
-				 SET status = $1, resolved_at = strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00', resolved_by = $2, resolution_notes = $3
+				 SET status = $1, resolved_at = strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00', resolved_by = $2,
+				     resolution_notes = $3
 				 WHERE id != $4 AND status = $5
 				   AND (incoming_profile_id IN ($6, $7) OR candidate_profile_id IN ($6, $7))`)
 
@@ -754,7 +795,8 @@ var IRUpdateReviewTaskStatus = newQuery("CDS-IDR-18",
 				 WHERE id = $4`,
 	// SQLite has no now(); strftime matches the format the schema defaults use.
 	`UPDATE review_tasks
-				 SET status = $1, resolved_at = strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00', resolved_by = $2, resolution_notes = $3
+				 SET status = $1, resolved_at = strftime('%Y-%m-%d %H:%M:%f', 'now') || '+00:00', resolved_by = $2,
+				     resolution_notes = $3
 				 WHERE id = $4`)
 
 // IRInsertRejectionPair records a rejected profile pair, replacing the evidence of an existing rejection.

@@ -87,13 +87,28 @@ func Test_Profile(t *testing.T) {
 			},
 		}
 
-		_, err := profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), identityAttributes, constants.IdentityAttributes, SuperTenantOrg.ID)
+		_, err := profileSchemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			identityAttributes,
+			constants.IdentityAttributes,
+			SuperTenantOrg.ID,
+		)
 		require.NoError(t, err, "Failed to add identity schema attributes")
 
-		_, err = profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), traits, constants.Traits, SuperTenantOrg.ID)
+		_, err = profileSchemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			traits,
+			constants.Traits,
+			SuperTenantOrg.ID,
+		)
 		require.NoError(t, err, "Failed to add traits schema attributes")
 
-		_, err = profileSchemaSvc.AddProfileSchemaAttributesForScope(context.Background(), appData, constants.ApplicationData, SuperTenantOrg.ID)
+		_, err = profileSchemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			appData,
+			constants.ApplicationData,
+			SuperTenantOrg.ID,
+		)
 		require.NoError(t, err, "Failed to add app data schema attributes")
 	})
 
@@ -178,7 +193,11 @@ func Test_Profile(t *testing.T) {
 			_ = profileSvc.DeleteProfile(context.Background(), p.ProfileID, SuperTenantOrg.ID)
 		}
 		_ = profileSchemaSvc.DeleteProfileSchema(context.Background(), SuperTenantOrg.ID)
-		_ = profileSchemaSvc.DeleteProfileSchemaAttributesByScope(context.Background(), SuperTenantOrg.ID, constants.IdentityAttributes)
+		_ = profileSchemaSvc.DeleteProfileSchemaAttributesByScope(
+			context.Background(),
+			SuperTenantOrg.ID,
+			constants.IdentityAttributes,
+		)
 	})
 }
 

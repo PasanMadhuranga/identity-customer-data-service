@@ -347,9 +347,10 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeByID(w http.Response
 	}
 	if scope == constants.IdentityAttributes {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.AttributeUpdateNotSupported.Code,
-			Message:     errors2.AttributeUpdateNotSupported.Message,
-			Description: "Identity attributes cannot be created or modified. Please update through the Identity Provider.",
+			Code:    errors2.AttributeUpdateNotSupported.Code,
+			Message: errors2.AttributeUpdateNotSupported.Message,
+			Description: "Identity attributes cannot be created or modified. " +
+				"Please update through the Identity Provider.",
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
@@ -586,7 +587,11 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 		// Enqueue the schema sync job for asynchronous processing
 		err := workers.EnqueueSchemaSyncJob(schemaSync)
 		if err != nil {
-			errMsg := fmt.Sprintf("Unable to process schema sync request for organization: %s. The system is currently at capacity. Please try again in a few moments.", org.ID)
+			errMsg := fmt.Sprintf(
+				"Unable to process schema sync request for organization: %s. The system is currently at capacity. "+
+					"Please try again in a few moments.",
+				org.ID,
+			)
 			logger.Error(errMsg)
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.SyncProfileSchema.Code,
@@ -601,7 +606,8 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{"message": "Profile schema sync request accepted for processing."})
+		_ = json.NewEncoder(w).
+			Encode(map[string]string{"message": "Profile schema sync request accepted for processing."})
 		return
 	}
 

@@ -64,7 +64,12 @@ func Test_Consent(t *testing.T) {
 				Mutability:    constants.MutabilityReadWrite,
 			},
 		}
-		_, err := schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), identityAttrs, constants.IdentityAttributes, org.ID)
+		_, err := schemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			identityAttrs,
+			constants.IdentityAttributes,
+			org.ID,
+		)
 		require.NoError(t, err)
 
 		traitAttrs := []profileSchemaModel.ProfileSchemaAttribute{
@@ -78,7 +83,12 @@ func Test_Consent(t *testing.T) {
 				Mutability:    constants.MutabilityReadWrite,
 			},
 		}
-		_, err = schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), traitAttrs, constants.Traits, org.ID)
+		_, err = schemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			traitAttrs,
+			constants.Traits,
+			org.ID,
+		)
 		require.NoError(t, err)
 
 		appAttrs := []profileSchemaModel.ProfileSchemaAttribute{
@@ -93,7 +103,12 @@ func Test_Consent(t *testing.T) {
 				ApplicationIdentifier: testAppID,
 			},
 		}
-		_, err = schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), appAttrs, constants.ApplicationData, org.ID)
+		_, err = schemaSvc.AddProfileSchemaAttributesForScope(
+			context.Background(),
+			appAttrs,
+			constants.ApplicationData,
+			org.ID,
+		)
 		require.NoError(t, err)
 	})
 

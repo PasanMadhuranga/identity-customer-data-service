@@ -104,7 +104,10 @@ func GetUnificationRules(ctx context.Context, orgID string) ([]model.Unification
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for fetching unification rules for organization: %s", orgID)
+		errorMsg := fmt.Sprintf(
+			"Failed to get database client for fetching unification rules for organization: %s",
+			orgID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetUnificationRule.Code,

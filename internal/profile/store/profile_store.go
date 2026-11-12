@@ -407,7 +407,11 @@ func FetchApplicationDataWithAppID(ctx context.Context, profileID string, appID 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed getting db client for fetching application data of app:%s for profile: %s", appID, profileID)
+		errorMsg := fmt.Sprintf(
+			"Failed getting db client for fetching application data of app:%s for profile: %s",
+			appID,
+			profileID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAppData.Code,
@@ -595,7 +599,15 @@ func GetAllProfiles(ctx context.Context,
 	// lookahead
 	limitPlusOne := limit + 1
 
-	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID, cursorTime, cursorProfileID, direction, limitPlusOne)
+	results, err := dbClient.ExecuteQueryContext(
+		ctx,
+		query,
+		orgID,
+		cursorTime,
+		cursorProfileID,
+		direction,
+		limitPlusOne,
+	)
 	if err != nil {
 		errorMsg := "Failed fetching all profiles"
 		logger.Debug(errorMsg, log.Error(err))
@@ -785,7 +797,9 @@ func DeleteProfile(ctx context.Context, profileID string) error {
 
 	rows := len(result)
 	if rows == 0 {
-		logger.Debug(fmt.Sprintf("No profile found with the given Id: %s. Probably would have been deleted already", profileID))
+		logger.Debug(
+			fmt.Sprintf("No profile found with the given Id: %s. Probably would have been deleted already", profileID),
+		)
 	}
 
 	logger.Info(fmt.Sprintf("Profile: %s and associated data deleted successfully", profileID))
@@ -841,7 +855,10 @@ func UpsertAppDatum(ctx context.Context, profileID string, appID string, updates
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for upserting application data for profile: %s", profileID)
+		errorMsg := fmt.Sprintf(
+			"Failed to get database client for upserting application data for profile: %s",
+			profileID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.UpdateAppData.Code,
@@ -872,7 +889,11 @@ func DetachRefererProfileFromReference(ctx context.Context, referenceProfileID, 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for deleting child relationship of child: %s of parent: %s", referenceProfileID, profileID)
+		errorMsg := fmt.Sprintf(
+			"Failed to get database client for deleting child relationship of child: %s of parent: %s",
+			referenceProfileID,
+			profileID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.DeleteProfile.Code,
@@ -906,7 +927,11 @@ func DetachRefererProfileFromReference(ctx context.Context, referenceProfileID, 
 }
 
 // InsertMergedMasterProfileAppData adds or updates application-specific context data.
-func InsertMergedMasterProfileAppData(ctx context.Context, profileID, orgID string, newAppCtx model.ApplicationData) error {
+func InsertMergedMasterProfileAppData(
+	ctx context.Context,
+	profileID, orgID string,
+	newAppCtx model.ApplicationData,
+) error {
 	profile, err := GetProfile(ctx, profileID, orgID)
 	logger := log.GetLogger()
 	if err != nil {
@@ -989,7 +1014,11 @@ func InsertMergedMasterProfileTraitData(ctx context.Context,
 }
 
 // MergeIdentityDataOfProfiles replaces or adds to identity_attributes in Profile
-func MergeIdentityDataOfProfiles(ctx context.Context, profileID, orgID string, identityData map[string]interface{}) error {
+func MergeIdentityDataOfProfiles(
+	ctx context.Context,
+	profileID, orgID string,
+	identityData map[string]interface{},
+) error {
 	profile, err := GetProfile(ctx, profileID, orgID)
 	logger := log.GetLogger()
 	if err != nil {
@@ -1489,18 +1518,39 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 				args = append(args, jsonObj)
 				argID++
 			case "co":
-				conditions = append(conditions,
-					fmt.Sprintf("%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d", appAlias, appKey, argID))
+				conditions = append(
+					conditions,
+					fmt.Sprintf(
+						"%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d",
+						appAlias,
+						appKey,
+						argID,
+					),
+				)
 				args = append(args, "%"+value+"%")
 				argID++
 			case "sw":
-				conditions = append(conditions,
-					fmt.Sprintf("%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d", appAlias, appKey, argID))
+				conditions = append(
+					conditions,
+					fmt.Sprintf(
+						"%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d",
+						appAlias,
+						appKey,
+						argID,
+					),
+				)
 				args = append(args, value+"%")
 				argID++
 			case "ew":
-				conditions = append(conditions,
-					fmt.Sprintf("%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d", appAlias, appKey, argID))
+				conditions = append(
+					conditions,
+					fmt.Sprintf(
+						"%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d",
+						appAlias,
+						appKey,
+						argID,
+					),
+				)
 				args = append(args, "%"+value)
 				argID++
 			default:
@@ -1629,7 +1679,11 @@ func UpdateProfileReferences(ctx context.Context, parentProfile model.Profile, c
 				}, errRoll)
 				return serverError
 			}
-			errorMsg := fmt.Sprintf("Failed to insert referenced profile: %s for parent profile: %s", child.ProfileID, parentProfile.ProfileID)
+			errorMsg := fmt.Sprintf(
+				"Failed to insert referenced profile: %s for parent profile: %s",
+				child.ProfileID,
+				parentProfile.ProfileID,
+			)
 			logger.Debug(errorMsg, log.Error(err))
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.UpdateProfile.Code,
@@ -1879,7 +1933,10 @@ func CreateProfileCookie(ctx context.Context, profileCookie model.ProfileCookie)
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get db client while creating profile cookie with profileId: %s", profileCookie.ProfileID)
+		errorMsg := fmt.Sprintf(
+			"Failed to get db client while creating profile cookie with profileId: %s",
+			profileCookie.ProfileID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.CreateProfileCookie.Code,
@@ -1892,7 +1949,13 @@ func CreateProfileCookie(ctx context.Context, profileCookie model.ProfileCookie)
 
 	query := scripts.InsertCookie
 
-	_, err = dbClient.ExecuteQueryContext(ctx, query, profileCookie.CookieID, profileCookie.ProfileID, profileCookie.IsActive)
+	_, err = dbClient.ExecuteQueryContext(
+		ctx,
+		query,
+		profileCookie.CookieID,
+		profileCookie.ProfileID,
+		profileCookie.IsActive,
+	)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed creating the profile cookie with Id: %s", profileCookie.CookieID)
 		logger.Debug(errorMsg, log.Error(err))
@@ -2142,7 +2205,10 @@ func UpdateProfileConsents(ctx context.Context, profileID string, consents []mod
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to get database client for updating profile consents for profile: %s", profileID)
+		errorMsg := fmt.Sprintf(
+			"Failed to get database client for updating profile consents for profile: %s",
+			profileID,
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.UpdateProfile.Code,

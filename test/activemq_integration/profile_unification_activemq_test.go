@@ -79,7 +79,12 @@ func Test_ActiveMQ_ProfileUnification_EmailBased(t *testing.T) {
 			MultiValued:   true,
 		},
 	}
-	_, err := schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), identityAttrs, constants.IdentityAttributes, org.ID)
+	_, err := schemaSvc.AddProfileSchemaAttributesForScope(
+		context.Background(),
+		identityAttrs,
+		constants.IdentityAttributes,
+		org.ID,
+	)
 	require.NoError(t, err)
 	_, err = schemaSvc.AddProfileSchemaAttributesForScope(context.Background(), traitAttrs, constants.Traits, org.ID)
 	require.NoError(t, err)
@@ -101,8 +106,12 @@ func Test_ActiveMQ_ProfileUnification_EmailBased(t *testing.T) {
 	// ── Create two profiles that share an email ───────────────────────────────
 	profileSvc := profileService.GetProfilesService()
 
-	p1Req := mustUnmarshalProfileReq(`{"identity_attributes":{"email":["shared@activemq-test.com"]},"traits":{"interests":["music"]}}`)
-	p2Req := mustUnmarshalProfileReq(`{"identity_attributes":{"email":["shared@activemq-test.com"]},"traits":{"interests":["sports"]}}`)
+	p1Req := mustUnmarshalProfileReq(
+		`{"identity_attributes":{"email":["shared@activemq-test.com"]},"traits":{"interests":["music"]}}`,
+	)
+	p2Req := mustUnmarshalProfileReq(
+		`{"identity_attributes":{"email":["shared@activemq-test.com"]},"traits":{"interests":["sports"]}}`,
+	)
 
 	p1, err := profileSvc.CreateProfile(context.Background(), p1Req, org.ID)
 	require.NoError(t, err)

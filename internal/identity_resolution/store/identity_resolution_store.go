@@ -40,7 +40,12 @@ import (
 // GetProfilesForOrgAfter returns up to limit profiles whose id sorts after afterProfileID.
 // Pass an empty afterProfileID to start. See IRGetProfilesForOrgAfter for why this is keyed
 // rather than offset-based.
-func GetProfilesForOrgAfter(ctx context.Context, orgID string, afterProfileID string, limit int) ([]model.ProfileData, error) {
+func GetProfilesForOrgAfter(
+	ctx context.Context,
+	orgID string,
+	afterProfileID string,
+	limit int,
+) ([]model.ProfileData, error) {
 	logger := log.GetLogger()
 
 	// An organization that CDS does not know gets an empty key, which matches no row.
@@ -186,7 +191,10 @@ func InsertReviewTask(ctx context.Context, orgID string, task model.ReviewTask) 
 
 // CancelRelatedReviewTasks cancels all PENDING review tasks that reference either of the given profile IDs.
 // Returns the incoming profile IDs of the cancelled tasks so they can be re-evaluated.
-func CancelRelatedReviewTasks(ctx context.Context, excludeTaskID, IncomingProfileID, CandidateProfileID, cancelledBy string) ([]string, error) {
+func CancelRelatedReviewTasks(
+	ctx context.Context,
+	excludeTaskID, IncomingProfileID, CandidateProfileID, cancelledBy string,
+) ([]string, error) {
 	logger := log.GetLogger()
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -317,7 +325,11 @@ func GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) ([]m
 
 // GetPendingReviewTasksByProfile returns up to pageSize pending review tasks whose incoming profile is
 // profileID, highest match score first, and the total number of pending tasks that involve the profile.
-func GetPendingReviewTasksByProfile(ctx context.Context, orgID, profileID string, pageSize int) ([]model.ReviewTask, int, error) {
+func GetPendingReviewTasksByProfile(
+	ctx context.Context,
+	orgID, profileID string,
+	pageSize int,
+) ([]model.ReviewTask, int, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
 		return nil, 0, errors2.NewServerError(errors2.ErrorMessage{

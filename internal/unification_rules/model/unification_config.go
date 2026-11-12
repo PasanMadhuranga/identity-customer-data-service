@@ -26,8 +26,8 @@ type ProfileUnificationMode struct {
 	Rule      string `json:"rule" bson:"rule" binding:"required"`
 }
 
-// ProfileUnificationTrigger sets when profile unification runs.
-type ProfileUnificationTrigger struct {
+// UnificationTrigger sets when profile unification runs.
+type UnificationTrigger struct {
 	TriggerType string `json:"trigger_type" bson:"trigger_type" binding:"required"`
 	LastTrigger int64  `json:"last_trigger" bson:"last_trigger"`
 	Duration    int64  `json:"duration" bson:"duration"`
@@ -36,8 +36,9 @@ type ProfileUnificationTrigger struct {
 // Config is the profile unification configuration: the merge rule for each kind of profile pair and the
 // trigger.
 type Config struct {
-	ProfileUnificationMode    []ProfileUnificationMode  `json:"profile_unification_mode" bson:"profile_unification_mode"`
-	ProfileUnificationTrigger ProfileUnificationTrigger `json:"profile_unification_trigger" bson:"profile_unification_trigger"`
+	ProfileUnificationMode []ProfileUnificationMode `json:"profile_unification_mode" bson:"profile_unification_mode"`
+
+	ProfileUnificationTrigger UnificationTrigger `json:"profile_unification_trigger" bson:"profile_unification_trigger"`
 }
 
 // DefaultConfig returns the built-in unification configuration: every kind of profile pair merges on trigger,
@@ -58,7 +59,7 @@ func DefaultConfig() Config {
 				Rule:      constants.MergeOnTrigger,
 			},
 		},
-		ProfileUnificationTrigger: ProfileUnificationTrigger{
+		ProfileUnificationTrigger: UnificationTrigger{
 			TriggerType: constants.SyncProfileOnUpdate,
 		},
 	}

@@ -87,7 +87,11 @@ func SetupTestPostgres(ctx context.Context) (*TestPostgres, error) {
 		return nil, err
 	}
 
-	dsn := fmt.Sprintf("host=%s port=%s user=testuser password=testpass dbname=testdb sslmode=disable", host, port.Port())
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=testuser password=testpass dbname=testdb sslmode=disable",
+		host,
+		port.Port(),
+	)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		_ = container.Terminate(ctx)

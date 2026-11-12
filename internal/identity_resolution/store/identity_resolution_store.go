@@ -192,7 +192,7 @@ func CancelRelatedReviewTasks(ctx context.Context, excludeTaskID, IncomingProfil
 	}
 	defer dbClient.Close()
 
-	// Step 1: Find incoming profile IDs that will be affected before cancelling.
+	// Step 1: Find incoming profile IDs that will be affected before canceling.
 	findQuery := scripts.IRFindRelatedPendingReviewTasks
 	rows, err := dbClient.ExecuteQueryContext(ctx, findQuery,
 		excludeTaskID, constants.ReviewStatusPending,

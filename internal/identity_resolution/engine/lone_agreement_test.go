@@ -45,7 +45,7 @@ func scoreSoleRule(t *testing.T, attrType, method, a, b string) (float64, string
 	return score, model.Decide(score, thresholds)
 }
 
-// TestLoneLowStrengthRuleCannotAutoMerge is the property that stops an organisation whose only
+// TestLoneLowStrengthRuleCannotAutoMerge is the property that stops an organization whose only
 // rule is a tolerant name match from merging two different people unattended.
 //
 // Being the sole rule makes an attribute top-priority by default rather than by choice, so

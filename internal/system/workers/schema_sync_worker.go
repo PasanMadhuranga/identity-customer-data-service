@@ -33,7 +33,7 @@ import (
 )
 
 // activeSchemaSyncQueue is the queue implementation used for schema
-// synchronisation. It is initialised by StartSchemaSyncWorker. All access is
+// synchronization. It is initialized by StartSchemaSyncWorker. All access is
 // guarded by schemaSyncQueueMu to prevent data races between concurrent
 // Enqueue calls and shutdown.
 var (
@@ -44,7 +44,7 @@ var (
 	schemaSyncLifecycle *jobLifecycle
 )
 
-// StartSchemaSyncWorker initialises the schema sync queue (using the provider
+// StartSchemaSyncWorker initializes the schema sync queue (using the provider
 // configured in the runtime config) and starts the consumer goroutine. An
 // error is returned when the queue cannot be created or started; the caller
 // should treat this as a fatal startup failure.

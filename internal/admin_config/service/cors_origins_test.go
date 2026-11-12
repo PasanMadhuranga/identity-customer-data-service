@@ -135,7 +135,7 @@ func TestValidateCORSOriginsRejectsAListTooLongToStore(t *testing.T) {
 	}
 }
 
-// countingLoader stands in for the database read, counting how often each organisation is read.
+// countingLoader stands in for the database read, counting how often each organization is read.
 type countingLoader struct {
 	reads   map[string]int
 	origins map[string][]string
@@ -162,7 +162,7 @@ func newTestCORSOriginsCache(t *testing.T, loader *countingLoader, ttl time.Dura
 	return &corsOriginsCache{load: loader.load, entries: cache.NewCache(ttl)}
 }
 
-// Each organisation is read once per TTL, including one that has configured no origins.
+// Each organization is read once per TTL, including one that has configured no origins.
 func TestCORSOriginsCacheReadsEachOrganisationOnce(t *testing.T) {
 	loader := newCountingLoader(map[string][]string{"acme-id": {"https://app.acme.com"}})
 	origins := newTestCORSOriginsCache(t, loader, time.Hour)
@@ -178,7 +178,7 @@ func TestCORSOriginsCacheReadsEachOrganisationOnce(t *testing.T) {
 		}
 	}
 	if loader.reads["acme-id"] != 1 || loader.reads["globex-id"] != 1 {
-		t.Errorf("reads = %v, want one per organisation", loader.reads)
+		t.Errorf("reads = %v, want one per organization", loader.reads)
 	}
 }
 
@@ -197,7 +197,7 @@ func TestCORSOriginsCacheRereadsOnceExpired(t *testing.T) {
 	}
 }
 
-// An update drops the entry of the organisation and no other.
+// An update drops the entry of the organization and no other.
 func TestCORSOriginsCacheRereadsAfterAnUpdate(t *testing.T) {
 	loader := newCountingLoader(map[string][]string{})
 	origins := newTestCORSOriginsCache(t, loader, time.Hour)

@@ -134,7 +134,7 @@ func TestUnificationUserIDPrecedesRulesAndPreservesApplicationData(t *testing.T)
 // resolution pipeline, which scores every rule against each candidate rather than stopping
 // at the first, and can route a pair to review instead of merging it. The worker only
 // delegates. Driving the pipeline from here would mean importing it, and it imports the
-// worker, so its behaviour is covered in test/integration instead.
+// worker, so its behavior is covered in test/integration instead.
 //
 // The user-ID invariant above is unaffected and still merges in the worker.
 func TestRuleMatchingIsDelegatedToIdentityResolution(t *testing.T) {

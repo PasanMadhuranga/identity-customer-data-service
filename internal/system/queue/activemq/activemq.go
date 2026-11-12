@@ -291,7 +291,7 @@ func (mc *managedConn) disconnectWithin(ctx context.Context) error {
 // reconnectWithBackoff attempts to re-establish the connection, retrying up
 // to maxAttempts times with exponential backoff capped at maxBackoff. Pass 0
 // for unlimited retries (used by long-lived consumers). Returns an error if
-// all attempts are exhausted or if shutdown is signalled.
+// all attempts are exhausted or if shutdown is signaled.
 func (mc *managedConn) reconnectWithBackoff(context string, maxAttempts int) error {
 	mc.reconnectMu.Lock()
 	defer mc.reconnectMu.Unlock()

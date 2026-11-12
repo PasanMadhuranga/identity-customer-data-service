@@ -133,14 +133,14 @@ func AsExactMatching(rules []UnificationRule) []UnificationRule {
 // score breakdown recorded for the pair.
 //
 // It has to mirror how ScoreCandidate chose, because the rule that decided is not always the
-// first rule that agreed. When an organisation keeps deterministic matches decisive, an
+// first rule that agreed. When an organization keeps deterministic matches decisive, an
 // exact match at any priority ends the evaluation, so a fuzzy rule ranked above it agreed
 // but did not decide anything. Attributing the merge to that fuzzy rule would record a
 // similarity match where an exact identifier was the actual cause — overstating how
 // uncertain the merge was, on the one record that answers "why were these combined?".
 //
 // The order below follows ScoreCandidate's: a unique identifier matching exactly wins
-// outright, then a deterministic agreement if the organisation treats those as decisive,
+// outright, then a deterministic agreement if the organization treats those as decisive,
 // then the first agreement of any kind.
 func PrimaryRuleName(breakdown map[string]float64, rules []UnificationRule,
 	agreementThreshold float64, deterministicMatchDecisive bool) (string, bool) {

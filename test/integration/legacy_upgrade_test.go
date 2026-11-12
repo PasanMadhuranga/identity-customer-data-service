@@ -174,7 +174,7 @@ func Test_LegacyOrganisation_AutoMergeStaysEnabled(t *testing.T) {
 
 	thresholds := irModel.LoadThresholds(context.Background(), setup.TestOrg(t, org).ID)
 	if !thresholds.AutoMergeEnabled {
-		t.Error("an organisation with no auto_merge_enabled row must keep merging automatically")
+		t.Error("an organization with no auto_merge_enabled row must keep merging automatically")
 	}
 	if thresholds.AutoMerge <= 0 || thresholds.ManualReview <= 0 {
 		t.Errorf("thresholds must fall back to usable defaults, got auto=%v review=%v",

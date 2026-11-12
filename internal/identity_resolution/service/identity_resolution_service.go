@@ -235,7 +235,7 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 		}, http.StatusConflict)
 	}
 
-	// Cascade cancel only after the merge has actually happened. Cancelling first meant a
+	// Cascade cancel only after the merge has actually happened. Canceling first meant a
 	// failed merge left the sibling tasks cancelled while this one stayed pending, and a
 	// cancelled pair cannot be re-proposed while a row for it already exists.
 	cancelledIncomingIDs, cancelErr := irStore.CancelRelatedReviewTasks(ctx, taskID,

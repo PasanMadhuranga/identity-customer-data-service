@@ -223,7 +223,7 @@ func Test_FuzzyMatchingSwitch_SearchPath(t *testing.T) {
 // straight from the rule rather than through the evaluation path.
 //
 // Activating a rule rebuilds that attribute's keys across every profile in the org. The
-// backfill therefore has its own reading of the rule's method, and has to honour the server
+// backfill therefore has its own reading of the rule's method, and has to honor the server
 // switch like the rest — otherwise an org on a server with tolerant matching switched off
 // still has its whole index widened the moment a fuzzy-stored rule is toggled on.
 func Test_FuzzyMatchingSwitch_Backfill(t *testing.T) {

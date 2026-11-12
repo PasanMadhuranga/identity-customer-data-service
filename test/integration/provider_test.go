@@ -36,7 +36,7 @@ import (
 )
 
 // backendPID asks PostgreSQL which server process answered. Two queries that
-// report the same value travelled the same connection.
+// report the same value traveled the same connection.
 var backendPID = model.DBQuery{ID: "PROVIDER-IT-01", Query: "SELECT pg_backend_pid() AS pid"}
 
 // providerPoolLimit is the open limit this suite configures. It is small, so

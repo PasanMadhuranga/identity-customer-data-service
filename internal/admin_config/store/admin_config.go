@@ -319,7 +319,7 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string
 // scanAdminConfigRows turns the key/value rows held for an org into an AdminConfig.
 //
 // Settings live as individual rows, so a key an org has never set is simply absent. Each
-// default below is therefore the behaviour an org gets by saying nothing, which matters
+// default below is therefore the behavior an org gets by saying nothing, which matters
 // most on upgrade: a key introduced by a new feature must default to what the org was
 // already doing, not to the zero value.
 func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {

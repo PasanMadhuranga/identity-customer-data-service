@@ -57,7 +57,7 @@ func Test_newQuery(t *testing.T) {
 		}
 	})
 
-	t.Run("an unrecognised dialect falls back to the base statement", func(t *testing.T) {
+	t.Run("an unrecognized dialect falls back to the base statement", func(t *testing.T) {
 		query := newQuery("CDS-TST-04", `SELECT 1`, `SELECT 2`)
 		if statement := query.GetQuery("mysql"); statement != `SELECT 1` {
 			t.Fatalf("expected the PostgreSQL statement, got %q", statement)

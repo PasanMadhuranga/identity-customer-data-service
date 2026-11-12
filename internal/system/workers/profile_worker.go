@@ -42,7 +42,7 @@ import (
 )
 
 // activeProfileQueue is the queue implementation used for profile unification.
-// It is initialised by StartProfileWorker. All access is guarded by
+// It is initialized by StartProfileWorker. All access is guarded by
 // profileQueueMu to prevent data races between concurrent Enqueue calls and
 // shutdown.
 var (
@@ -69,7 +69,7 @@ func RegisterReindexAfterMergeFunc(fn func(ctx context.Context, primaryID, secon
 	reindexAfterMergeFunc = fn
 }
 
-// StartProfileWorker initialises the profile unification queue (using the
+// StartProfileWorker initializes the profile unification queue (using the
 // provider configured in the runtime config) and starts the consumer
 // goroutine. An error is returned when the queue cannot be created or
 // started; the caller should treat this as a fatal startup failure.
@@ -220,7 +220,7 @@ func unifyProfiles(ctx context.Context, orgID string, newProfile profileModel.Pr
 	// Rule-based matching.
 	//
 	// Deterministic and fuzzy rules are not two engines to choose between — an org
-	// configures both side by side, and a single evaluation has to honour each rule's
+	// configures both side by side, and a single evaluation has to honor each rule's
 	// own unification_method while aggregating them into one decision. The resolution
 	// pipeline is what does that, so it is the only rule-based path: it applies exact
 	// matching to deterministic rules and similarity matching to fuzzy ones, then

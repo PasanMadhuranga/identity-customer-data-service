@@ -19,7 +19,7 @@
 package database
 
 // NormalizeSQLiteArgs prepares query arguments for the inbuilt database. The
-// stores pass marshalled JSON as []byte; binding it as text rather than as a
+// stores pass marshaled JSON as []byte; binding it as text rather than as a
 // BLOB keeps the JSON functions working and the column readable.
 //
 // The client and the transaction wrapper both apply it, so a JSON column is

@@ -122,7 +122,7 @@ func TestLegacyRulesDoNotMergeOnMismatch(t *testing.T) {
 // TestTwoLegacyRulesWithConflictingEvidence pins what deterministic_match_decisive decides.
 //
 // Before typed matching, the first rule to match merged the pair outright whatever the other
-// rules held. With the setting on — the default, and what every organisation predating it
+// rules held. With the setting on — the default, and what every organization predating it
 // gets — that is still exactly what happens. With it off, the other applicable rules may
 // object: when most of them disagree, the merge is downgraded to a review task. With exactly
 // two rules a single disagreement is already a majority, so the two columns differ on the
@@ -219,7 +219,7 @@ func TestTwoLegacyRulesWithConflictingEvidence(t *testing.T) {
 
 // TestDeterministicMatchDecisiveLeavesFuzzyRulesOpen checks the setting's boundary: it
 // only ever vouches for an exact match. A fuzzy agreement still has to survive the other
-// rules' objections, however the organisation has the setting.
+// rules' objections, however the organization has the setting.
 func TestDeterministicMatchDecisiveLeavesFuzzyRulesOpen(t *testing.T) {
 	if err := log.Init("error"); err != nil {
 		t.Fatalf("init logger: %v", err)

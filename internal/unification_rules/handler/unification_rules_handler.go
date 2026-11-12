@@ -101,7 +101,7 @@ func (urh *UnificationRulesHandler) AddUnificationRule(w http.ResponseWriter, r 
 
 	// The type is only load-bearing when matching is approximate: it picks the algorithm, and
 	// not every kind of value has one. Asking for it then is asking for something the server
-	// genuinely cannot infer. Under exact matching it still shapes behaviour — dates and
+	// genuinely cannot infer. Under exact matching it still shapes behavior — dates and
 	// identifiers are normalized before comparing, and it seeds the evidence strengths — but a
 	// caller that omits it is choosing the same default the engine has always applied.
 	if ruleInRequest.AttributeType == "" {

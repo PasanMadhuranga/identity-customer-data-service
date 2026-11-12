@@ -122,7 +122,7 @@ func evaluateRules(
 //  2. Walk the rules in priority order; the first one that agrees becomes the primary
 //     signal and its score is the result. Lower-priority rules cannot dilute it.
 //  3. A UNIQUE_ID agreeing exactly is conclusive on its own and returns immediately. So
-//     is any deterministic rule agreeing, when the organisation has
+//     is any deterministic rule agreeing, when the organization has
 //     deterministic_match_decisive on — which is the default, and how unification worked
 //     before typed matching. Turning it off lets the steps below object.
 //  4. A disagreement on a discriminating attribute (national ID, date of birth) vetoes
@@ -239,7 +239,7 @@ func EvaluateCandidate(
 	conclusive := primary.AttributeType == constants.AttributeTypeUniqueID && primary.Score >= 1.0
 
 	// Before typed matching, any deterministic rule matching merged the pair, whatever
-	// position it held and whatever the other rules said. An organisation that keeps
+	// position it held and whatever the other rules said. An organization that keeps
 	// deterministic_match_decisive on keeps exactly that — so the check is over every
 	// agreeing rule, not just the primary: a fuzzy rule ranked above an exact match must
 	// not demote it to something the other rules can object to. The exact match is then
@@ -321,7 +321,7 @@ func EvaluateCandidate(
 	// Being the operator's highest-priority rule counts as identifying — but it cannot
 	// promote evidence the type itself calls weak. Priority is a statement about which
 	// signal to prefer among several; with a single configured rule everything is rank 0,
-	// so that statement was never made. Without this, an organisation whose only rule is a
+	// so that statement was never made. Without this, an organization whose only rule is a
 	// tolerant name match merges "Ivan Petrov" into "Ivana Petrov" unattended, which is
 	// precisely what match_strength LOW exists to prevent.
 	//

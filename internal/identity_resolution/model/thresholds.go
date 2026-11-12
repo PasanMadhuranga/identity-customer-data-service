@@ -33,7 +33,7 @@ type Thresholds struct {
 	ManualReview     float64
 	// DeterministicMatchDecisive makes an agreement on any deterministic rule conclusive on
 	// its own, skipping the objections the other rules could raise. This is how unification
-	// behaved before typed matching, so it is the default; an organisation opts out of it.
+	// behaved before typed matching, so it is the default; an organization opts out of it.
 	DeterministicMatchDecisive bool
 }
 

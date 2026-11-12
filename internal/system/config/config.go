@@ -220,7 +220,7 @@ type IdentityResolutionConfig struct {
 	//
 	// Off by default, including for a deployment.yaml written before the key existed. An
 	// upgrade therefore keeps matching exactly as it did, and an operator turns tolerant
-	// matching on when the organisation is ready for it rather than finding that an
+	// matching on when the organization is ready for it rather than finding that an
 	// upgrade changed which profiles get unified.
 	//
 	// While off, new fuzzy rules are refused, the options endpoint stops offering the

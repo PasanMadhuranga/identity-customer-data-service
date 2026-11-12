@@ -255,8 +255,8 @@ func initMultiplexer() *http.ServeMux {
 	return mux
 }
 
-// newCORSMiddleware wraps handler with the organisation-aware CORS middleware. Origins are
-// resolved per organisation from the admin configuration, falling back to the
+// newCORSMiddleware wraps handler with the organization-aware CORS middleware. Origins are
+// resolved per organization from the admin configuration, falling back to the
 // deployment-wide auth.cors_allowed_origins list.
 func newCORSMiddleware(handler http.Handler) http.Handler {
 	adminConfigService := adminConfigProvider.NewAdminConfigProvider().GetAdminConfigService()

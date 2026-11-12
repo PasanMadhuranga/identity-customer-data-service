@@ -226,7 +226,7 @@ const (
 	ConfigAutoMergeThreshold    = "auto_merge_threshold"
 	ConfigManualReviewThreshold = "manual_review_threshold"
 	// ConfigDeterministicMatchDecisive: when true, a pair agreeing on any deterministic rule
-	// merges without the other rules being consulted — the behaviour before typed matching.
+	// merges without the other rules being consulted — the behavior before typed matching.
 	ConfigDeterministicMatchDecisive = "deterministic_match_decisive"
 )
 
@@ -339,12 +339,12 @@ const (
 )
 
 const (
-	// Shipped defaults for an organisation that has set no thresholds of its own. Both are
+	// Shipped defaults for an organization that has set no thresholds of its own. Both are
 	// per-org admin config, and validation requires manual_review <= auto_merge - ScorePenaltyOffset.
 	//
 	// 1.0 merges unattended only on a perfect score: an exact match, which is how unification
-	// worked before typed matching, so an organisation upgrading keeps the merges it had. Every
-	// tolerant match — a typo, a spelling variant — goes to review until the organisation
+	// worked before typed matching, so an organization upgrading keeps the merges it had. Every
+	// tolerant match — a typo, a spelling variant — goes to review until the organization
 	// lowers the threshold itself, since a wrong merge is far harder to undo than a pending
 	// review. (Jonathan Smith / Jonathon Smyth measures 0.9429, for scale.)
 	// 0.75 is also the bar a rule must clear to count as agreeing, which is why it is kept
@@ -395,7 +395,7 @@ const (
 	// highest-priority rule when its evidence is not marked LOW.
 	//
 	// Priority alone is not enough. It says which signal to prefer among several, and an
-	// organisation with one configured rule has made no such statement — everything is
+	// organization with one configured rule has made no such statement — everything is
 	// rank 0. Letting rank promote LOW evidence would merge two people who merely share a
 	// name, which is the outcome LOW exists to prevent.
 	MinAgreeingRulesForAutoMerge = 2

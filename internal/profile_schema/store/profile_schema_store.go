@@ -390,7 +390,7 @@ func PatchProfileSchemaAttributeByID(ctx context.Context,
 			// Marshal slices/maps to JSON
 			jsonBytes, err := json.Marshal(v)
 			if err != nil {
-				errorMsg := fmt.Sprintf("Error marshalling value for key '%s' in profile schema update for org: %s", key, orgID)
+				errorMsg := fmt.Sprintf("Error marshaling value for key '%s' in profile schema update for org: %s", key, orgID)
 				logger.Debug(errorMsg, log.Error(err))
 				return errors.NewServerError(errors.ErrorMessage{
 					Code:        errors.UpdateProfileSchema.Code,

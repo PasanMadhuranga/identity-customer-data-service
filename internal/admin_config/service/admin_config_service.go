@@ -104,13 +104,13 @@ func (a AdminConfigService) LookupCORSOrgID(ctx context.Context, orgHandle strin
 	return corsOrgIDs.resolve(ctx, orgHandle)
 }
 
-// GetCORSAllowedOrigins returns the browser origins the organisation has added to the
+// GetCORSAllowedOrigins returns the browser origins the organization has added to the
 // deployment-wide list. The CORS middleware consults it on requests from an origin outside that
-// list, preflight included, so the origins are cached per organisation.
+// list, preflight included, so the origins are cached per organization.
 //
-// subOrgId is the ID of the sub organisation a /t/{primary_handle}/o/{org_id}/... path
-// addresses, and empty otherwise. A sub organisation cannot configure origins of its own yet,
-// so it is answered with those of its primary organisation, orgId.
+// subOrgId is the ID of the sub organization a /t/{primary_handle}/o/{org_id}/... path
+// addresses, and empty otherwise. A sub organization cannot configure origins of its own yet,
+// so it is answered with those of its primary organization, orgId.
 func (a AdminConfigService) GetCORSAllowedOrigins(ctx context.Context, orgID, subOrgID string) ([]string, error) {
 	return corsOrigins.get(ctx, orgID)
 }
@@ -168,7 +168,7 @@ func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgID string) (m
 //     below the contradiction bar, scores the engine treats as near-noise start counting as
 //     agreements and can become the primary signal for a merge.
 //
-// Zero means the organisation has never set that threshold, so the shipped default is what
+// Zero means the organization has never set that threshold, so the shipped default is what
 // it is actually running and is what gets validated.
 // thresholdPrecision is the number of decimal places a score is expressed in, and so the
 // precision these comparisons are meaningful to.
@@ -180,7 +180,7 @@ func roundToThresholdPrecision(value float64) float64 {
 
 func validateThresholds(autoMerge, manualReview float64) error {
 	// A value outside the range a score is expressed in is not applied: the store reads it
-	// back as unset and the organisation keeps running on the shipped default. Accepting it
+	// back as unset and the organization keeps running on the shipped default. Accepting it
 	// would report a setting that has no effect.
 	if autoMerge < 0 || autoMerge > 1 {
 		return errors.NewClientError(errors.ErrorMessage{

@@ -31,7 +31,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/cors"
 )
 
-// storeCORSOrigins stores the origins as the configuration of the organisation, which it
+// storeCORSOrigins stores the origins as the configuration of the organization, which it
 // stores first as a request would, and returns the org ID the configuration is kept under.
 func storeCORSOrigins(t *testing.T, orgHandle string, origins []string) string {
 	t.Helper()
@@ -70,7 +70,7 @@ func TestCORSAllowedOriginsRoundTripPerOrg(t *testing.T) {
 	}
 }
 
-// An organisation that has never been configured reports no origins, so the deployment
+// An organization that has never been configured reports no origins, so the deployment
 // fallback applies to it.
 func TestCORSAllowedOriginsEmptyForUnconfiguredOrg(t *testing.T) {
 	stored, err := adminConfigStore.GetAdminConfig(context.Background(), resolveOrgID(t, "cors-never-configured"))
@@ -82,7 +82,7 @@ func TestCORSAllowedOriginsEmptyForUnconfiguredOrg(t *testing.T) {
 	}
 }
 
-// The CORS middleware reads the origins of one organisation by org ID, and an organisation that
+// The CORS middleware reads the origins of one organization by org ID, and an organization that
 // has configured none, or an empty list, reads as none.
 func TestCORSAllowedOriginsAreReadPerOrg(t *testing.T) {
 	ctx := context.Background()
@@ -118,8 +118,8 @@ func TestStoredOriginsDriveTheMiddleware(t *testing.T) {
 
 	// Resolve the handle as the server does and read straight through the store rather than
 	// the service, so the assertion is about what was persisted and not about what a cache
-	// happens to hold. Like the service, it answers a sub organisation with the origins of its
-	// primary organisation.
+	// happens to hold. Like the service, it answers a sub organization with the origins of its
+	// primary organization.
 	lookup := func(ctx context.Context, org cors.Org) ([]string, error) {
 		ref, found, err := orgService.LookupOrganization(ctx, org.Handle)
 		if err != nil || !found {
@@ -142,7 +142,7 @@ func TestStoredOriginsDriveTheMiddleware(t *testing.T) {
 	}{
 		{"own origin allowed", "/t/cors-mw-acme/cds/api/v1/profiles", "https://app.acme.com",
 			"https://app.acme.com"},
-		{"primary origin allowed on a sub organisation path",
+		{"primary origin allowed on a sub organization path",
 			"/t/cors-mw-acme/o/4b1e/cds/api/v1/profiles", "https://app.acme.com", "https://app.acme.com"},
 		{"foreign org origin refused", "/t/cors-mw-globex/cds/api/v1/profiles", "https://app.acme.com", ""},
 		{"deployment origin still allowed once org adds its own",

@@ -55,7 +55,7 @@ type ProfileUnificationQueue interface {
 	Close(ctx context.Context) error
 }
 
-// SchemaSyncQueue defines the contract for enqueuing schema synchronisation
+// SchemaSyncQueue defines the contract for enqueuing schema synchronization
 // jobs for asynchronous processing.
 type SchemaSyncQueue interface {
 	// Enqueue adds a schema sync job to the queue. It returns nil on

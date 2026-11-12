@@ -35,7 +35,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 
-// corsOriginsCacheTTL bounds how long the origins of an organisation are served from memory.
+// corsOriginsCacheTTL bounds how long the origins of an organization are served from memory.
 // An update drops the entry of this process at once, so this is the window in which another
 // replica may still answer with the previous list.
 const corsOriginsCacheTTL = 30 * time.Second
@@ -49,8 +49,8 @@ const unknownCORSHandleTTL = time.Minute
 // JSON array. A longer list is refused rather than left for the database to reject.
 const maxStoredCORSOriginsLength = 500
 
-// corsOrigins caches the configured origins of each organisation that receives requests. The
-// CORS middleware consults it on every request, preflight included, so an organisation is read
+// corsOrigins caches the configured origins of each organization that receives requests. The
+// CORS middleware consults it on every request, preflight included, so an organization is read
 // once per TTL, and one that has configured none is cached as such.
 var corsOrigins = &corsOriginsCache{
 	load:    store.GetCORSAllowedOrigins,
@@ -101,7 +101,7 @@ func (r *corsOrgIDResolver) forget(orgHandle string) {
 	r.unknown.Delete(orgHandle)
 }
 
-// get returns the origins the organisation has configured, or nil if it has none.
+// get returns the origins the organization has configured, or nil if it has none.
 func (c *corsOriginsCache) get(ctx context.Context, orgID string) ([]string, error) {
 	if cached, ok := c.entries.Get(orgID); ok {
 		if origins, ok := cached.([]string); ok {
@@ -119,7 +119,7 @@ func (c *corsOriginsCache) get(ctx context.Context, orgID string) ([]string, err
 	return origins, nil
 }
 
-// invalidate drops the cached origins of the organisation, so that this process serves an
+// invalidate drops the cached origins of the organization, so that this process serves an
 // update at once.
 func (c *corsOriginsCache) invalidate(orgID string) {
 	c.generation.Add(1)

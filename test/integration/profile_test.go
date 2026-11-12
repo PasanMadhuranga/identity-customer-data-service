@@ -183,7 +183,7 @@ func Test_Profile(t *testing.T) {
 }
 
 // waitForSingleMaster polls until the unification worker has merged the duplicate profiles an
-// organisation holds down to one master, so a test that lists profiles afterwards sees a
+// organization holds down to one master, so a test that lists profiles afterwards sees a
 // settled queue rather than whichever profile the merge had not reached yet.
 func waitForSingleMaster(t *testing.T, profileSvc profileService.ProfilesServiceInterface, org orgModel.Ref) {
 	t.Helper()

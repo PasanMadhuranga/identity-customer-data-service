@@ -44,7 +44,7 @@ func query(ctx context.Context, q dbmodel.DBQuery, args ...interface{}) ([]map[s
 	if err != nil {
 		return nil, serverError("Failed to get a database client for sharing.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, q, args...)
 	if err != nil {
@@ -59,7 +59,7 @@ func inTx(ctx context.Context, description string, fn func(tx *dbmodel.Tx) error
 	if err != nil {
 		return serverError("Failed to get a database client for sharing.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {

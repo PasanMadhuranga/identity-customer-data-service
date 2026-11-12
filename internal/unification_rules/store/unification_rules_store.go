@@ -51,7 +51,7 @@ func AddUnificationRule(ctx context.Context, rule model.UnificationRule, orgID s
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.InsertUnificationRule
 
@@ -111,7 +111,7 @@ func GetUnificationRules(ctx context.Context, orgID string) ([]model.Unification
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetUnificationRules
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
@@ -153,7 +153,7 @@ func GetUnificationRule(ctx context.Context, ruleID, orgID string) (*model.Unifi
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetUnificationRule
 	results, err := dbClient.ExecuteQueryContext(ctx, query, ruleID, orgID)
@@ -199,7 +199,7 @@ func GetUnificationRulesByIDs(ctx context.Context, ruleIDs []string) ([]model.Un
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read rules by ID.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	placeholders := make([]string, len(ruleIDs))
 	args := make([]interface{}, len(ruleIDs))
@@ -237,7 +237,7 @@ func PatchUnificationRule(ctx context.Context, ruleID, orgID string, updatedRule
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.UpdateUnificationRule
 	_, err = dbClient.ExecuteQueryContext(ctx, query, updatedRule.RuleName, updatedRule.Priority,
@@ -278,7 +278,7 @@ func DeleteUnificationRule(ctx context.Context, ruleID, orgID string) error {
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteUnificationRule
 	_, err = dbClient.ExecuteQueryContext(ctx, query, ruleID, orgID)

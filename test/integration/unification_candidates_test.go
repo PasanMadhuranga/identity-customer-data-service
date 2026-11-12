@@ -175,7 +175,7 @@ func Test_UnificationCandidateGINEligibility(t *testing.T) {
 	// cannot hide GIN eligibility on this small fixture.
 	rows, err := tx.Query("EXPLAIN SELECT profile_id FROM profiles WHERE identity_attributes @? $1::jsonpath", values[0])
 	require.NoError(t, err)
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	plan := ""
 	for rows.Next() {
 		var line string

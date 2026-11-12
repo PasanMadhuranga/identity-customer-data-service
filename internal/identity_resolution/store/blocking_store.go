@@ -47,7 +47,7 @@ func UpsertBlockingKeys(ctx context.Context, profileID, orgID string, keys []mod
 			Description: "Failed to connect to database for blocking key indexing.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -120,7 +120,7 @@ func DeleteBlockingKeys(ctx context.Context, orgID, profileID string) error {
 			Description: "Failed to connect to database for blocking key deletion.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	deleteQuery := scripts.DeleteBlockingKeysSQL
 	_, err = dbClient.ExecuteQueryContext(ctx, deleteQuery, orgID, profileID)
@@ -148,7 +148,7 @@ func DeleteBlockingKeysByAttribute(ctx context.Context, orgID, attributeName str
 			Description: "Failed to connect to database for attribute blocking key deletion.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteBlockingKeysByAttributeSQL
 	_, err = dbClient.ExecuteQueryContext(ctx, query, orgID, attributeName)
@@ -181,7 +181,7 @@ func InsertBlockingKeys(ctx context.Context, profileID, orgID string, keys []mod
 			Description: "Failed to connect to database for blocking key insertion.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	var valueClauses []string
 	var args []interface{}
@@ -249,7 +249,7 @@ func InsertBlockingKeysBatch(ctx context.Context, orgID string, perProfileKeys m
 			Description: "Failed to connect to database for batch blocking key insertion.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	for start := 0; start < len(rows); start += maxBlockingKeyRowsPerInsert {
 		end := start + maxBlockingKeyRowsPerInsert
@@ -326,7 +326,7 @@ func FindCandidateIDsByKeys(ctx context.Context,
 			Description: "Failed to connect to database for blocking key lookup.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	args := []interface{}{orgID, attributeName}
 	var inClauses []string
@@ -395,7 +395,7 @@ func GetProfilesByIDs(ctx context.Context, profileIDs []string) ([]model.Profile
 			Description: "Failed to connect to database for profile batch lookup.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	var inClauses []string
 	var args []interface{}
@@ -454,7 +454,7 @@ func CountProfilesByBlockingKey(ctx context.Context, orgID, attributeName, keyVa
 			Description: "Failed to connect to database for value frequency lookup.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRCountProfilesByBlockingKey
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID, attributeName, keyValue)

@@ -44,7 +44,7 @@ func GetAdminConfig(ctx context.Context, orgID string) (*model.AdminConfig, erro
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetOrgConfigurations
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
@@ -75,7 +75,7 @@ func GetCORSAllowedOrigins(ctx context.Context, orgID string) ([]string, error) 
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrgConfiguration, orgID,
 		constants.ConfigCORSAllowedOrigins)
@@ -115,7 +115,7 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -283,7 +283,7 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {

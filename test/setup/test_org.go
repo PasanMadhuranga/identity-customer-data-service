@@ -83,7 +83,7 @@ func ensureTestOrg(ctx context.Context, handle string) (orgModel.Ref, error) {
 	if err != nil {
 		return orgModel.Ref{}, err
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrganizationByHandle, handle)
 	if err != nil {

@@ -60,7 +60,7 @@ func insertFuzzyNameRule(t *testing.T, org string) {
 	if err != nil {
 		t.Fatalf("db client: %v", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	now := time.Now().UTC()
 	_, err = dbClient.ExecuteQueryContext(context.Background(), fuzzyRuleInsert,

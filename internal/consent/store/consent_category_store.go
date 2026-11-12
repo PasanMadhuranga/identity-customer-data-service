@@ -47,7 +47,7 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	dbType := dbClient.DBType()
 	query := scripts.InsertConsentCategory
 	tx, err := dbClient.BeginTxContext(ctx)
@@ -115,7 +115,7 @@ func GetAllConsentCategories(ctx context.Context, orgID string) ([]model.Consent
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetAllConsentCategories
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
@@ -186,7 +186,7 @@ func GetConsentCategoryByID(ctx context.Context, id string, orgID string) (*mode
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetConsentCategoryByID
 	results, err := dbClient.ExecuteQueryContext(ctx, query, id, orgID)
@@ -244,7 +244,7 @@ func GetConsentCategoryByName(ctx context.Context, name string, orgID string) (*
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetConsentCategoryByName
 	results, err := dbClient.ExecuteQueryContext(ctx, query, name, orgID)
@@ -287,7 +287,7 @@ func UpdateConsentCategory(ctx context.Context, orgID string, category model.Con
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to begin transaction for updating consent category: %s",
@@ -360,7 +360,7 @@ func DeleteConsentCategory(ctx context.Context, categoryID string, orgID string)
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -404,7 +404,7 @@ func SeedDefaultIdentityDataCategory(ctx context.Context, orgID string) error {
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	dbType := dbClient.DBType()
 	upsertQuery := scripts.UpsertDefaultIdentityDataCategory
@@ -457,7 +457,7 @@ func GetMandatoryConsentCategoryIDs(ctx context.Context, orgID string) ([]string
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetMandatoryConsentCategoryIDsByOrg
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
@@ -491,7 +491,7 @@ func GetConsentCategoryIDs(ctx context.Context, orgID string) ([]string, error) 
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetConsentCategoryIDsByOrg
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID)
@@ -528,7 +528,7 @@ func GetConsentedCategoryAttributesByProfileID(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Fetch which categories the profile has consented to (consent_status = true)
 	consentQuery := scripts.GetProfileConsentsByProfileID

@@ -51,7 +51,7 @@ func GetProfilesForOrgAfter(ctx context.Context, orgID string, afterProfileID st
 			Description: "Failed to connect to database for paginated profile lookup.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRGetProfilesForOrgAfter
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID, afterProfileID, limit)
@@ -123,7 +123,7 @@ func InsertReviewTask(ctx context.Context, orgID string, task model.ReviewTask) 
 			Description: "Failed to connect to database.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Mirror check: if the reverse pair already exists as PENDING,
 	// update its score/breakdown to reflect the latest data instead of creating a duplicate.
@@ -190,7 +190,7 @@ func CancelRelatedReviewTasks(ctx context.Context, excludeTaskID, IncomingProfil
 		logger.Error("Store: failed to get DB client for cascade cancel", log.Error(err))
 		return nil, err
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Step 1: Find incoming profile IDs that will be affected before canceling.
 	findQuery := scripts.IRFindRelatedPendingReviewTasks
@@ -237,7 +237,7 @@ func GetReviewTaskByID(ctx context.Context, taskID string) (*model.ReviewTask, e
 			Description: "Failed to connect to database.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRGetReviewTaskByID
 	results, err := dbClient.ExecuteQueryContext(ctx, query, taskID)
@@ -266,7 +266,7 @@ func GetPendingReviewTasks(ctx context.Context, orgID string, pageSize int) ([]m
 			Description: "Failed to connect to database.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	countQuery := scripts.IRCountPendingReviewTasks
 	countRows, err := dbClient.ExecuteQueryContext(ctx, countQuery, orgID, constants.ReviewStatusPending)
@@ -317,7 +317,7 @@ func GetPendingReviewTasksByProfile(ctx context.Context, orgID, profileID string
 			Description: "Failed to connect to database.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	countQuery := scripts.IRCountPendingReviewTasksByProfile
 	countRows, err := dbClient.ExecuteQueryContext(ctx, countQuery, orgID, constants.ReviewStatusPending, profileID)
@@ -370,7 +370,7 @@ func UpdateReviewTaskStatus(ctx context.Context, taskID string, status string, r
 			Description: "Failed to connect to database.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRUpdateReviewTaskStatus
 	_, err = dbClient.ExecuteQueryContext(ctx, query, status, resolvedBy, notes, taskID)
@@ -516,7 +516,7 @@ func InsertRejectionPair(ctx context.Context, orgID, profileIDA, profileIDB, rej
 			Description: "Failed to connect to database for rejection pair insertion.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	breakdownJSON, marshalErr := json.Marshal(breakdown)
 	if marshalErr != nil {
@@ -547,7 +547,7 @@ func DeleteRejectionPairsForProfile(ctx context.Context, orgID, profileID string
 	if err != nil {
 		return err
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRDeleteRejectionPairsForProfile
 	_, err = dbClient.ExecuteQueryContext(ctx, query, orgID, profileID)
@@ -569,7 +569,7 @@ func GetRejectionsForProfile(ctx context.Context, orgID, profileID string) (map[
 	if err != nil {
 		return nil, err
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRGetRejectionsForProfile
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID, profileID)
@@ -630,7 +630,7 @@ func RepointRejectionPairs(ctx context.Context, orgID, fromProfileID, toProfileI
 			Description: "Failed to connect to database for rejection pair repointing.",
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.IRRepointRejectionPairs
 	if _, err := dbClient.ExecuteQueryContext(ctx, query, orgID, fromProfileID, toProfileID); err != nil {

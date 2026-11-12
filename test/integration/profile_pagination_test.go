@@ -161,7 +161,7 @@ func forceSharedCreatedAt(t *testing.T, orgID string, count int) []string {
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	require.NoError(t, err)
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	rows, err := dbClient.ExecuteQueryContext(context.Background(), dbmodel.DBQuery{
 		ID:    "TEST-PAG-01",

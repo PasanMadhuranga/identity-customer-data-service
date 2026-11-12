@@ -42,7 +42,7 @@ func UpsertApplication(ctx context.Context, orgID string, app model.Application)
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// SAML-only apps have no clientId; store NULL so they don't collide on the (org, client_id) unique key.
 	var clientID interface{}
@@ -79,7 +79,7 @@ func GetAppIdentifierByClientID(ctx context.Context, orgID, clientID string) (st
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetAppIdentifierByClientID
 	results, err := dbClient.ExecuteQueryContext(ctx, query, orgID, clientID)

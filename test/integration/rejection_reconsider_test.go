@@ -48,7 +48,7 @@ func insertRule(t *testing.T, org, name, property string, priority int, attribut
 	if err != nil {
 		t.Fatalf("db client: %v", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	now := time.Now().UTC()
 	ruleID := uuid.New().String()

@@ -53,7 +53,7 @@ func (h HealthCheckService) CheckReadiness(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create database client: %v", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Perform a lightweight query to ensure DB connectivity.
 	_, err = dbClient.ExecuteQueryContext(ctx, scripts.HealthCheckPing)

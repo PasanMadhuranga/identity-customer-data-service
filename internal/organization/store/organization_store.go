@@ -58,7 +58,7 @@ func UpsertOrganization(ctx context.Context, org model.Organization) error {
 	if err != nil {
 		return serverError("Failed to get a database client to store an organization.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	var parent interface{}
 	if org.ParentOrgID != "" {
@@ -132,7 +132,7 @@ func GetOrganizationsByPrimaryOrg(ctx context.Context, primaryOrgID string) ([]m
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrganizationsByPrimaryOrg, primaryOrgID)
 	if err != nil {
@@ -155,7 +155,7 @@ func GetOrganizationsByIDs(ctx context.Context, orgIDs []string) ([]model.Organi
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	orgs := make([]model.Organization, 0, len(orgIDs))
 	for start := 0; start < len(orgIDs); start += idBatchSize {
@@ -189,7 +189,7 @@ func GetOrganizationChain(ctx context.Context, orgID string) ([]model.Organizati
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrganizationChain, orgID)
 	if err != nil {
@@ -208,7 +208,7 @@ func GetAncestors(ctx context.Context, orgID string) ([]model.Ancestor, error) {
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read organizations.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrganizationAncestors, orgID)
 	if err != nil {
@@ -227,7 +227,7 @@ func UpdateOrganizationStatus(ctx context.Context, orgID, status string) error {
 	if err != nil {
 		return serverError("Failed to get a database client to update an organization.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	if _, err := dbClient.ExecuteQueryContext(ctx, scripts.UpdateOrganizationStatus, status, time.Now().UTC(),
 		orgID); err != nil {
@@ -242,7 +242,7 @@ func GetTreeSyncStatus(ctx context.Context, orgID string) (*model.TreeSyncStatus
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read the organization sync state.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetOrgConfigurations, orgID)
 	if err != nil {
@@ -276,7 +276,7 @@ func SetTreeSyncValues(ctx context.Context, orgID string, values map[string]stri
 	if err != nil {
 		return serverError("Failed to get a database client to store the organization sync state.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -307,7 +307,7 @@ func getOne(ctx context.Context, query dbmodel.DBQuery, arg string) (*model.Orga
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read an organization.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, query, arg)
 	if err != nil {

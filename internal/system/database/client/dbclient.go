@@ -98,7 +98,7 @@ func (client *DBClient) ExecuteQueryContext(ctx context.Context, query model.DBQ
 	if err != nil {
 		return nil, fmt.Errorf("query %s failed: %w", query.ID, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	columns, err := rows.Columns()
 	if err != nil {

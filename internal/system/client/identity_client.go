@@ -344,7 +344,7 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 			Description: errorMsg,
 		}, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -432,7 +432,7 @@ func (c *IdentityClient) FetchApplicationIdentifier(applicationIdentifier, orgHa
 			Description: errorMsg,
 		}, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
@@ -498,7 +498,7 @@ func (c *IdentityClient) GetApplication(appID, orgHandle string) (idpModel.Appli
 	if err != nil {
 		return app, false, appsFailed(fmt.Sprintf("Failed to fetch application:%s for org:%s", appID, orgHandle), err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return app, false, nil
@@ -586,7 +586,7 @@ func (c *IdentityClient) introspect(introspectionEndpoint, clientID, clientSecre
 			Description: errorMsg,
 		}, http.StatusUnauthorized)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -734,7 +734,7 @@ func (c *IdentityClient) GetAllDialects(orgHandle string) ([]map[string]interfac
 			Description: errorMsg,
 		}, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var dialects []map[string]interface{}
 	body, _ := io.ReadAll(resp.Body)
@@ -781,7 +781,7 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgId string) ([]map[stri
 			Description: errMsg,
 		}, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var claims []map[string]interface{}
 	body, _ := io.ReadAll(resp.Body)
@@ -830,7 +830,7 @@ func (c *IdentityClient) GetLocalClaimsMap(orgId string) (map[string]map[string]
 			Description: errorMsg,
 		}, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var claims []map[string]interface{}
 	body, _ := io.ReadAll(resp.Body)
@@ -1033,7 +1033,7 @@ func (c *IdentityClient) GetSCIMUser(orgId, userId string) (map[string]interface
 			Description: errMsg,
 		}, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var user map[string]interface{}
 	body, _ := io.ReadAll(resp.Body)

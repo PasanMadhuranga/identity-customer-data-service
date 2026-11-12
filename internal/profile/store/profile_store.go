@@ -104,7 +104,7 @@ func InsertProfile(ctx context.Context, orgID string, profile model.Profile) err
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	traitsJSON, _ := json.Marshal(profile.Traits)
 	identityJSON, _ := json.Marshal(profile.IdentityAttributes)
@@ -237,7 +237,7 @@ func GetProfileWithOptions(ctx context.Context, profileID, orgID string,
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileByID
 
@@ -293,7 +293,7 @@ func GetProfileConsents(ctx context.Context, profileID, orgID string) ([]model.C
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileConsentsByProfileID
 
@@ -355,7 +355,7 @@ func FetchApplicationData(ctx context.Context, profileID string) ([]model.Applic
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	query := scripts.GetAppDataByProfileID
 	results, err := dbClient.ExecuteQueryContext(ctx, query, profileID)
 	if err != nil {
@@ -399,11 +399,11 @@ func FetchApplicationData(ctx context.Context, profileID string) ([]model.Applic
 	return apps, nil
 }
 
-func FetchApplicationDataWithAppID(ctx context.Context, profileID string, appId string) (model.ApplicationData, error) {
+func FetchApplicationDataWithAppID(ctx context.Context, profileID string, appID string) (model.ApplicationData, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed getting db client for fetching application data of app:%s for profile: %s", appId, profileID)
+		errorMsg := fmt.Sprintf("Failed getting db client for fetching application data of app:%s for profile: %s", appID, profileID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAppData.Code,
@@ -412,12 +412,12 @@ func FetchApplicationDataWithAppID(ctx context.Context, profileID string, appId 
 		}, err)
 		return model.ApplicationData{}, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	query := scripts.GetAppDataByAppID
-	results, err := dbClient.ExecuteQueryContext(ctx, query, profileID, appId)
+	results, err := dbClient.ExecuteQueryContext(ctx, query, profileID, appID)
 	var app model.ApplicationData
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed fetching application data of app:%s for profile: %s", appId, profileID)
+		errorMsg := fmt.Sprintf("Failed fetching application data of app:%s for profile: %s", appID, profileID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAppData.Code,
@@ -470,7 +470,7 @@ func UpdateProfile(ctx context.Context, orgID string, profile model.Profile) err
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	traitsJSON, _ := json.Marshal(profile.Traits)
 	identityJSON, _ := json.Marshal(profile.IdentityAttributes)
@@ -561,7 +561,7 @@ func GetAllProfiles(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Defaults/safety
 	if limit <= 0 {
@@ -662,7 +662,7 @@ func FetchApplicationDataBatch(ctx context.Context, profileIDs []string) (map[st
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Build placeholders: $1,$2,... for Postgres
 	placeholders := make([]string, 0, len(profileIDs))
@@ -731,7 +731,7 @@ func DeleteProfile(ctx context.Context, profileID string) error {
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Step 1: Delete application_data explicitly (optional if ON DELETE CASCADE not enabled)
 	_, err = dbClient.ExecuteQueryContext(ctx, scripts.DeleteProfileByProfileID, profileID)
@@ -843,7 +843,7 @@ func UpsertAppDatum(ctx context.Context, profileID string, appID string, updates
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	_, err = dbClient.ExecuteQueryContext(ctx, query, profileID, appID, jsonBytes)
 	if err != nil {
@@ -874,7 +874,7 @@ func DetachRefererProfileFromReference(ctx context.Context, referenceProfileID, 
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// todo: decide if we need to delete the references as well.
 	query := scripts.DeleteProfileReference
@@ -1040,7 +1040,7 @@ func GetAllProfilesWithFilter(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	if limit == 0 {
 		return []model.Profile{}, false, nil
@@ -1349,7 +1349,7 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	baseSQL := scripts.GetProfileIDsWithFiltersBase.GetQuery(dbClient.DBType())
 
@@ -1592,7 +1592,7 @@ func UpdateProfileReferences(ctx context.Context, parentProfile model.Profile, c
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -1652,7 +1652,7 @@ func FetchReferencedProfiles(ctx context.Context, referenceProfileID string) ([]
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	query := scripts.FetchReferencedProfiles
 
 	results, err := dbClient.ExecuteQueryContext(ctx, query, referenceProfileID)
@@ -1808,7 +1808,7 @@ func toInt(val interface{}) (int, bool) {
 	return 0, false
 }
 
-func GetProfileWithUserID(ctx context.Context, userID, orgId string) (*model.Profile, error) {
+func GetProfileWithUserID(ctx context.Context, userID, orgID string) (*model.Profile, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -1823,11 +1823,11 @@ func GetProfileWithUserID(ctx context.Context, userID, orgId string) (*model.Pro
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileByUserID
 
-	results, err := dbClient.ExecuteQueryContext(ctx, query, userID, orgId)
+	results, err := dbClient.ExecuteQueryContext(ctx, query, userID, orgID)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Debug(fmt.Sprintf("No profile found with the given userId: %s", userID))
@@ -1877,7 +1877,7 @@ func CreateProfileCookie(ctx context.Context, profileCookie model.ProfileCookie)
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.InsertCookie
 
@@ -1910,7 +1910,7 @@ func GetProfileCookieByProfileID(ctx context.Context, profileID string) (*model.
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetCookieByProfileID
 
@@ -1958,7 +1958,7 @@ func GetProfileCookie(ctx context.Context, cookie, orgID string) (*model.Profile
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetCookieByCookieID
 
@@ -2004,7 +2004,7 @@ func UpdateProfileCookieByProfileID(ctx context.Context, profileID string, isAct
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.UpdateCookieStatusByProfileID
 
@@ -2037,7 +2037,7 @@ func UpdateProfileCookieByCookieID(ctx context.Context, cookieID string, isActiv
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.UpdateCookieStatusByCookieID
 
@@ -2070,7 +2070,7 @@ func DeleteProfileCookieByProfile(ctx context.Context, profileID string) error {
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteCookieByProfileID
 
@@ -2103,7 +2103,7 @@ func DeleteInactiveCookieProfiles(ctx context.Context, batchSize int) (int, erro
 		}, err)
 		return 0, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteInactiveCookies
 
@@ -2140,7 +2140,7 @@ func UpdateProfileConsents(ctx context.Context, profileID string, consents []mod
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// Start a transaction to ensure atomicity of consent updates
 	tx, err := dbClient.BeginTxContext(ctx)
@@ -2222,7 +2222,7 @@ func FindOldestReferenceProfileIDByUserID(ctx context.Context, orgID, userID,
 	if err != nil {
 		return "", fmt.Errorf("get database client for user-ID profile lookup: %w", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	rows, err := dbClient.ExecuteQueryContext(ctx, scripts.FindOldestReferenceProfileIDByUserID,
 		orgID, excludedProfileID, userID)
 	if err != nil {
@@ -2248,7 +2248,7 @@ func FindOldestReferenceProfileIDByAttributeValues(ctx context.Context, orgID, p
 	if err != nil {
 		return "", fmt.Errorf("get database client for attribute profile lookup: %w", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 	query, matchArgs, err := scripts.BuildFindOldestReferenceProfileIDByAttributeValuesQuery(
 		dbClient.DBType(), property, values)
 	if err != nil {

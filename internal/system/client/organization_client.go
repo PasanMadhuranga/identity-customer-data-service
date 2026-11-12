@@ -158,7 +158,7 @@ func (c *IdentityClient) getJSONWithToken(endpoint, token string, out interface{
 	if err != nil {
 		return 0, failed("Failed to call: "+endpoint, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -49,7 +49,7 @@ func AddProfileSchemaAttributesForScope(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	if len(attrs) == 0 {
 		return nil // nothing to insert
@@ -121,7 +121,7 @@ func GetProfileSchemaAttributeByID(ctx context.Context,
 		}, err)
 		return model.ProfileSchemaAttribute{}, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileSchemaAttributeByID
 
@@ -164,7 +164,7 @@ func GetProfileSchemaAttributesByScope(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileSchemaAttributeByScope
 
@@ -210,7 +210,7 @@ func GetProfileSchemaAttributeByName(ctx context.Context,
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileSchemaAttributeByName
 
@@ -298,7 +298,7 @@ func GetProfileSchemaAttributesForOrg(ctx context.Context, orgID string) ([]mode
 		}, err)
 		return nil, serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.GetProfileSchemaByOrg
 
@@ -340,7 +340,7 @@ func GetProfileSchemaAttributesByIDs(ctx context.Context,
 	if err != nil {
 		return nil, serverError("Failed to get a database client to read attributes by ID.", err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	placeholders := make([]string, len(attributeIDs))
 	args := make([]interface{}, len(attributeIDs))
@@ -378,7 +378,7 @@ func PatchProfileSchemaAttributeByID(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	setClauses := []string{}
 	args := []interface{}{}
@@ -448,7 +448,7 @@ func DeleteProfileSchemaAttributeByID(ctx context.Context, orgID, attributeID st
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteProfileSchemaAttributeByID
 	_, err = dbClient.ExecuteQueryContext(ctx, query, orgID, attributeID)
@@ -482,7 +482,7 @@ func DeleteProfileSchemaAttributes(ctx context.Context, orgID, scope string) err
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteProfileSchemaAttributeForScope
 	_, err = dbClient.ExecuteQueryContext(ctx, query, orgID, scope)
@@ -515,7 +515,7 @@ func PatchProfileSchemaAttributesForScope(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -618,7 +618,7 @@ func DeleteProfileSchema(ctx context.Context, orgID string) error {
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.DeleteProfileSchemaForOrg
 	_, err = dbClient.ExecuteQueryContext(ctx, query, orgID)
@@ -685,7 +685,7 @@ func UpsertIdentityAttributes(ctx context.Context, orgID string, attrs []model.P
 		}, err)
 		return serverError
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
@@ -809,7 +809,7 @@ func GetProfileSchemaAttributesByScopeAndFilter(ctx context.Context,
 			Description: errorMsg,
 		}, err)
 	}
-	defer dbClient.Close()
+	defer func() { _ = dbClient.Close() }()
 
 	// The dialect is needed here for the LIKE operator, not to select a
 	// statement.

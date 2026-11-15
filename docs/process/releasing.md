@@ -35,7 +35,7 @@ release publishes:
 | | |
 |---|---|
 | `distribution/check-pack.sh` | every pack carries the files an installation needs, and a product identity naming itself |
-| `distribution/verify-install.sh` | the Identity-Server-first path really installs: a release is served locally and the real `install_cds.sh` is driven against it, through resolution, checksum, extraction and the hand-off to `cds enable` |
+| `distribution/verify-install.sh` | the Identity-Server-first path really installs: a release is served locally and the real `install_cds.sh` is driven against it, through resolution, checksum and extraction, and leaves the Identity Server untouched |
 | `distribution/artifact-summary.sh` | writes the artifacts and their SHA-256 digests into the run summary |
 | `distribution/release-notes.sh` | builds the release body — downloads, digests, compatibility and both install paths |
 
@@ -64,18 +64,15 @@ run summary, so a change to it is reviewed alongside the change that caused it.
 
 ### Filling in the compatibility metadata
 
-`config/repository/conf/compatibility.yaml` carries empty version fields on
-`main`, and the release fills them in:
+`config/repository/conf/compatibility.yaml` carries an empty version list on
+`main`, and the release fills it in:
 
 | Field | Set to |
 |---|---|
-| `identity_server.supported` | the Identity Server releases this release was verified against |
-| `extensions.version` | the published CDS extension baseline for those releases |
-| `console.release_line` | the identity-apps line carrying the matching CDS Console |
+| `identity_server.supported` | the Identity Server releases this release was verified against — which names the Console and the extension bundles too, since both ship inside that distribution |
 
-A build that leaves them empty is not broken: `cds enable` warns that the
-baseline is unverified and continues, rather than claiming a compatibility
-nobody has tested.
+A build that leaves it empty is not broken: it declares no verified baseline
+rather than claiming a compatibility nobody has tested.
 
 ---
 

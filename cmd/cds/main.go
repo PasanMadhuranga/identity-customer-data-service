@@ -18,10 +18,8 @@
 
 // Command cds is the executable an installed CDS pack ships at its root.
 //
-// It owns the whole on-premises lifecycle: enabling CDS against an Identity
-// Server, starting and stopping the runtime, and verifying the result. The
-// container image runs cmd/server instead, where the orchestrator owns the
-// lifecycle and only the runtime is wanted.
+// It runs the runtime in the foreground and verifies the installation. The
+// container image runs cmd/server instead, where only the runtime is wanted.
 package main
 
 import (

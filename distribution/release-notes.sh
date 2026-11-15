@@ -49,22 +49,6 @@ digest_of() {
   awk '{print $1; exit}' "$file"
 }
 
-# The extension baseline, which lives under compatibility.extensions.
-#
-# Scoped to that block rather than matched on the key alone: the metadata also
-# carries a top-level `version` for the release itself, and reporting that as
-# the extension baseline would be worse than reporting nothing.
-extension_version() {
-  [ -f "$METADATA" ] || return 0
-  awk '
-    /^[[:space:]]*extensions:[[:space:]]*$/ { inside = 1; next }
-    inside && /^[[:space:]]*[a-z_]+:/ && !/^[[:space:]]*(version|repository|group|bundles):/ { inside = 0 }
-    inside && /^[[:space:]]*version:/ {
-      sub(/^[^:]*:[[:space:]]*/, ""); gsub(/"/, ""); print; exit
-    }
-  ' "$METADATA"
-}
-
 supported_is() {
   [ -f "$METADATA" ] || return 0
   awk '
@@ -90,9 +74,8 @@ identity and behavioural data an organisation already holds, and serves them
 to the applications that personalise on them.
 
 CDS runs as its own process beside a WSO2 Identity Server. The two are
-separate installations with separate lifecycles: CDS is installed, enabled and
-updated on its own, and the Identity Server is never started, stopped or
-updated by it.
+separate installations with separate lifecycles: CDS is installed and updated
+on its own, and the Identity Server carries its own side of the integration.
 
 INTRO
 
@@ -124,18 +107,15 @@ echo
 
 # --- Compatibility -------------------------------------------------------- #
 IS_SUPPORTED="$(supported_is || true)"
-EXTENSION="$(extension_version || true)"
 echo "## Compatibility"
 echo
 if [ -n "$IS_SUPPORTED" ]; then
   echo "| | |"
   echo "|---|---|"
   echo "| Identity Server | $IS_SUPPORTED |"
-  [ -n "$EXTENSION" ] && echo "| CDS extension baseline | $EXTENSION |"
 else
-  echo "This build declares no verified Identity Server baseline. \`cds enable\`"
-  echo "says so and continues, rather than claiming a compatibility that has not"
-  echo "been tested."
+  echo "This build declares no verified Identity Server baseline, rather than"
+  echo "claiming a compatibility that has not been tested."
 fi
 echo
 echo "\`$PRODUCT-$PACK_VERSION-release-metadata.yaml\` carries the full statement, and is what"
@@ -152,9 +132,20 @@ first:
 \`\`\`bash
 unzip $PRODUCT-linux-amd64-$PACK_VERSION.zip -d /opt
 cd /opt/$PRODUCT-linux-amd64-$PACK_VERSION
-./$PRODUCT enable --is-home /opt/wso2is
-./$PRODUCT start && ./$PRODUCT verify
+./start.sh
 \`\`\`
+
+Then switch CDS on in the Identity Server's \`deployment.toml\` and restart it:
+
+\`\`\`toml
+[customer_data_service]
+enable = true
+server_url = "https://localhost:8900"
+admin_username = "admin"
+admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDS>"
+\`\`\`
+
+\`./$PRODUCT verify\` checks the result.
 
 Starting from an Identity Server that is already installed, the bootstrap
 installer resolves the right pack for it:
@@ -163,12 +154,12 @@ installer resolves the right pack for it:
 ./install_cds.sh --is-home /opt/wso2is
 \`\`\`
 
-Both paths end at the same installation and the same enable flow. See
-[On-Prem Installation](https://github.com/$REPO/blob/$VERSION/docs/guides/on-prem-installation.md)
-for what enablement does on each side of the Identity Server restart.
+Both paths end at the same installation. See
+[CDS on-premises](https://github.com/$REPO/blob/$VERSION/docs/on-prem/index.md).
 
-The CDS extension bundles and the CDS Console are delivered with the Identity
-Server rather than with this release, and are updated through its own stream.
+The Identity Server's side of the integration — the CDS extension bundles and
+the CDS Console — is delivered with the Identity Server rather than with this
+release, and is updated through its own stream.
 NOTES
 
 # --- What changed ---------------------------------------------------------- #

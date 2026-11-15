@@ -19,68 +19,11 @@
 package cli
 
 import (
-	"errors"
 	"net"
-	"net/http"
-	"net/http/httptest"
+	"path/filepath"
 	"testing"
-	"time"
 )
 
-// A port answering is not proof that this installation started. Something
-// else listening on the configured address — another CDS, anything — would
-// otherwise let a start that failed report success, which is how a runtime
-// that died in its first second once looked ready.
-func TestWaitReadyDoesNotTrustAPortSomeoneElseOwns(t *testing.T) {
-
-	// Stands in for the other process: answers /ready perfectly.
-	other := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer other.Close()
-
-	exited := make(chan error, 1)
-	exited <- errors.New("exit status 1")
-
-	err := waitReady(other.URL, exited, 30*time.Second)
-	if err == nil {
-		t.Fatal("start reported ready while the runtime it started had exited")
-	}
-}
-
-// A runtime that exits has to be reported at once, not after the readiness
-// deadline: the operator is waiting, and the answer is already known.
-func TestWaitReadyReportsAnExitImmediately(t *testing.T) {
-
-	exited := make(chan error, 1)
-	exited <- errors.New("exit status 1")
-
-	began := time.Now()
-	// An address nothing is listening on, so only the exit can end this.
-	err := waitReady("https://127.0.0.1:1", exited, 30*time.Second)
-	if err == nil {
-		t.Fatal("expected the exit to be reported")
-	}
-	if waited := time.Since(began); waited > 5*time.Second {
-		t.Errorf("took %s to report an exit that was already known", waited)
-	}
-}
-
-func TestWaitReadySucceedsWhileTheRuntimeRuns(t *testing.T) {
-
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	// Nothing on the channel: the runtime is still going.
-	if err := waitReady(server.URL, make(chan error, 1), 10*time.Second); err != nil {
-		t.Fatalf("waitReady: %v", err)
-	}
-}
-
-// The log level has no usable default of its own: unset is not "quiet", it is
-// a parse failure that ends the process before it can say so.
 func TestRuntimeDefaultsCoverTheLogLevel(t *testing.T) {
 
 	if runtimeDefaults["LOG_LEVEL"] == "" {
@@ -88,9 +31,8 @@ func TestRuntimeDefaultsCoverTheLogLevel(t *testing.T) {
 	}
 }
 
-// A port that something else already holds is the case that made a failed
-// start look successful: the runtime exits unable to bind, and whatever owns
-// the port answers the readiness probe in its place.
+// start refuses an address something else holds, so the operator reads why
+// rather than a bind error from deep in the server's startup.
 func TestAddressInUseIsDetected(t *testing.T) {
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -115,5 +57,41 @@ func TestAddressInUseIsDetected(t *testing.T) {
 	freed.Addr.Port = port
 	if freed.addressInUse() {
 		t.Error("a released port was reported as in use")
+	}
+}
+
+// The CLI looks for the certificates where the runtime does, or verify would
+// report on files the server never reads.
+func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
+
+	home := "/opt/cds"
+	cases := []struct {
+		name    string
+		certDir string
+		want    string
+	}{
+		{"unset", "", "/opt/cds/etc/certs/server.crt"},
+		{"relative to the home, as a pack sets it", "repository/resources/security",
+			"/opt/cds/repository/resources/security/server.crt"},
+		{"absolute, as a container mounts it", "/etc/certs", "/etc/certs/server.crt"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var config runtimeConfig
+			config.TLS.CertDir = c.certDir
+			if got := config.serverCertificate(home); got != filepath.FromSlash(c.want) {
+				t.Errorf("serverCertificate = %q, want %q", got, c.want)
+			}
+		})
+	}
+
+	var config runtimeConfig
+	if got := config.trustStore(home); got != "" {
+		t.Errorf("with no trust_store configured, trustStore = %q, want none", got)
+	}
+	config.TLS.CertDir = "repository/resources/security"
+	config.TLS.TrustStore = "trust_store.pem"
+	if got, want := config.trustStore(home), filepath.FromSlash("/opt/cds/repository/resources/security/trust_store.pem"); got != want {
+		t.Errorf("trustStore = %q, want %q", got, want)
 	}
 }

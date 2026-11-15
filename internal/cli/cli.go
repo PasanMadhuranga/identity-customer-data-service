@@ -18,11 +18,11 @@
 
 // Package cli implements cds, the command installed packs ship.
 //
-// Installation and enablement are deliberately separate. Extracting the pack
-// establishes CDS_HOME; `enable` establishes the relationship between CDS and
-// one Identity Server. The lifecycle commands then operate on the CDS process
-// alone — IS is a separately managed installation and is never started,
-// stopped or updated from here.
+// Extracting the pack is the installation, and configuring it is editing
+// repository/conf/deployment.yaml. The command does not reach into the
+// Identity Server: the Identity Server carries its own side of the
+// integration, so nothing here writes to an Identity Server installation —
+// which an image or a read-only mount would not allow anyway.
 package cli
 
 import (
@@ -39,8 +39,6 @@ type command struct {
 	summary string
 	// run receives the arguments that follow the subcommand name.
 	run func(args []string) error
-	// hidden keeps internal entry points out of the help text.
-	hidden bool
 }
 
 // errUsage is returned by a command whose arguments did not parse. Main prints
@@ -50,19 +48,9 @@ var errUsage = errors.New("invalid arguments")
 func commands() []command {
 
 	return []command{
-		{name: "enable", summary: "Enable CDS against an Identity Server installation", run: runEnable},
-		{name: "disable", summary: "Remove the CDS integration from the associated Identity Server", run: runDisable},
-		{name: "start", summary: "Start the CDS runtime in the foreground (--daemon to detach)", run: runStart},
-		{name: "stop", summary: "Stop a CDS runtime started with --daemon", run: runStop},
-		{name: "status", summary: "Show product, platform, runtime and integration state", run: runStatus},
-		{name: "logs", summary: "Display or follow the CDS logs", run: runLogs},
-		{name: "verify", summary: "Verify CDS and its integration with the Identity Server", run: runVerify},
+		{name: "start", summary: "Run CDS in the foreground; Ctrl+C stops it", run: runStart},
+		{name: "verify", summary: "Check CDS, its certificate and the Identity Server it calls", run: runVerify},
 		{name: "version", summary: "Print the CDS version", run: runVersion},
-
-		// The foreground runtime. `start` re-executes the pack binary with this
-		// command so that a detached server and a --debug run share one code
-		// path, and so the pack ships a single executable.
-		{name: "run", summary: "", run: runForeground, hidden: true},
 	}
 }
 
@@ -100,9 +88,6 @@ func usage(out *os.File) {
 	var b strings.Builder
 	b.WriteString("Customer Data Service\n\nUsage:\n  cds <command> [options]\n\nCommands:\n")
 	for _, cmd := range commands() {
-		if cmd.hidden {
-			continue
-		}
 		fmt.Fprintf(&b, "  %-9s %s\n", cmd.name, cmd.summary)
 	}
 	b.WriteString("\nRun `cds <command> --help` for the options of one command.\n")

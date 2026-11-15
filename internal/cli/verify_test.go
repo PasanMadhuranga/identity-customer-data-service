@@ -19,92 +19,42 @@
 package cli
 
 import (
-	"encoding/base64"
+	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
-func token(payload string) string {
-	return "header." + base64.RawURLEncoding.EncodeToString([]byte(payload)) + ".signature"
-}
-
-// The audience claim is a string in some tokens and an array in others, and
-// the check CDS performs accepts both, so reading it has to as well.
-func TestJWTAudiences(t *testing.T) {
-
-	cases := []struct {
-		name  string
-		token string
-		want  []string
-	}{
-		{"a single audience", token(`{"aud":"iam-cds"}`), []string{"iam-cds"}},
-		{"several audiences", token(`{"aud":["other","iam-cds"]}`), []string{"other", "iam-cds"}},
-		{"no audience", token(`{"iss":"https://is.example.com"}`), nil},
-	}
-
-	for _, test := range cases {
-		t.Run(test.name, func(t *testing.T) {
-			claims, err := jwtClaims(test.token)
-			if err != nil {
-				t.Fatalf("jwtClaims: %v", err)
-			}
-			got := claims.audiences()
-			if len(got) != len(test.want) {
-				t.Fatalf("audiences = %v, want %v", got, test.want)
-			}
-			for i := range got {
-				if got[i] != test.want[i] {
-					t.Errorf("audience %d = %q, want %q", i, got[i], test.want[i])
-				}
-			}
-		})
-	}
-}
-
-// An opaque token is introspected rather than parsed, so failing to decode one
-// has to be distinguishable from a JWT that is missing its audience.
-func TestJWTClaimsRejectsAnOpaqueToken(t *testing.T) {
-
-	if _, err := jwtClaims("f4b8c1de-0000-opaque"); err == nil {
-		t.Fatal("expected an error for a token that is not a JWT")
-	}
-}
-
-func TestSecretsRoundTrip(t *testing.T) {
+// The secrets file is the operator's: comments, blank lines and quoted values
+// are all things a person writes by hand.
+func TestLoadSecrets(t *testing.T) {
 
 	cdsHome := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(cdsHome, confDir), 0o755); err != nil {
 		t.Fatalf("could not stage the configuration directory: %v", err)
 	}
-
-	if err := saveSecrets(cdsHome, map[string]string{"AUTH_SERVER_CLIENT_SECRET": "first"}); err != nil {
-		t.Fatalf("saveSecrets: %v", err)
-	}
-	// A second save adds without dropping what the first wrote, which is what
-	// lets the two phases of enablement each contribute their own secrets.
-	if err := saveSecrets(cdsHome, map[string]string{"INTROSPECTION_CLIENT_SECRET": "second"}); err != nil {
-		t.Fatalf("saveSecrets: %v", err)
+	content := "# set by the operator\n\nAUTH_SERVER_ADMIN_PASSWORD=plain\nDB_PASSWORD=\"quoted\"\nnot a pair\n"
+	if err := os.WriteFile(filepath.Join(cdsHome, secretsFile), []byte(content), 0o600); err != nil {
+		t.Fatalf("could not write the secrets file: %v", err)
 	}
 
 	secrets, err := loadSecrets(cdsHome)
 	if err != nil {
 		t.Fatalf("loadSecrets: %v", err)
 	}
-	if secrets["AUTH_SERVER_CLIENT_SECRET"] != "first" {
-		t.Errorf("the first secret was lost: %q", secrets["AUTH_SERVER_CLIENT_SECRET"])
-	}
-	if secrets["INTROSPECTION_CLIENT_SECRET"] != "second" {
-		t.Errorf("the second secret was not stored: %q", secrets["INTROSPECTION_CLIENT_SECRET"])
+	if len(secrets) != 2 || secrets["AUTH_SERVER_ADMIN_PASSWORD"] != "plain" || secrets["DB_PASSWORD"] != "quoted" {
+		t.Errorf("loadSecrets = %v", secrets)
 	}
 
-	// Credentials on disk are readable by the account that runs CDS, nobody else.
-	info, err := os.Stat(filepath.Join(cdsHome, secretsFile))
-	if err != nil {
-		t.Fatalf("could not stat the secrets file: %v", err)
-	}
-	if mode := info.Mode().Perm(); mode != 0o600 {
-		t.Errorf("secrets file mode = %o, want 600", mode)
+	// A variable already in the environment wins over the file.
+	t.Setenv("DB_PASSWORD", "from-the-environment")
+	env := environment(secrets)
+	if len(env) != 1 || env[0] != "AUTH_SERVER_ADMIN_PASSWORD=plain" {
+		t.Errorf("environment = %v, want only the variable the environment does not already set", env)
 	}
 }
 
@@ -121,50 +71,50 @@ func TestLoadSecretsWithoutAFile(t *testing.T) {
 	}
 }
 
-func TestIntegrationRoundTrip(t *testing.T) {
+// verify trusts the Identity Server only through the trust store CDS itself
+// uses, so a certificate missing from it is reported, and found once added.
+func TestVerifyIdentityServerUsesTheTrustStore(t *testing.T) {
+
+	is := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer is.Close()
+	address, _ := url.Parse(is.URL)
+	port, _ := strconv.Atoi(address.Port())
 
 	cdsHome := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(cdsHome, confDir), 0o755); err != nil {
-		t.Fatalf("could not stage the configuration directory: %v", err)
+	var config runtimeConfig
+	config.AuthServer.Host = address.Hostname()
+	config.AuthServer.Port = port
+	config.TLS.CertDir = "certs"
+	config.TLS.TrustStore = "trust_store.pem"
+	if err := os.MkdirAll(filepath.Join(cdsHome, "certs"), 0o755); err != nil {
+		t.Fatalf("could not stage the certificate directory: %v", err)
+	}
+	trustStore := filepath.Join(cdsHome, "certs", "trust_store.pem")
+
+	// Every httptest server shares one certificate, so the untrusted one is
+	// generated rather than taken from a second server.
+	writeTestCertificate(t, trustStore, "localhost")
+	untrusted := &checks{}
+	verifyIdentityServer(untrusted, cdsHome, &config)
+	if untrusted.failed != 1 {
+		t.Error("an Identity Server whose certificate is not in the trust store was reported as trusted")
 	}
 
-	if _, err := loadIntegration(cdsHome); err == nil {
-		t.Fatal("an installation that was never enabled should report that")
+	writePEM(t, trustStore, is.Certificate().Raw)
+	trusted := &checks{}
+	verifyIdentityServer(trusted, cdsHome, &config)
+	if trusted.failed != 0 || trusted.run != 1 {
+		t.Errorf("an Identity Server in the trust store was not trusted: %d of %d failed", trusted.failed,
+			trusted.run)
 	}
+}
 
-	saved := &integration{
-		ISHome:           "/opt/wso2is",
-		ISVersion:        "7.4.0",
-		CDSVersion:       "1.2.0",
-		ExtensionVersion: "0.9.0",
-		Extensions:       []string{"org.wso2.identity.customer.data.service.client-0.9.0.jar"},
-		Organization:     defaultOrganization,
-		RestartPending:   true,
-	}
-	if err := saveIntegration(cdsHome, saved); err != nil {
-		t.Fatalf("saveIntegration: %v", err)
-	}
+func writePEM(t *testing.T, path string, der []byte) {
 
-	loaded, err := loadIntegration(cdsHome)
-	if err != nil {
-		t.Fatalf("loadIntegration: %v", err)
-	}
-	if loaded.ISHome != saved.ISHome || loaded.ISVersion != saved.ISVersion {
-		t.Errorf("the recorded Identity Server did not survive: %+v", loaded)
-	}
-	if !loaded.RestartPending {
-		t.Error("a pending restart was not recorded, so status would claim the extensions are active")
-	}
-	if len(loaded.Extensions) != 1 {
-		t.Errorf("the installed bundles were not recorded, so disable would leave them behind")
-	}
-
-	if err := clearIntegration(cdsHome); err != nil {
-		t.Fatalf("clearIntegration: %v", err)
-	}
-	// Disable has to converge on removed from any state, so clearing twice
-	// is not an error.
-	if err := clearIntegration(cdsHome); err != nil {
-		t.Fatalf("clearIntegration is not idempotent: %v", err)
+	t.Helper()
+	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o644); err != nil {
+		t.Fatalf("could not write %s: %v", path, err)
 	}
 }

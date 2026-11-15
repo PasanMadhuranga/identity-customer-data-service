@@ -11,6 +11,10 @@
 # So the packed copy — and only the packed copy — defaults to the inbuilt
 # database. Nothing the container or the chart reads is touched.
 #
+# The same goes for the TLS material: a container mounts it at /etc/certs,
+# while a pack carries it in repository/resources/security, so the packed copy
+# points there. The runtime resolves a relative cert_dir against the CDS home.
+#
 #   pack-config.sh <deployment.yaml>
 
 set -euo pipefail
@@ -25,11 +29,19 @@ awk '
   block == "datasource:" && /^[[:space:]]+type:/ {
     sub(/type:.*/, "type: \"sqlite\" # The pack defaults to the inbuilt database; see the README for PostgreSQL.")
   }
+  block == "tls:" && /^[[:space:]]+cert_dir:/ {
+    sub(/cert_dir:.*/, "cert_dir: \"repository/resources/security\" # The TLS material the pack ships; see its README.")
+  }
   { print }
 ' "$CONFIG" > "$CONFIG.packed"
 
 grep -q 'type: "sqlite"' "$CONFIG.packed" || {
   echo "pack-config: the datasource default was not applied to $CONFIG" >&2
+  rm -f "$CONFIG.packed"
+  exit 1
+}
+grep -q 'cert_dir: "repository/resources/security"' "$CONFIG.packed" || {
+  echo "pack-config: the cert_dir default was not applied to $CONFIG" >&2
   rm -f "$CONFIG.packed"
   exit 1
 }

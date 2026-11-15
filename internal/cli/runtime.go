@@ -36,7 +36,7 @@ import (
 // where to reach the running server, and which Identity Server the runtime is
 // configured to call. The runtime itself loads the whole file; the CLI reads
 // only these fields so that an unresolved ${PLACEHOLDER} elsewhere in the file
-// — normal before the first start — cannot stop `status` from answering.
+// — normal before the first start — cannot stop `verify` from answering.
 type runtimeConfig struct {
 	Addr struct {
 		Host string `yaml:"host"`
@@ -46,11 +46,11 @@ type runtimeConfig struct {
 	TLS       struct {
 		CertDir    string `yaml:"cert_dir"`
 		ServerCert string `yaml:"server_cert"`
+		TrustStore string `yaml:"trust_store"`
 	} `yaml:"tls"`
 	AuthServer struct {
-		Host     string `yaml:"host"`
-		Port     int    `yaml:"port"`
-		ClientID string `yaml:"client_id"`
+		Host string `yaml:"host"`
+		Port int    `yaml:"port"`
 	} `yaml:"auth_server"`
 }
 
@@ -74,28 +74,45 @@ func readRuntimeConfig(cdsHome string) (*runtimeConfig, error) {
 	return &cfg, nil
 }
 
-// localBase is the address the CLI itself calls. It is always the configured
-// bind address rather than server_url, because server_url is the public name
-// an operator may have pointed at a load balancer — a liveness check has to
-// reach this process, not the deployment.
 // serverCertificate is the path of the certificate CDS presents, as the
 // configuration names it.
 func (c *runtimeConfig) serverCertificate(cdsHome string) string {
 
-	dir := c.TLS.CertDir
-	if dir == "" {
-		dir = path(cdsHome, certsDirInPak)
-	}
 	name := c.TLS.ServerCert
 	if name == "" {
 		name = "server.crt"
 	}
-	if filepath.IsAbs(dir) {
-		return filepath.Join(dir, name)
-	}
-	return filepath.Join(cdsHome, dir, name)
+	return filepath.Join(c.certDir(cdsHome), name)
 }
 
+// trustStore is the path of the Identity Server certificates CDS trusts, or ""
+// when the configuration names none and only the system roots apply.
+func (c *runtimeConfig) trustStore(cdsHome string) string {
+
+	if c.TLS.TrustStore == "" {
+		return ""
+	}
+	return filepath.Join(c.certDir(cdsHome), c.TLS.TrustStore)
+}
+
+// certDir resolves tls.cert_dir as the runtime does: relative to the CDS home,
+// and etc/certs under it when unset.
+func (c *runtimeConfig) certDir(cdsHome string) string {
+
+	dir := c.TLS.CertDir
+	if dir == "" {
+		return path(cdsHome, "etc/certs")
+	}
+	if filepath.IsAbs(dir) {
+		return dir
+	}
+	return filepath.Join(cdsHome, dir)
+}
+
+// localBase is the address the CLI itself calls. It is always the configured
+// bind address rather than server_url, because server_url is the public name
+// an operator may have pointed at a load balancer — a liveness check has to
+// reach this process, not the deployment.
 func (c *runtimeConfig) localBase() string {
 
 	host := c.Addr.Host
@@ -154,41 +171,4 @@ func probe(base, endpoint string, timeout time.Duration) (int, string, error) {
 	body := make([]byte, 512)
 	n, _ := resp.Body.Read(body)
 	return resp.StatusCode, strings.TrimSpace(string(body[:n])), nil
-}
-
-// waitReady polls /ready until the process reports that it can serve, or the
-// deadline passes. Readiness rather than health is the signal, because a
-// process that is listening but cannot reach its datastore has not finished
-// starting from an operator's point of view.
-//
-// The started process is watched as well as the endpoint. A port is not proof
-// of anything on its own: if the runtime exits — a configuration it cannot
-// read, a port already taken — something else answering on that address would
-// otherwise be reported as this installation having started.
-func waitReady(base string, exited <-chan error, within time.Duration) error {
-
-	deadline := time.Now().Add(within)
-	var last error
-	for time.Now().Before(deadline) {
-		select {
-		case err := <-exited:
-			if err != nil {
-				return fmt.Errorf("the CDS runtime exited during start-up: %w", err)
-			}
-			return fmt.Errorf("the CDS runtime exited during start-up")
-		default:
-		}
-
-		status, _, err := probe(base, "/cds/api/v1/ready", 5*time.Second)
-		switch {
-		case err != nil:
-			last = err
-		case status == http.StatusOK:
-			return nil
-		default:
-			last = fmt.Errorf("/cds/api/v1/ready returned HTTP %d", status)
-		}
-		time.Sleep(time.Second)
-	}
-	return fmt.Errorf("CDS did not become ready within %s: %w", within, last)
 }

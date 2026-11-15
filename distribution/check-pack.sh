@@ -18,7 +18,6 @@ DIST_DIR="${1:?usage: check-pack.sh <dist-dir>}"
 # update service resolves the pack by.
 REQUIRED="
 cds
-setup.sh
 start.sh
 repository/conf/deployment.yaml
 repository/conf/compatibility.yaml
@@ -27,6 +26,7 @@ repository/dbscripts/sqlite.sql
 repository/resources/security/README.md
 repository/resources/security/server.crt
 repository/resources/security/server.key
+repository/resources/security/trust_store.pem
 updates/product.txt
 version.txt
 LICENSE.txt

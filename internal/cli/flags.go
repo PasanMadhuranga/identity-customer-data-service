@@ -57,7 +57,6 @@ func parse(flags *flag.FlagSet, args []string) error {
 	return nil
 }
 
-// runtimeRun hands control to the server runtime. It is a variable so that
-// tests of the lifecycle commands can stand in for a runtime they must not
-// actually start.
+// runtimeRun hands control to the server runtime. It is a variable so that a
+// test of start can stand in for a runtime it must not actually start.
 var runtimeRun = func(cdsHome string) { server.Run(cdsHome) }

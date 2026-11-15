@@ -4,10 +4,10 @@
 #
 # install_cds.sh is the first thing a customer on the Identity-Server-first
 # path runs, and until this existed nothing exercised it: a change that broke
-# release resolution, the checksum check or the hand-off to `cds enable`
-# would have been found by them rather than by us. So this stands a release up
-# locally — the artifacts served over HTTP, an Identity Server installation to
-# enable against — and runs the installer end to end against it.
+# release resolution, the checksum check or the extraction would have been
+# found by them rather than by us. So this stands a release up locally — the
+# artifacts served over HTTP, an Identity Server installation to install
+# beside — and runs the installer end to end against it.
 #
 #   verify-install.sh <dist-dir>
 #
@@ -108,41 +108,32 @@ done
 [ "$ready" = "1" ] || { echo "verify-install: the local artifact server did not start on port $PORT" >&2; exit 1; }
 
 # --------------------------------------------------------------------------- #
-# An Identity Server to enable against
+# An Identity Server to install beside
 #
-# Only the parts enablement reads: the file that identifies it as an Identity
-# Server, its version, and the dropins. The extension bundles are put there as
-# a release that ships CDS support would, which is also what keeps this from
-# reaching the Maven repository.
+# Only the parts the installer reads: the file that identifies it as an
+# Identity Server, and its version.
 # --------------------------------------------------------------------------- #
 IS_HOME="$WORK/wso2is"
-mkdir -p "$IS_HOME/repository/conf" "$IS_HOME/bin" "$IS_HOME/updates" \
-         "$IS_HOME/repository/components/dropins"
+mkdir -p "$IS_HOME/repository/conf" "$IS_HOME/bin" "$IS_HOME/updates"
 
 printf '[server]\nhostname = "localhost"\n' > "$IS_HOME/repository/conf/deployment.toml"
 printf '#!/bin/sh\n' > "$IS_HOME/bin/wso2server.sh"
 chmod +x "$IS_HOME/bin/wso2server.sh"
 printf 'WSO2 Identity Server v%s\n' "$IS_VERSION" > "$IS_HOME/bin/version.txt"
 printf 'wso2is-%s' "$IS_VERSION" > "$IS_HOME/updates/product.txt"
-for bundle in client event.handler auth.listener auth.handler; do
-  : > "$IS_HOME/repository/components/dropins/org.wso2.identity.customer.data.service.$bundle-0.9.0.jar"
-done
+IS_SNAPSHOT="$(cd "$IS_HOME" && find . -type f -exec shasum {} \; | sort)"
 
 # --------------------------------------------------------------------------- #
 # Run it
 #
 # Nothing is stubbed past this point. The installer resolves the release from
-# the metadata, verifies the checksum, extracts, and execs the packed
-# cds enable, which reads the Identity Server and stages its configuration.
-# Provisioning stops at the restart this fixture will never perform, which is
-# the correct outcome and the one an operator sees.
+# the metadata, verifies the checksum and extracts the pack.
 # --------------------------------------------------------------------------- #
 CDS_HOME="$WORK/cds"
 echo "verify-install: installing $PACK against Identity Server $IS_VERSION"
 
 CDS_API="http://127.0.0.1:$PORT" \
 CDS_DOWNLOAD_BASE="http://127.0.0.1:$PORT" \
-CDS_IS_ADMIN_PASSWORD="verify-install-not-used" \
   "$SELF_DIR/install_cds.sh" \
     --is-home "$IS_HOME" \
     --cds-home "$CDS_HOME" \
@@ -173,16 +164,10 @@ check "the download was checked against its published checksum" \
 check "CDS_HOME holds the pack" "[ -x '$CDS_HOME/$PRODUCT' ]"
 check "the installed executable reports the built version" \
   "[ \"\$('$CDS_HOME/$PRODUCT' version)\" = '$PACK_VERSION' ]"
-check "the installer handed off to cds enable" \
-  "grep -q 'Identity Server restart required' '$WORK/install.log'"
-check "enablement recorded the Identity Server" \
-  "grep -q 'is_version: $IS_VERSION' '$CDS_HOME/repository/conf/integration.yaml'"
-check "the bundles the Identity Server provides were left to it" \
-  "grep -q 'provided by the Identity Server' '$WORK/install.log'"
-check "nothing was installed over them" \
-  "[ \"\$(ls -1 '$IS_HOME/repository/components/dropins' | wc -l | tr -d '[:space:]')\" = '4' ]"
-check "the Identity Server configuration was staged" \
-  "grep -q '# BEGIN cds' '$IS_HOME/repository/conf/deployment.toml'"
+check "the installer said how to switch CDS on in the Identity Server" \
+  "grep -q 'customer_data_service' '$WORK/install.log'"
+check "nothing in the Identity Server was changed" \
+  "[ \"\$(cd '$IS_HOME' && find . -type f -exec shasum {} \\; | sort)\" = \"\$IS_SNAPSHOT\" ]"
 
 if [ "$failures" -gt 0 ]; then
   echo
@@ -192,4 +177,4 @@ if [ "$failures" -gt 0 ]; then
   exit 1
 fi
 
-echo "verify-install: the Identity-Server-first path installs and enables $PACK."
+echo "verify-install: the Identity-Server-first path installs $PACK."

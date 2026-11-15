@@ -74,11 +74,12 @@ func Run(cdsHome string) {
 	utils.SetCDSHome(cdsHome)
 	const configFile = "/repository/conf/deployment.yaml"
 
-	envFiles, err := filepath.Glob("config/*.env")
-	if err != nil || len(envFiles) == 0 {
-		fmt.Println("No .env files found in config directory. ", err)
+	// Environment files are a development convenience; an installed pack has
+	// none and takes its secrets from the environment, so finding none here
+	// is the normal case rather than something to report.
+	if envFiles, err := filepath.Glob("config/*.env"); err == nil && len(envFiles) > 0 {
+		_ = godotenv.Load(envFiles...)
 	}
-	_ = godotenv.Load(envFiles...)
 
 	// Load the configuration file
 	cdsConfig, err := config.LoadConfig(cdsHome, configFile)
@@ -171,6 +172,9 @@ func Run(cdsHome string) {
 	certDir := cdsConfig.TLS.CertDir
 	if certDir == "" {
 		certDir = filepath.Join(cdsHome, "etc", "certs")
+	} else if !filepath.IsAbs(certDir) {
+		// Relative to the home, as a pack configures it, so the runtime finds the same files from any directory.
+		certDir = filepath.Join(cdsHome, certDir)
 	}
 
 	if cdsConfig.TLS.CDSPublicCert == "" || cdsConfig.TLS.CDSPrivateKey == "" {

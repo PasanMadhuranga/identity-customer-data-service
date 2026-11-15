@@ -299,19 +299,15 @@ when all you want is a compile check.
 unzip target/dist/cds-linux-amd64-<version>.zip -d /opt
 cd /opt/cds-linux-amd64-<version>
 
-./cds enable --is-home /opt/wso2is
-./cds start
-./cds verify
+./start.sh       # runs in the foreground; Ctrl+C stops it
+./cds verify     # in another terminal
 ```
 
-`cds enable` does the Identity Server configuration this README's
-[Configuration Steps](#-configuration-steps) describe by hand — the
-applications, the API resources and scopes, the claim, the extension bundles
-and the certificate exchange. The manual steps are still worth reading to
-understand what it sets up, and are the way to adjust any of it afterwards.
+Then switch CDS on in the Identity Server with one `[customer_data_service]`
+block in its `deployment.toml`.
 
-See [On-Prem Installation](docs/guides/on-prem-installation.md) for the full
-lifecycle: both onboarding paths, what enablement does on each side of the
-Identity Server restart, the status model, and disabling.
+See [On-Prem Installation](docs/guides/on-prem-installation.md) for both
+onboarding paths, configuring CDS, switching it on in the Identity Server,
+running it as a service, and certificates.
 
 ---

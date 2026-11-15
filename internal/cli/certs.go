@@ -19,42 +19,43 @@
 package cli
 
 import (
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
-// CDS and the Identity Server call each other over TLS, so each has to trust
-// the other's certificate. Both stores on the IS side are Java keystores, and
-// keytool is the only supported way to write them — so enablement drives
-// keytool rather than reimplementing PKCS#12.
-//
-// keytool comes with the JRE that runs the Identity Server, which is why it is
-// looked for under JAVA_HOME before PATH.
-const (
-	isKeystore    = isSecurity + "/wso2carbon.p12"
-	isTruststore  = isSecurity + "/client-truststore.p12"
-	isStoreType   = "PKCS12"
-	cdsTrustStore = "trust_store.pem"
+// cdsTrustStore is the file in the certificate directory that holds the
+// Identity Server certificates CDS trusts.
+const cdsTrustStore = "trust_store.pem"
 
-	// defaultCertificateOU marks the key pair a pack ships with. It is set by
-	// distribution/default-cert.sh; changing one without the other leaves the
-	// runtime unable to tell a default certificate from a real one.
-	defaultCertificateOU = "Customer Data Service Default"
-)
+// defaultCertificateFingerprints are the SHA-256 fingerprints of the key pairs
+// a pack can ship with: Identity Server 7.3.0's default wso2carbon pair, which
+// distribution/default-cert.sh installs and pins. Changing one without the
+// other leaves the runtime unable to tell a default certificate from a real
+// one.
+var defaultCertificateFingerprints = map[[sha256.Size]byte]bool{
+	mustFingerprint("2BA361A032FFD4B34F7DF066DE72B61C5E836A09F7A7BD7105EB87B4094D9712"): true,
+}
+
+func mustFingerprint(hexDigest string) [sha256.Size]byte {
+
+	var fingerprint [sha256.Size]byte
+	if _, err := hex.Decode(fingerprint[:], []byte(hexDigest)); err != nil {
+		panic(err)
+	}
+	return fingerprint
+}
 
 // usingDefaultCertificate reports whether the certificate at path is the one
 // the pack shipped with.
 //
-// That certificate is a convenience for getting started and nothing more:
-// every download of a release carries the same private key, so anyone holding
+// That certificate is a convenience for getting started and nothing more: its
+// private key ships in every Identity Server 7.3.0 download, so anyone holding
 // it can present themselves as this service. An operator has to be able to
-// see that it is still in use, which is the only reason the pack marks it.
+// see that it is still in use.
 func usingDefaultCertificate(path string) bool {
 
 	raw, err := os.ReadFile(path)
@@ -65,98 +66,32 @@ func usingDefaultCertificate(path string) bool {
 	if block == nil {
 		return false
 	}
-	certificate, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
+	if _, err := x509.ParseCertificate(block.Bytes); err != nil {
 		return false
 	}
-	for _, unit := range certificate.Subject.OrganizationalUnit {
-		if unit == defaultCertificateOU {
-			return true
-		}
-	}
-	return false
+	return defaultCertificateFingerprints[sha256.Sum256(block.Bytes)]
 }
 
-// findKeytool locates the keytool binary, or reports that it is absent.
-func findKeytool() (string, error) {
+// certificateCovers reports whether the certificate at path is valid for host,
+// which is what the Identity Server checks when it calls CDS at server_url.
+func certificateCovers(path, host string) (bool, error) {
 
-	if javaHome := strings.TrimSpace(os.Getenv("JAVA_HOME")); javaHome != "" {
-		candidate := filepath.Join(javaHome, "bin", "keytool")
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return candidate, nil
-		}
-	}
-	found, err := exec.LookPath("keytool")
+	certificate, err := readCertificate(path)
 	if err != nil {
-		return "", fmt.Errorf("keytool was not found on PATH or under JAVA_HOME")
+		return false, err
 	}
-	return found, nil
+	return certificate.VerifyHostname(host) == nil, nil
 }
 
-var privateKeyEntry = regexp.MustCompile(`(?m)^([^,\n]+),[^\n]*PrivateKeyEntry`)
+func readCertificate(path string) (*x509.Certificate, error) {
 
-// exportISCertificate writes the Identity Server's public certificate to
-// target in PEM form, so CDS can verify the server it calls.
-func exportISCertificate(keytool string, is *isInstall, storePassword, target string) error {
-
-	keystore := is.path(isKeystore)
-	if _, err := os.Stat(keystore); err != nil {
-		return fmt.Errorf("the Identity Server keystore %s is not readable: %w", isKeystore, err)
-	}
-
-	listing, err := exec.Command(keytool, "-list", "-keystore", keystore,
-		"-storetype", isStoreType, "-storepass", storePassword).CombinedOutput()
+	raw, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("could not read %s: %w\n%s", isKeystore, err, strings.TrimSpace(string(listing)))
+		return nil, err
 	}
-	match := privateKeyEntry.FindSubmatch(listing)
-	if match == nil {
-		return fmt.Errorf("%s holds no private key entry to export", isKeystore)
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, fmt.Errorf("%s holds no PEM certificate", path)
 	}
-	alias := strings.TrimSpace(string(match[1]))
-
-	pem, err := exec.Command(keytool, "-exportcert", "-rfc", "-alias", alias,
-		"-keystore", keystore, "-storetype", isStoreType, "-storepass", storePassword).Output()
-	if err != nil {
-		return fmt.Errorf("could not export the %q certificate from %s: %w", alias, isKeystore, err)
-	}
-	if len(pem) == 0 {
-		return fmt.Errorf("the certificate exported from %s is empty", isKeystore)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-		return fmt.Errorf("could not create %s: %w", filepath.Dir(target), err)
-	}
-	if err := writeFileAtomic(target, pem, 0o644); err != nil {
-		return fmt.Errorf("could not write %s: %w", target, err)
-	}
-	info("exported the Identity Server certificate (alias %s)", alias)
-	return nil
-}
-
-// importCDSCertificate puts the CDS certificate into the Identity Server's
-// client truststore, so IS can verify CDS when it calls the sync endpoints.
-//
-// The alias is replaced rather than added to, so re-enabling after a
-// certificate rotation installs the new one instead of leaving both.
-func importCDSCertificate(keytool string, is *isInstall, storePassword, certPEM, alias string) error {
-
-	truststore := is.path(isTruststore)
-	if _, err := os.Stat(truststore); err != nil {
-		return fmt.Errorf("the Identity Server truststore %s is not readable: %w", isTruststore, err)
-	}
-
-	// A delete for an absent alias fails, which is the normal first-run case.
-	_ = exec.Command(keytool, "-delete", "-alias", alias, "-keystore", truststore,
-		"-storetype", isStoreType, "-storepass", storePassword).Run()
-
-	out, err := exec.Command(keytool, "-importcert", "-noprompt", "-trustcacerts",
-		"-alias", alias, "-file", certPEM, "-keystore", truststore,
-		"-storetype", isStoreType, "-storepass", storePassword).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("could not import the CDS certificate into %s: %w\n%s",
-			isTruststore, err, strings.TrimSpace(string(out)))
-	}
-	info("imported the CDS certificate into client-truststore.p12 (alias %s)", alias)
-	return nil
+	return x509.ParseCertificate(block.Bytes)
 }

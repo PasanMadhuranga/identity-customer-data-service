@@ -1,42 +1,46 @@
 # TLS material
 
 CDS serves HTTPS only and refuses to start without a certificate and a private
-key, so this directory holds them:
+key, and it calls the Identity Server over HTTPS too, so this directory holds
+both sides:
 
 ```
-server.crt      the CDS certificate, PEM
+server.crt      the certificate CDS presents, PEM
 server.key      its private key, PEM, mode 600
-trust_store.pem the Identity Server certificate, written by `cds enable`
+trust_store.pem the Identity Server certificates CDS trusts, PEM
 ```
 
-## Replace the certificate this pack shipped with
+`tls.cert_dir` in `repository/conf/deployment.yaml` points here. A relative
+path is resolved against the CDS home.
 
-`server.crt` and `server.key` are a **default key pair, generated when this
-pack was built**, so that a fresh installation starts and enables in one pass.
-They are a convenience for getting started and nothing else.
+## What this pack ships
 
-**Every download of this release carries the same private key.** Anyone holding
-it can present themselves as this service to the Identity Server, which trusts
-the certificate after `cds enable` imports it. Replace both files with a
-certificate issued for the name CDS is reached on, then run `cds enable`
-again so the Identity Server trusts the new one.
+All three files are **WSO2 Identity Server 7.3.0's default key pair** — the
+`wso2carbon` entry of its `wso2carbon.p12`. A default Identity Server 7.3.0
+already trusts that certificate in its `client-truststore.p12`, and CDS trusts
+it here, so the two call each other over TLS with no certificate set up on
+either side.
 
-`cds status` and `cds verify` both report while the default is still in
-use, and `verify` counts it as a failed check — it is not something to leave in
-place on a deployment carrying real traffic.
+That holds only while they reach each other as **`localhost`**: the
+certificate is issued for `localhost` and nothing else. It suits a first
+installation with both on one host. Containers, separate hosts, or any other
+name need the certificates below.
 
-## What enable does here
+## Replace it for production
 
-`cds enable` points `tls.cert_dir` in `repository/conf/deployment.yaml` at
-this directory, exports the Identity Server's certificate into
-`trust_store.pem` so CDS can verify the server it calls, and imports
-`server.crt` into the Identity Server's `client-truststore.p12` so that server
-can verify CDS when it calls the synchronisation endpoints.
+**This key pair is a convenience for getting started, not a credential.** Its
+private key is in every Identity Server 7.3.0 download, so anyone can present
+themselves as this CDS — or as that Identity Server. `cds verify` counts it
+as a failed check while it is in use.
 
-Replacing the certificate therefore means running `cds enable` again: the
-Identity Server trusts whichever certificate was imported, not whichever one
-is on disk now.
+Replace it on both sides:
 
-A replacement should be issued for the host in `server_url` — the name the
-Identity Server and the Console reach CDS on — not for `localhost`, unless
-that really is how they reach it.
+1. Here: `server.crt` and `server.key` with a certificate issued for the host
+   in `server_url`, the name the Identity Server and the Console reach CDS on.
+2. Here: `trust_store.pem` with the certificate the Identity Server presents,
+   or the CA that issued it.
+3. On the Identity Server: import the new `server.crt`, or its CA, into
+   `client-truststore.p12`, and restart it.
+
+In a container, mount the files rather than changing the image: this directory
+for CDS, and the truststore for the Identity Server.

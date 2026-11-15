@@ -116,13 +116,12 @@ dist: clean-dist
 # Stage and zip one platform pack. Not meant to be called directly.
 #
 # Pack layout:
-#   $(PRODUCT_NAME)                  the lifecycle command and the runtime
-#   setup.sh, start.sh               entry points over it
+#   $(PRODUCT_NAME)                  the runtime, and `verify`
+#   start.sh                         runs it in the foreground
 #   repository/conf/                 deployment.yaml and compatibility.yaml
 #   repository/database/             where the inbuilt database is created
 #   repository/dbscripts/            DDL for operators running an external database
-#   repository/resources/security/   where the operator installs the TLS material
-#   logs/                            created empty so the runtime can write on first start
+#   repository/resources/security/   the TLS material, defaulting to Identity Server 7.3.0's key pair
 #   updates/product.txt              the update-service product identity of this pack
 #   version.txt, LICENSE.txt, README.md
 #
@@ -138,7 +137,7 @@ _dist_one:
 	stage=$(DIST_DIR)/$$pack; \
 	echo "Building $$pack..."; \
 	rm -rf $$stage; \
-	mkdir -p $$stage/logs $$stage/updates \
+	mkdir -p $$stage/updates \
 		$$stage/repository/database $$stage/repository/dbscripts $$stage/repository/resources/security; \
 	CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -o $$stage/$(PRODUCT_NAME) ./cmd/cds; \
 	cp -r $(REPOSITORY_DIR)/. $$stage/repository/; \
@@ -147,7 +146,7 @@ _dist_one:
 	cp $(DISTRIBUTION_SRC)/pack/security-README.md $$stage/repository/resources/security/README.md; \
 	$(DISTRIBUTION_SRC)/default-cert.sh $$stage/repository/resources/security; \
 	cp LICENSE.txt README.md $(VERSION_FILE) $$stage/; \
-	install -m 755 $(DISTRIBUTION_SRC)/pack/setup.sh $(DISTRIBUTION_SRC)/pack/start.sh $$stage/; \
+	install -m 755 $(DISTRIBUTION_SRC)/pack/start.sh $$stage/; \
 	printf '%s\n' "$$pack" > $$stage/updates/product.txt; \
 	find $$stage -name '.DS_Store' -delete; \
 	cd $(DIST_DIR) && COPYFILE_DISABLE=1 zip -rq $$pack.zip $$pack -x '**/.DS_Store' -x '**/__MACOSX/**'; \

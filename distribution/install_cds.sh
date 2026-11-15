@@ -5,12 +5,12 @@
 # This is the IS-first onboarding path. The customer already runs an Identity
 # Server and decides to add CDS, so the CDS executable does not exist yet and
 # something has to acquire it — that is all this script is. It resolves a CDS
-# release compatible with the installed Identity Server, downloads and extracts
-# the pack for this platform, and hands over to the packaged `cds enable`.
+# release compatible with the installed Identity Server, downloads, verifies and
+# extracts the pack for this platform, and stops there.
 #
-# Everything after the hand-off is the product's own command, so this script
-# and the CDS-first path (download the zip, extract it, run cds enable)
-# converge on one implementation rather than two.
+# It leaves the Identity Server alone: the Identity Server carries its own side
+# of the integration, switched on in its deployment.toml. So this script and
+# the CDS-first path (download the zip, extract it) end at the same place.
 #
 #   ./install_cds.sh --is-home /opt/wso2is [--cds-home /opt/cds]
 #
@@ -30,7 +30,6 @@ IS_HOME=""
 CDS_HOME=""
 VERSION=""
 ACCEPT_LICENSE="0"
-RUN_ENABLE="1"
 
 C_BOLD=""; C_RESET=""; C_RED=""; C_GREEN=""; C_YELLOW=""
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -51,13 +50,12 @@ Install the WSO2 Customer Data Service beside an existing Identity Server.
 Usage: install_cds.sh --is-home <IS_HOME> [options]
 
 Options:
-  --is-home <path>    the Identity Server installation to enable CDS against
+  --is-home <path>    the Identity Server installation CDS is added beside
   --cds-home <path>   where to install CDS (default: <IS_HOME>'s parent/${PRODUCT})
   --version <vX.Y.Z>  install this CDS release instead of resolving one
   --mirror <url>      fetch the artifacts from this base URL instead of the
                       GitHub releases, laid out as <url>/<tag>/<file>
   --accept-license    accept LICENSE.txt without being asked
-  --no-enable         install only; do not run cds enable
   -h, --help          this message
 USAGE
 }
@@ -71,7 +69,6 @@ while [ $# -gt 0 ]; do
     --version)        need_value "$1" "${2:-}"; VERSION="$2"; shift 2 ;;
     --mirror)         need_value "$1" "${2:-}"; DOWNLOAD_BASE="${2%/}"; shift 2 ;;
     --accept-license) ACCEPT_LICENSE="1"; shift ;;
-    --no-enable)      RUN_ENABLE="0"; shift ;;
     -h|--help)        usage; exit 0 ;;
     *)                usage >&2; die "unknown option $1" ;;
   esac
@@ -160,7 +157,7 @@ else
   if [ -z "$VERSION" ]; then
     VERSION="$(printf '%s\n' "$TAGS" | head -1)"
     warn "no published release declares support for Identity Server $IS_VERSION"
-    warn "installing the newest release, $VERSION; cds enable will say so again"
+    warn "installing the newest release, $VERSION"
   fi
 fi
 
@@ -176,8 +173,7 @@ if [ -z "$CDS_HOME" ]; then
 fi
 step "Installing to $CDS_HOME"
 if [ -e "$CDS_HOME" ] && [ -n "$(ls -A "$CDS_HOME" 2>/dev/null)" ]; then
-  die "$CDS_HOME exists and is not empty. Pass --cds-home <path> for a new installation,
-or run $CDS_HOME/cds enable to re-enable the one that is already there"
+  die "$CDS_HOME exists and is not empty. Pass --cds-home <path> for a new installation"
 fi
 
 WORK="$(mktemp -d)"
@@ -229,15 +225,19 @@ chmod +x "$CDS_HOME/$PRODUCT"
 ok "installed CDS $PACK_VERSION in $CDS_HOME"
 
 # --------------------------------------------------------------------------- #
-# 6. Hand over to the packaged enable flow
+# 6. What to do next
 # --------------------------------------------------------------------------- #
-if [ "$RUN_ENABLE" != "1" ]; then
-  step "Installed"
-  info "Enable CDS when you are ready:"
-  info ""
-  info "    $CDS_HOME/$PRODUCT enable --is-home $IS_HOME"
-  exit 0
-fi
-
-step "Enabling CDS"
-exec "$CDS_HOME/$PRODUCT" enable --is-home "$IS_HOME"
+step "Installed"
+info "Start CDS:"
+info ""
+info "    $CDS_HOME/start.sh"
+info ""
+info "Then switch CDS on in the Identity Server, in $IS_HOME/repository/conf/deployment.toml:"
+info ""
+info "    [customer_data_service]"
+info "    enable = true"
+info "    server_url = \"https://localhost:8900\""
+info "    admin_username = \"admin\""
+info "    admin_password = \"<AUTH_SERVER_ADMIN_PASSWORD of CDS>\""
+info ""
+info "and restart the Identity Server. Check the installation with $CDS_HOME/$PRODUCT verify."

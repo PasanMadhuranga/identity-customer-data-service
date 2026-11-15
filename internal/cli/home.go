@@ -25,25 +25,13 @@ import (
 	"strings"
 )
 
-// Paths inside an installed pack. The layout is fixed: the executable and the
-// entry-point scripts sit at CDS_HOME, with repository/, logs/ and updates/
-// beside them. bin/ holds only update_tool_setup.sh, which resolves
-// ../updates/product.txt relative to itself and so has to stay one level
-// below updates/.
+// Paths inside an installed pack. The executable and start.sh sit at CDS_HOME,
+// with repository/ and updates/ beside them.
 const (
-	binDir        = "bin"
-	confDir       = "repository/conf"
-	dbScriptsDir  = "repository/dbscripts"
-	logsDir       = "logs"
-	updatesDir    = "updates"
-	configFile    = "repository/conf/deployment.yaml"
-	secretsFile   = "repository/conf/secrets.env"
-	stateFile     = "repository/conf/integration.yaml"
-	productFile   = "updates/product.txt"
-	versionFile   = "version.txt"
-	pidFile       = "cds.pid"
-	runtimeLog    = "logs/cds.log"
-	certsDirInPak = "repository/resources/security"
+	confDir     = "repository/conf"
+	configFile  = "repository/conf/deployment.yaml"
+	secretsFile = "repository/conf/secrets.env"
+	versionFile = "version.txt"
 )
 
 // home resolves CDS_HOME.
@@ -102,18 +90,6 @@ func productVersion(cdsHome string) (string, error) {
 	return strings.TrimPrefix(strings.TrimSpace(string(raw)), "v"), nil
 }
 
-// u2Product reads the U2 product identity this pack was built as, for example
-// cds-linux-amd64-1.2.0. It is absent from a pack that has not been
-// onboarded to the update service, which is not an error.
-func u2Product(cdsHome string) string {
-
-	raw, err := os.ReadFile(path(cdsHome, productFile))
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(raw))
-}
-
 // ---------------------------------------------------------------------------
 // Terminal output
 //
@@ -144,7 +120,4 @@ func step(format string, a ...any) { fmt.Printf("\n%s\n", bold(fmt.Sprintf(forma
 func info(format string, a ...any) { fmt.Printf("    %s\n", fmt.Sprintf(format, a...)) }
 func done(format string, a ...any) {
 	fmt.Printf("    %s %s\n", colour("32", "+"), fmt.Sprintf(format, a...))
-}
-func warn(format string, a ...any) {
-	fmt.Fprintf(os.Stderr, "    %s %s\n", colour("33", "!"), fmt.Sprintf(format, a...))
 }

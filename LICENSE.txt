@@ -13,19 +13,16 @@ below is and where the actual text of the license can be found.
 
 Name                                                                                                 Type           License
 _________________________________________________________________________________________________________________________________________________
-Go standard library (go1.26.9)                                                                       runtime        golang
+Go standard library (go1.26.10)                                                                      runtime        golang
 github.com/dustin/go-humanize@v1.0.1                                                                 module         mit
 github.com/go-stomp/stomp/v3@v3.1.5                                                                  module         apache2
 github.com/golang-jwt/jwt/v5@v5.2.2                                                                  module         mit
 github.com/google/uuid@v1.6.0                                                                        module         bsd3
 github.com/joho/godotenv@v1.5.1                                                                      module         mit
 github.com/lib/pq@v1.10.9                                                                            module         mit
-github.com/mattn/go-isatty@v0.0.20                                                                   module         mit
-github.com/ncruces/go-strftime@v1.0.0                                                                module         mit
 github.com/pkg/errors@v0.9.1                                                                         module         bsd2
 github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec                                  module         bsd3
-go.mongodb.org/mongo-driver@v1.17.7                                                                  module         apache2
-golang.org/x/sys@v0.45.0                                                                             module         bsd3
+golang.org/x/sys@v0.47.0                                                                             module         bsd3
 gopkg.in/yaml.v2@v2.4.0                                                                              module         apache2 + mit
 modernc.org/libc@v1.73.4                                                                             module         bsd3 + mit
 modernc.org/mathutil@v1.7.1                                                                          module         bsd3

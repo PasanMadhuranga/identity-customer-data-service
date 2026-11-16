@@ -63,6 +63,21 @@ defaults already match a default Identity Server on the same host:
 
 Credentials are not written into it; see [Secrets](#secrets).
 
+**Set `SERVICE_CREDENTIALS_ENCRYPTION_KEY` before switching CDS on.** When an
+organization enables CDS, the Identity Server creates an application for CDS
+in that organization and sends CDS its credentials. CDS calls the Identity
+Server for that organization with them, and introspects its tokens with them,
+and it keeps them only sealed with this key (`idp.service_credentials.encryption_key`).
+Without a key it refuses them, and uses the clients configured under
+`auth_server` for every organization instead. Generate one with:
+
+```bash
+openssl rand -base64 32
+```
+
+Keep it safe and keep it the same: credentials sealed with one key cannot be
+read with another.
+
 ## Switching CDS on in the Identity Server
 
 Add one block to the Identity Server's `repository/conf/deployment.toml` and
@@ -166,7 +181,8 @@ runs. It checks that:
 
 Credentials never go into `deployment.yaml`. They reach the runtime as the
 environment variables the `${...}` placeholders in the configuration expand
-from — `AUTH_SERVER_ADMIN_PASSWORD`, `DB_PASSWORD` and the like.
+from — `AUTH_SERVER_ADMIN_PASSWORD`, `SERVICE_CREDENTIALS_ENCRYPTION_KEY`,
+`DB_PASSWORD` and the like.
 
 Set them in the environment, or keep them in `repository/conf/secrets.env`,
 one `KEY=VALUE` per line, readable by the account that runs CDS and nobody

@@ -125,11 +125,10 @@ dist: clean-dist
 #   updates/product.txt              the update-service product identity of this pack
 #   version.txt, LICENSE.txt, README.md
 #
-# bin/ is not created here. It holds only update_tool_setup.sh, which is
-# published by the Updates team rather than built from this source and is
-# attached to the released packs - see $(DISTRIBUTION_SRC)/u2-onboarding/.
-# That script resolves ../updates/product.txt relative to itself, which is why
-# it sits one level below the pack root while the product binary does not.
+# bin/ is not created here. The update tool setup scripts are not built from
+# this source: they are added when a release is onboarded to WSO2 Updates,
+# which happens outside this repository. They resolve ../updates/product.txt
+# relative to themselves, which is why updates/ sits at the pack root.
 _dist_one:
 	@set -e; \
 	os=$(DIST_OS); arch=$(DIST_ARCH); \

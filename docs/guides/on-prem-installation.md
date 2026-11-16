@@ -189,7 +189,7 @@ from there and needs no file.
 │   ├── dbscripts/                  DDL for an external database
 │   └── resources/security/         the TLS material
 ├── bin/
-│   └── update_tool_setup.sh        attached to released packs for the update tool
+│   └── update_tool_setup.sh        in packs from wso2.com, for the WSO2 update tool
 ├── updates/
 │   └── product.txt                 the update-service identity of this pack
 ├── version.txt

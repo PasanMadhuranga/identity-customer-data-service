@@ -53,7 +53,7 @@ checksum_of() {
     echo "  - os: $os"
     echo "    arch: $arch"
     echo "    artifact: $pack.zip"
-    echo "    u2_product: $pack"
+    echo "    update_product: $pack"
     echo "    size_bytes: $(wc -c < "$zip" | tr -d ' ')"
     echo "    sha256: $(checksum_of "$zip")"
   done

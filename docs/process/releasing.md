@@ -78,30 +78,13 @@ rather than claiming a compatibility nobody has tested.
 
 ## Onboarding a release to the update service
 
-The product build stages `updates/product.txt` and nothing else. The update
-tool setup script is published by the Updates team rather than built from this
-source, which is the same split `product-is` uses — `updates/product.txt` is
-in its source tree and packed by its build, and the setup script appears in
-nothing it builds.
+A release is the open-source build. The product build stages
+`updates/product.txt` — the pack's identity to the update service — and
+nothing else for it, which is the same split `product-is` uses: the update
+tool setup scripts are not built from this source.
 
-So attaching it is a separate, on-demand step: Actions → **🔄 Attach Update
-Tool**, with the tag of a published release. It downloads that release's
-packs, installs `bin/update_tool_setup.sh` into each, rewrites the checksums,
-and uploads the result — replacing the release assets when `publish` is set.
-It needs the `U2_UPDATE_TOOL_SETUP_URL` secret, pointing at the
-`update_tool_setup.zip` the Updates team publishes.
-
-To do the same locally, from an existing build:
-
-```bash
-make dist
-distribution/u2-onboarding/attach-update-tool.sh target/dist update_tool_setup.zip
-```
-
-Keeping this out of `make dist` means the product build has one behaviour for
-everyone: it never depends on a file that is not in the repository, and never
-silently produces packs that cannot be updated. See
-[distribution/u2-onboarding/](../../distribution/u2-onboarding/README.md).
+Onboarding a release to WSO2 Updates, and the packs offered on wso2.com, are
+made from the release by a WSO2-internal process, outside this repository.
 
 A CDS service fix is published as one update entry per platform product, all
 carrying the executable built from the same revision. The fix is not complete

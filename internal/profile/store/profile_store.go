@@ -22,6 +22,12 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
+// The profile fields that are columns of their own rather than attributes.
+const (
+	fieldUserID    = "user_id"
+	fieldProfileID = "profile_id"
+)
+
 // Unmarshal JSONB fields separately
 func scanProfileRow(row map[string]interface{}) (model.Profile, error) {
 	var (
@@ -31,8 +37,8 @@ func scanProfileRow(row map[string]interface{}) (model.Profile, error) {
 
 	profile.ProfileStatus = &model.ProfileStatus{}
 
-	profile.ProfileID = row["profile_id"].(string)
-	profile.UserID = row["user_id"].(string)
+	profile.ProfileID = row[fieldProfileID].(string)
+	profile.UserID = row[fieldUserID].(string)
 	profile.OrgID = rows.String(row, "org_id")
 	profile.CreatedAt = row["created_at"].(time.Time)
 	profile.UpdatedAt = row["updated_at"].(time.Time)
@@ -583,7 +589,7 @@ func GetAllProfiles(ctx context.Context,
 
 	var cursorTime interface{} = nil
 	var cursorProfileID string = ""
-	direction := "next"
+	direction := model.CursorNext
 
 	if cursor != nil {
 		cursorTime = cursor.CreatedAt
@@ -591,8 +597,8 @@ func GetAllProfiles(ctx context.Context,
 		if strings.TrimSpace(cursor.Direction) != "" {
 			direction = strings.TrimSpace(cursor.Direction)
 		}
-		if direction != "next" && direction != "prev" {
-			direction = "next"
+		if direction != model.CursorNext && direction != model.CursorPrev {
+			direction = model.CursorNext
 		}
 	}
 
@@ -652,7 +658,7 @@ func GetAllProfiles(ctx context.Context,
 
 	// If direction=prev, SQL returned ASC to get “closest newer”.
 	// Reverse so API always returns DESC order.
-	if direction == "prev" {
+	if direction == model.CursorPrev {
 		for i, j := 0, len(profiles)-1; i < j; i, j = i+1, j-1 {
 			profiles[i], profiles[j] = profiles[j], profiles[i]
 		}
@@ -703,7 +709,7 @@ func FetchApplicationDataBatch(ctx context.Context, profileIDs []string) (map[st
 	}
 
 	for _, row := range rows {
-		pid := row["profile_id"].(string)
+		pid := row[fieldProfileID].(string)
 		appID := row["app_id"].(string)
 		appBlob := row["application_data"].([]byte)
 
@@ -1118,7 +1124,7 @@ func GetAllProfilesWithFilter(ctx context.Context,
 		field, operator, value := parts[0], parts[1], parts[2]
 
 		var scope, key string
-		if field == "user_id" || field == "profile_id" {
+		if field == fieldUserID || field == fieldProfileID {
 			scope = field
 			key = ""
 		} else {
@@ -1164,7 +1170,7 @@ func GetAllProfilesWithFilter(ctx context.Context,
 			}
 			argID++
 
-		case "user_id":
+		case fieldUserID:
 			switch operator {
 			case "eq":
 				conditions = append(conditions, fmt.Sprintf("p.user_id = $%d", argID))
@@ -1180,7 +1186,7 @@ func GetAllProfilesWithFilter(ctx context.Context,
 			}
 			argID++
 
-		case "profile_id":
+		case fieldProfileID:
 			switch operator {
 			case "eq":
 				conditions = append(conditions, fmt.Sprintf("p.profile_id = $%d", argID))
@@ -1265,22 +1271,22 @@ func GetAllProfilesWithFilter(ctx context.Context,
 	// cursor seek (created_at + profile_id)
 	var cursorTime interface{} = nil
 	var cursorProfileID string = ""
-	direction := "next"
+	direction := model.CursorNext
 	if cursor != nil {
 		cursorTime = cursor.CreatedAt
 		cursorProfileID = cursor.ProfileID
 		if strings.TrimSpace(cursor.Direction) != "" {
 			direction = strings.TrimSpace(cursor.Direction)
 		}
-		if direction != "next" && direction != "prev" {
-			direction = "next"
+		if direction != model.CursorNext && direction != model.CursorPrev {
+			direction = model.CursorNext
 		}
 	}
 
 	// Add cursor predicates as parameterized conditions
 	// Params: $argID = cursorTime, $(argID+1)=cursorProfileId
 	if cursor != nil {
-		if direction == "next" {
+		if direction == model.CursorNext {
 			conditions = append(conditions, scripts.KeysetCondition(dbType, "<", argID, argID+1))
 		} else { // prev
 			conditions = append(conditions, scripts.KeysetCondition(dbType, ">", argID, argID+1))
@@ -1295,7 +1301,7 @@ func GetAllProfilesWithFilter(ctx context.Context,
 
 	// Direction-specific ORDER
 	orderClause := "ORDER BY p.created_at DESC, p.profile_id DESC"
-	if direction == "prev" {
+	if direction == model.CursorPrev {
 		// fetch "newer" rows closest to cursor
 		orderClause = "ORDER BY p.created_at ASC, p.profile_id ASC"
 	}
@@ -1348,7 +1354,7 @@ func GetAllProfilesWithFilter(ctx context.Context,
 	}
 
 	// reverse back to DESC order for API
-	if direction == "prev" {
+	if direction == model.CursorPrev {
 		for i, j := 0, len(profiles)-1; i < j; i, j = i+1, j-1 {
 			profiles[i], profiles[j] = profiles[j], profiles[i]
 		}
@@ -1406,7 +1412,7 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 		field, operator, value := parts[0], parts[1], parts[2]
 
 		var scope, key string
-		if field == "user_id" || field == "profile_id" {
+		if field == fieldUserID || field == fieldProfileID {
 			scope = field
 			key = ""
 		} else {
@@ -1443,7 +1449,7 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 			}
 			argID++
 
-		case "user_id":
+		case fieldUserID:
 			switch operator {
 			case "eq":
 				conditions = append(conditions, fmt.Sprintf("p.user_id = $%d", argID))
@@ -1462,7 +1468,7 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 			}
 			argID++
 
-		case "profile_id":
+		case fieldProfileID:
 			switch operator {
 			case "eq":
 				conditions = append(conditions, fmt.Sprintf("p.profile_id = $%d", argID))
@@ -1587,7 +1593,7 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 
 	ids := make([]string, 0, len(results))
 	for _, row := range results {
-		if id, ok := row["profile_id"].(string); ok {
+		if id, ok := row[fieldProfileID].(string); ok {
 			ids = append(ids, id)
 		}
 	}
@@ -1609,7 +1615,7 @@ func validateFilterFields(filters []string) error {
 			continue
 		}
 		field := parts[0]
-		if field == "user_id" || field == "profile_id" || filterField.MatchString(field) {
+		if field == fieldUserID || field == fieldProfileID || filterField.MatchString(field) {
 			continue
 		}
 		return errors2.NewClientError(errors2.ErrorMessage{
@@ -1733,7 +1739,7 @@ func FetchReferencedProfiles(ctx context.Context, referenceProfileID string) ([]
 	var children []model.Reference
 	for _, row := range results {
 		var reference model.Reference
-		reference.ProfileID = row["profile_id"].(string)
+		reference.ProfileID = row[fieldProfileID].(string)
 		reference.Reason = row["reference_reason"].(string)
 		children = append(children, reference)
 	}
@@ -2010,7 +2016,7 @@ func GetProfileCookieByProfileID(ctx context.Context, profileID string) (*model.
 
 	profileCookie := &model.ProfileCookie{
 		CookieID:  results[0]["cookie_id"].(string),
-		ProfileID: results[0]["profile_id"].(string),
+		ProfileID: results[0][fieldProfileID].(string),
 		IsActive:  results[0]["is_active"].(bool),
 	}
 	return profileCookie, nil
@@ -2058,7 +2064,7 @@ func GetProfileCookie(ctx context.Context, cookie, orgID string) (*model.Profile
 
 	profileCookie := &model.ProfileCookie{
 		CookieID:  results[0]["cookie_id"].(string),
-		ProfileID: results[0]["profile_id"].(string),
+		ProfileID: results[0][fieldProfileID].(string),
 		IsActive:  results[0]["is_active"].(bool),
 	}
 	return profileCookie, nil
@@ -2308,7 +2314,7 @@ func FindOldestReferenceProfileIDByUserID(ctx context.Context, orgID, userID,
 	if len(rows) == 0 {
 		return "", nil
 	}
-	return rows[0]["profile_id"].(string), nil
+	return rows[0][fieldProfileID].(string), nil
 }
 
 // FindOldestReferenceProfileIDByAttributeValues returns the oldest reference
@@ -2340,5 +2346,5 @@ func FindOldestReferenceProfileIDByAttributeValues(ctx context.Context, orgID, p
 	if len(rows) == 0 {
 		return "", nil
 	}
-	return rows[0]["profile_id"].(string), nil
+	return rows[0][fieldProfileID].(string), nil
 }

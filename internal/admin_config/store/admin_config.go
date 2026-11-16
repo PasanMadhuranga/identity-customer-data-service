@@ -33,6 +33,9 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
+// storedTrue is how a true boolean configuration value is stored.
+const storedTrue = "true"
+
 // GetAdminConfig reads the configuration of the organization. A setting that the organization has not
 // stored takes its default.
 func GetAdminConfig(ctx context.Context, orgID string) (*model.AdminConfig, error) {
@@ -139,10 +142,7 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 
 	query := scripts.UpdateOrgConfiguration
 
-	cdsEnabledValue := "false"
-	if config.CDSEnabled {
-		cdsEnabledValue = "true"
-	}
+	cdsEnabledValue := strconv.FormatBool(config.CDSEnabled)
 	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigCDSEnabled, cdsEnabledValue)
 	if err != nil {
 		_ = tx.Rollback()
@@ -155,10 +155,7 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 		}, err)
 	}
 
-	schemaSyncValue := "false"
-	if config.InitialSchemaSyncDone {
-		schemaSyncValue = "true"
-	}
+	schemaSyncValue := strconv.FormatBool(config.InitialSchemaSyncDone)
 	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigInitialSchemaSyncDone, schemaSyncValue)
 	if err != nil {
 		_ = tx.Rollback()
@@ -195,10 +192,7 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 		}, err)
 	}
 
-	autoMergeEnabledValue := "false"
-	if config.AutoMergeEnabled {
-		autoMergeEnabledValue = "true"
-	}
+	autoMergeEnabledValue := strconv.FormatBool(config.AutoMergeEnabled)
 	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigAutoMergeEnabled, autoMergeEnabledValue)
 	if err != nil {
 		_ = tx.Rollback()
@@ -237,10 +231,7 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 		}, err)
 	}
 
-	deterministicDecisiveValue := "false"
-	if config.DeterministicMatchDecisive {
-		deterministicDecisiveValue = "true"
-	}
+	deterministicDecisiveValue := strconv.FormatBool(config.DeterministicMatchDecisive)
 	_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigDeterministicMatchDecisive, deterministicDecisiveValue)
 	if err != nil {
 		_ = tx.Rollback()
@@ -306,10 +297,7 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string
 		}, err)
 	}
 
-	stateValue := "false"
-	if state {
-		stateValue = "true"
-	}
+	stateValue := strconv.FormatBool(state)
 
 	query := scripts.UpdateInitialSchemaSyncDoneConfig
 	_, err = tx.ExecContext(ctx, query, orgID, stateValue)
@@ -364,9 +352,9 @@ func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {
 
 		switch configKey {
 		case constants.ConfigCDSEnabled:
-			config.CDSEnabled = value == "true"
+			config.CDSEnabled = value == storedTrue
 		case constants.ConfigInitialSchemaSyncDone:
-			config.InitialSchemaSyncDone = value == "true"
+			config.InitialSchemaSyncDone = value == storedTrue
 		case constants.ConfigSystemApplications:
 			var apps []string
 			if err := json.Unmarshal([]byte(value), &apps); err == nil {
@@ -378,7 +366,7 @@ func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {
 				config.CORSAllowedOrigins = origins
 			}
 		case constants.ConfigAutoMergeEnabled:
-			config.AutoMergeEnabled = value == "true"
+			config.AutoMergeEnabled = value == storedTrue
 		case constants.ConfigAutoMergeThreshold:
 			if v, err := strconv.ParseFloat(value, 64); err == nil && v > 0 && v <= 1 {
 				config.AutoMergeThreshold = v
@@ -388,7 +376,7 @@ func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {
 				config.ManualReviewThreshold = v
 			}
 		case constants.ConfigDeterministicMatchDecisive:
-			config.DeterministicMatchDecisive = value == "true"
+			config.DeterministicMatchDecisive = value == storedTrue
 		}
 	}
 

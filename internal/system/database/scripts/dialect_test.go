@@ -26,16 +26,18 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/database"
 )
 
+const selectOne = "SELECT 1"
+
 func Test_newQuery(t *testing.T) {
 	t.Run("without an override both dialects share the statement", func(t *testing.T) {
-		query := newQuery("CDS-TST-01", `SELECT 1`)
+		query := newQuery("CDS-TST-01", selectOne)
 		if query.ID != "CDS-TST-01" {
 			t.Fatalf("unexpected id: %q", query.ID)
 		}
-		if statement := query.GetQuery(database.TypePostgres); statement != `SELECT 1` {
+		if statement := query.GetQuery(database.TypePostgres); statement != selectOne {
 			t.Fatalf("unexpected PostgreSQL statement: %q", statement)
 		}
-		if statement := query.GetQuery(database.TypeSQLite); statement != `SELECT 1` {
+		if statement := query.GetQuery(database.TypeSQLite); statement != selectOne {
 			t.Fatalf("unexpected SQLite statement: %q", statement)
 		}
 	})
@@ -51,15 +53,15 @@ func Test_newQuery(t *testing.T) {
 	})
 
 	t.Run("an empty override falls back to the base statement", func(t *testing.T) {
-		query := newQuery("CDS-TST-03", `SELECT 1`, "")
-		if statement := query.GetQuery(database.TypeSQLite); statement != `SELECT 1` {
+		query := newQuery("CDS-TST-03", selectOne, "")
+		if statement := query.GetQuery(database.TypeSQLite); statement != selectOne {
 			t.Fatalf("unexpected SQLite statement: %q", statement)
 		}
 	})
 
 	t.Run("an unrecognized dialect falls back to the base statement", func(t *testing.T) {
-		query := newQuery("CDS-TST-04", `SELECT 1`, `SELECT 2`)
-		if statement := query.GetQuery("mysql"); statement != `SELECT 1` {
+		query := newQuery("CDS-TST-04", selectOne, `SELECT 2`)
+		if statement := query.GetQuery("mysql"); statement != selectOne {
 			t.Fatalf("expected the PostgreSQL statement, got %q", statement)
 		}
 	})

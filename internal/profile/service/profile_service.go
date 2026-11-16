@@ -93,6 +93,12 @@ type ProfilesServiceInterface interface {
 // ProfilesService is the default implementation of the ProfilesServiceInterface.
 type ProfilesService struct{}
 
+// The profile fields that are columns of their own rather than attributes.
+const (
+	fieldUserID    = "user_id"
+	fieldProfileID = "profile_id"
+)
+
 // GetProfilesService creates a new instance of EventsService.
 func GetProfilesService() ProfilesServiceInterface {
 	return &ProfilesService{}
@@ -1438,7 +1444,7 @@ func (ps *ProfilesService) GetAllProfilesWithFilterCursor(ctx context.Context,
 		}
 
 		// Validate field/key
-		if field != "user_id" && field != "profile_id" {
+		if field != fieldUserID && field != fieldProfileID {
 			if !isValidFilterKey(field) {
 				return nil, false, errors2.NewClientError(errors2.ErrorMessage{
 					Code:        errors2.FilterProfile.Code,
@@ -1912,7 +1918,7 @@ func (ps *ProfilesService) GetProfilesHybrid(
 			continue
 		}
 		field := parts[0]
-		if field != "user_id" && field != "profile_id" && !isValidFilterKey(field) {
+		if field != fieldUserID && field != fieldProfileID && !isValidFilterKey(field) {
 			return nil, errors2.NewClientError(errors2.ErrorMessage{
 				Code:        errors2.FilterProfile.Code,
 				Message:     errors2.FilterProfile.Message,
@@ -1996,7 +2002,7 @@ func parseFuzzyFiltersToFlatAttrs(filters []string) map[string]interface{} {
 		field := parts[0]
 		value := parts[2]
 
-		if field == "user_id" {
+		if field == fieldUserID {
 			userID = value
 			continue
 		}
@@ -2020,7 +2026,7 @@ func parseFuzzyFiltersToFlatAttrs(filters []string) map[string]interface{} {
 	irModel.FlattenMap("identity_attributes", identityAttrs, flatAttrs)
 	irModel.FlattenMap("traits", traits, flatAttrs)
 	if userID != "" {
-		flatAttrs["user_id"] = userID
+		flatAttrs[fieldUserID] = userID
 	}
 	return flatAttrs
 }
@@ -2195,7 +2201,7 @@ func flattenProfileAttrs(p profileModel.Profile) map[string]interface{} {
 		flat["traits."+k] = v
 	}
 	if p.UserID != "" {
-		flat["user_id"] = p.UserID
+		flat[fieldUserID] = p.UserID
 	}
 	return flat
 }

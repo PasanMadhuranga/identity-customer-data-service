@@ -436,7 +436,7 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 		last := profiles[len(profiles)-1]
 
 		// Determine request direction (first page behaves like "next")
-		reqDir := "next"
+		reqDir := model.CursorNext
 		if cursor != nil && strings.TrimSpace(cursor.Direction) != "" {
 			reqDir = strings.TrimSpace(cursor.Direction)
 		}
@@ -445,12 +445,12 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 		// - When reqDir == "next": hasMore means more older pages
 		// - When reqDir == "prev": we don't know from hasMore; but user can still go older from here
 		//   so return next cursor if the request had a cursor (you navigated) OR if hasMore in next mode.
-		if reqDir == "next" {
+		if reqDir == model.CursorNext {
 			if hasMore {
 				nextCursorStr = model.EncodeProfileCursor(model.ProfileCursor{
 					CreatedAt: last.Meta.CreatedAt,
 					ProfileID: last.ProfileID,
-					Direction: "next",
+					Direction: model.CursorNext,
 				})
 			}
 			// prev cursor (go newer): exists whenever this was not the first request
@@ -458,7 +458,7 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 				prevCursorStr = model.EncodeProfileCursor(model.ProfileCursor{
 					CreatedAt: first.Meta.CreatedAt,
 					ProfileID: first.ProfileID,
-					Direction: "prev",
+					Direction: model.CursorPrev,
 				})
 			}
 		} else { // reqDir == "prev"
@@ -467,7 +467,7 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 				prevCursorStr = model.EncodeProfileCursor(model.ProfileCursor{
 					CreatedAt: first.Meta.CreatedAt,
 					ProfileID: first.ProfileID,
-					Direction: "prev",
+					Direction: model.CursorPrev,
 				})
 			}
 
@@ -477,7 +477,7 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 				nextCursorStr = model.EncodeProfileCursor(model.ProfileCursor{
 					CreatedAt: last.Meta.CreatedAt,
 					ProfileID: last.ProfileID,
-					Direction: "next",
+					Direction: model.CursorNext,
 				})
 			}
 		}

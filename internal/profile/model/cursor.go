@@ -25,11 +25,17 @@ import (
 	"time"
 )
 
+// The directions a profile cursor pages in.
+const (
+	CursorNext = "next"
+	CursorPrev = "prev"
+)
+
 // EncodeProfileCursor encodes the cursor as an opaque URL-safe string; an empty direction defaults to "next".
 func EncodeProfileCursor(c ProfileCursor) string {
 	dir := strings.TrimSpace(c.Direction)
 	if dir == "" {
-		dir = "next"
+		dir = CursorNext
 	}
 
 	raw := fmt.Sprintf(
@@ -68,14 +74,14 @@ func DecodeProfileCursor(s string) (*ProfileCursor, error) {
 		return nil, fmt.Errorf("invalid cursor profile_id")
 	}
 
-	dir := "next"
+	dir := CursorNext
 	if len(parts) == 3 {
 		dir = strings.TrimSpace(parts[2])
 		if dir == "" {
-			dir = "next"
+			dir = CursorNext
 		}
 	}
-	if dir != "next" && dir != "prev" {
+	if dir != CursorNext && dir != CursorPrev {
 		return nil, fmt.Errorf("invalid cursor direction")
 	}
 

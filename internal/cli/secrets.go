@@ -39,7 +39,6 @@ import (
 // loadSecrets reads the KEY=VALUE pairs. A missing file yields an empty map:
 // an installation whose secrets come from elsewhere is not broken.
 func loadSecrets(cdsHome string) (map[string]string, error) {
-
 	file, err := os.Open(path(cdsHome, secretsFile))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -72,7 +71,6 @@ func loadSecrets(cdsHome string) (map[string]string, error) {
 // process, leaving any variable already set in the environment alone so that a
 // deployment can override one without editing the file.
 func environment(values map[string]string) []string {
-
 	env := make([]string, 0, len(values))
 	for key, value := range values {
 		if _, set := os.LookupEnv(key); set {

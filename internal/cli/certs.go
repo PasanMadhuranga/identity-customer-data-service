@@ -25,11 +25,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+	"path/filepath"
 )
-
-// cdsTrustStore is the file in the certificate directory that holds the
-// Identity Server certificates CDS trusts.
-const cdsTrustStore = "trust_store.pem"
 
 // defaultCertificateFingerprints are the SHA-256 fingerprints of the key pairs
 // a pack can ship with: Identity Server 7.3.0's default wso2carbon pair, which
@@ -41,7 +38,6 @@ var defaultCertificateFingerprints = map[[sha256.Size]byte]bool{
 }
 
 func mustFingerprint(hexDigest string) [sha256.Size]byte {
-
 	var fingerprint [sha256.Size]byte
 	if _, err := hex.Decode(fingerprint[:], []byte(hexDigest)); err != nil {
 		panic(err)
@@ -57,8 +53,7 @@ func mustFingerprint(hexDigest string) [sha256.Size]byte {
 // it can present themselves as this service. An operator has to be able to
 // see that it is still in use.
 func usingDefaultCertificate(path string) bool {
-
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return false
 	}
@@ -75,7 +70,6 @@ func usingDefaultCertificate(path string) bool {
 // certificateCovers reports whether the certificate at path is valid for host,
 // which is what the Identity Server checks when it calls CDS at server_url.
 func certificateCovers(path, host string) (bool, error) {
-
 	certificate, err := readCertificate(path)
 	if err != nil {
 		return false, err
@@ -84,8 +78,7 @@ func certificateCovers(path, host string) (bool, error) {
 }
 
 func readCertificate(path string) (*x509.Certificate, error) {
-
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

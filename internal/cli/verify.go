@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -37,12 +38,12 @@ type checks struct {
 	failed int
 }
 
-func (c *checks) pass(format string, a ...any) {
+func (c *checks) passf(format string, a ...any) {
 	c.run++
-	done(format, a...)
+	donef(format, a...)
 }
 
-func (c *checks) fail(format string, a ...any) {
+func (c *checks) failf(format string, a ...any) {
 	c.run++
 	c.failed++
 	fmt.Fprintf(os.Stderr, "    %s %s\n", red("x"), fmt.Sprintf(format, a...))
@@ -54,7 +55,6 @@ func (c *checks) fail(format string, a ...any) {
 // Identity Server's, so it answers the same whether the Identity Server runs
 // beside it, on another host or in a container.
 func runVerify(args []string) error {
-
 	flags := newFlagSet("verify")
 	if err := parse(flags, args); err != nil {
 		return err
@@ -71,57 +71,56 @@ func runVerify(args []string) error {
 
 	results := &checks{}
 
-	step("CDS runtime")
+	stepf("CDS runtime")
 	base := config.localBase()
 	if status, _, err := probe(base, "/cds/api/v1/ready", 10*time.Second); err != nil {
-		results.fail("CDS is not reachable at %s: %v", base, err)
+		results.failf("CDS is not reachable at %s: %v", base, err)
 	} else if status != http.StatusOK {
-		results.fail("GET /cds/api/v1/ready returned HTTP %d, so the datastore is not ready", status)
+		results.failf("GET /cds/api/v1/ready returned HTTP %d, so the datastore is not ready", status)
 	} else {
-		results.pass("GET /cds/api/v1/ready returns 200, so the datastore is reachable and initialised")
+		results.passf("GET /cds/api/v1/ready returns 200, so the datastore is reachable and initialized")
 	}
 
-	step("TLS")
+	stepf("TLS")
 	verifyCertificate(results, cdsHome, config)
 
-	step("Identity Server")
+	stepf("Identity Server")
 	verifyIdentityServer(results, cdsHome, config)
 
-	return summarise(results)
+	return summarize(results)
 }
 
 // verifyCertificate checks the certificate CDS presents: that it is one issued
 // for this deployment rather than the pack's default, and that it is valid for
 // the host in server_url, which is the name the Identity Server calls CDS on.
 func verifyCertificate(results *checks, cdsHome string, config *runtimeConfig) {
-
 	certificate := config.serverCertificate(cdsHome)
 	if !fileExists(certificate) {
-		results.fail("no TLS certificate at %s", certificate)
+		results.failf("no TLS certificate at %s", certificate)
 		return
 	}
 	if usingDefaultCertificate(certificate) {
-		results.fail("CDS is presenting the default certificate the pack shipped with; " +
+		results.failf("CDS is presenting the default certificate the pack shipped with; " +
 			"its private key is in every Identity Server 7.3.0 download, so replace it " +
 			"with one issued for this deployment")
 	} else {
-		results.pass("the TLS certificate was issued for this deployment")
+		results.passf("the TLS certificate was issued for this deployment")
 	}
 
 	host := hostOf(config.ServerURL)
 	if host == "" {
-		results.fail("server_url %q names no host", config.ServerURL)
+		results.failf("server_url %q names no host", config.ServerURL)
 		return
 	}
 	covers, err := certificateCovers(certificate, host)
 	switch {
 	case err != nil:
-		results.fail("could not read %s: %v", certificate, err)
+		results.failf("could not read %s: %v", certificate, err)
 	case !covers:
-		results.fail("the TLS certificate is not valid for %s, the host in server_url, "+
+		results.failf("the TLS certificate is not valid for %s, the host in server_url, "+
 			"so the Identity Server cannot verify CDS there", host)
 	default:
-		results.pass("the TLS certificate is valid for %s, the host in server_url", host)
+		results.passf("the TLS certificate is valid for %s, the host in server_url", host)
 	}
 }
 
@@ -129,9 +128,8 @@ func verifyCertificate(results *checks, cdsHome string, config *runtimeConfig) {
 // configured to call, and verify its certificate with the trust store CDS
 // itself uses.
 func verifyIdentityServer(results *checks, cdsHome string, config *runtimeConfig) {
-
 	if config.AuthServer.Host == "" || config.AuthServer.Port == 0 {
-		results.fail("auth_server sets no host and port, so the Identity Server is unknown")
+		results.failf("auth_server sets no host and port, so the Identity Server is unknown")
 		return
 	}
 	isBase := "https://" + net.JoinHostPort(config.AuthServer.Host, strconv.Itoa(config.AuthServer.Port))
@@ -141,13 +139,13 @@ func verifyIdentityServer(results *checks, cdsHome string, config *runtimeConfig
 		roots = x509.NewCertPool()
 	}
 	if trustStore := config.trustStore(cdsHome); trustStore != "" {
-		trusted, err := os.ReadFile(trustStore)
+		trusted, err := os.ReadFile(filepath.Clean(trustStore))
 		if err != nil {
-			results.fail("could not read the trust store %s: %v", trustStore, err)
+			results.failf("could not read the trust store %s: %v", trustStore, err)
 			return
 		}
 		if !roots.AppendCertsFromPEM(trusted) {
-			results.fail("the trust store %s holds no PEM certificate", trustStore)
+			results.failf("the trust store %s holds no PEM certificate", trustStore)
 			return
 		}
 	}
@@ -162,19 +160,18 @@ func verifyIdentityServer(results *checks, cdsHome string, config *runtimeConfig
 	var unverified *tls.CertificateVerificationError
 	switch {
 	case errors.As(err, &unverified):
-		results.fail("the Identity Server at %s presents a certificate CDS does not trust: %v", isBase,
+		results.failf("the Identity Server at %s presents a certificate CDS does not trust: %v", isBase,
 			unverified.Err)
 		return
 	case err != nil:
-		results.fail("the Identity Server is not reachable at %s: %v", isBase, err)
+		results.failf("the Identity Server is not reachable at %s: %v", isBase, err)
 		return
 	}
 	_ = resp.Body.Close()
-	results.pass("the Identity Server at %s is reachable and its certificate is trusted", isBase)
+	results.passf("the Identity Server at %s is reachable and its certificate is trusted", isBase)
 }
 
 func hostOf(rawURL string) string {
-
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return ""
@@ -182,18 +179,16 @@ func hostOf(rawURL string) string {
 	return parsed.Hostname()
 }
 
-func summarise(results *checks) error {
-
+func summarize(results *checks) error {
 	fmt.Println()
 	if results.failed == 0 {
-		done("all %d checks passed", results.run)
+		donef("all %d checks passed", results.run)
 		return nil
 	}
 	return fmt.Errorf("%d of %d checks failed", results.failed, results.run)
 }
 
 func fileExists(path string) bool {
-
 	_, err := os.Stat(path)
 	return err == nil
 }

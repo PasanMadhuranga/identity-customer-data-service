@@ -30,7 +30,6 @@ import (
 // newFlagSet builds the flag set for one subcommand. Errors are returned
 // rather than exiting, so Main decides the exit code in one place.
 func newFlagSet(name string) *flag.FlagSet {
-
 	flags := flag.NewFlagSet("cds "+name, flag.ContinueOnError)
 	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: cds %s [options]\n\nOptions:\n", name)
@@ -42,7 +41,6 @@ func newFlagSet(name string) *flag.FlagSet {
 // parse applies the arguments and converts a parse failure into errUsage,
 // which flag has already explained on stderr.
 func parse(flags *flag.FlagSet, args []string) error {
-
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return errUsage

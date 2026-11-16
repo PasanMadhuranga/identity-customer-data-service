@@ -32,9 +32,8 @@ import (
 // The secrets file is the operator's: comments, blank lines and quoted values
 // are all things a person writes by hand.
 func TestLoadSecrets(t *testing.T) {
-
 	cdsHome := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(cdsHome, confDir), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cdsHome, confDir), 0o750); err != nil {
 		t.Fatalf("could not stage the configuration directory: %v", err)
 	}
 	content := "# set by the operator\n\nAUTH_SERVER_ADMIN_PASSWORD=plain\nDB_PASSWORD=\"quoted\"\nnot a pair\n"
@@ -59,7 +58,6 @@ func TestLoadSecrets(t *testing.T) {
 }
 
 func TestLoadSecretsWithoutAFile(t *testing.T) {
-
 	// An installation whose secrets come from a secret manager has no file,
 	// and that is not a failure.
 	secrets, err := loadSecrets(t.TempDir())
@@ -74,7 +72,6 @@ func TestLoadSecretsWithoutAFile(t *testing.T) {
 // verify trusts the Identity Server only through the trust store CDS itself
 // uses, so a certificate missing from it is reported, and found once added.
 func TestVerifyIdentityServerUsesTheTrustStore(t *testing.T) {
-
 	is := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -88,7 +85,7 @@ func TestVerifyIdentityServerUsesTheTrustStore(t *testing.T) {
 	config.AuthServer.Port = port
 	config.TLS.CertDir = "certs"
 	config.TLS.TrustStore = "trust_store.pem"
-	if err := os.MkdirAll(filepath.Join(cdsHome, "certs"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cdsHome, "certs"), 0o750); err != nil {
 		t.Fatalf("could not stage the certificate directory: %v", err)
 	}
 	trustStore := filepath.Join(cdsHome, "certs", "trust_store.pem")
@@ -112,9 +109,8 @@ func TestVerifyIdentityServerUsesTheTrustStore(t *testing.T) {
 }
 
 func writePEM(t *testing.T, path string, der []byte) {
-
 	t.Helper()
-	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o644); err != nil {
+	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
 		t.Fatalf("could not write %s: %v", path, err)
 	}
 }

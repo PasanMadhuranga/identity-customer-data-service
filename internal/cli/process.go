@@ -32,7 +32,6 @@ import (
 // container runtime, a process supervisor — and each of those wants exactly
 // this: one process to watch, its logs on stdout, and a signal to end it.
 func runStart(args []string) error {
-
 	flags := newFlagSet("start")
 	debug := flags.Bool("debug", false, "log at DEBUG level")
 	if err := parse(flags, args); err != nil {
@@ -66,8 +65,8 @@ func runStart(args []string) error {
 		return err
 	}
 
-	step("Starting CDS at %s", cfg.localBase())
-	info("Press Ctrl+C to stop.")
+	stepf("Starting CDS at %s", cfg.localBase())
+	infof("Press Ctrl+C to stop.")
 	fmt.Println()
 	runtimeRun(cdsHome)
 	return nil
@@ -75,7 +74,6 @@ func runStart(args []string) error {
 
 // runVersion prints the version of this pack.
 func runVersion(args []string) error {
-
 	flags := newFlagSet("version")
 	if err := parse(flags, args); err != nil {
 		return err
@@ -109,7 +107,6 @@ var runtimeDefaults = map[string]string{
 // variable already set in the environment wins, so a deployment supplying its
 // secrets from elsewhere is not overridden by the file.
 func applySecrets(cdsHome string) error {
-
 	secrets, err := loadSecrets(cdsHome)
 	if err != nil {
 		return err

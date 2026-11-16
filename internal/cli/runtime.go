@@ -32,6 +32,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// loopback is where a server listening on every address answers locally.
+const loopback = "127.0.0.1"
+
 // runtimeConfig is the part of repository/conf/deployment.yaml the CLI needs:
 // where to reach the running server, and which Identity Server the runtime is
 // configured to call. The runtime itself loads the whole file; the CLI reads
@@ -55,7 +58,6 @@ type runtimeConfig struct {
 }
 
 func readRuntimeConfig(cdsHome string) (*runtimeConfig, error) {
-
 	raw, err := os.ReadFile(path(cdsHome, configFile))
 	if err != nil {
 		return nil, fmt.Errorf("could not read %s: %w", configFile, err)
@@ -69,7 +71,7 @@ func readRuntimeConfig(cdsHome string) (*runtimeConfig, error) {
 		return nil, fmt.Errorf("%s sets no addr.port, so the CDS endpoint is unknown", configFile)
 	}
 	if cfg.Addr.Host == "" {
-		cfg.Addr.Host = "127.0.0.1"
+		cfg.Addr.Host = loopback
 	}
 	return &cfg, nil
 }
@@ -77,7 +79,6 @@ func readRuntimeConfig(cdsHome string) (*runtimeConfig, error) {
 // serverCertificate is the path of the certificate CDS presents, as the
 // configuration names it.
 func (c *runtimeConfig) serverCertificate(cdsHome string) string {
-
 	name := c.TLS.ServerCert
 	if name == "" {
 		name = "server.crt"
@@ -88,7 +89,6 @@ func (c *runtimeConfig) serverCertificate(cdsHome string) string {
 // trustStore is the path of the Identity Server certificates CDS trusts, or ""
 // when the configuration names none and only the system roots apply.
 func (c *runtimeConfig) trustStore(cdsHome string) string {
-
 	if c.TLS.TrustStore == "" {
 		return ""
 	}
@@ -98,7 +98,6 @@ func (c *runtimeConfig) trustStore(cdsHome string) string {
 // certDir resolves tls.cert_dir as the runtime does: relative to the CDS home,
 // and etc/certs under it when unset.
 func (c *runtimeConfig) certDir(cdsHome string) string {
-
 	dir := c.TLS.CertDir
 	if dir == "" {
 		return path(cdsHome, "etc/certs")
@@ -114,10 +113,9 @@ func (c *runtimeConfig) certDir(cdsHome string) string {
 // an operator may have pointed at a load balancer — a liveness check has to
 // reach this process, not the deployment.
 func (c *runtimeConfig) localBase() string {
-
 	host := c.Addr.Host
 	if host == "" || host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
+		host = loopback
 	}
 	return "https://" + net.JoinHostPort(host, strconv.Itoa(c.Addr.Port))
 }
@@ -130,10 +128,9 @@ func (c *runtimeConfig) localBase() string {
 // while whatever already holds the port answers the readiness probe, and the
 // start looks like it worked.
 func (c *runtimeConfig) addressInUse() bool {
-
 	host := c.Addr.Host
 	if host == "" || host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
+		host = loopback
 	}
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, strconv.Itoa(c.Addr.Port)), 2*time.Second)
 	if err != nil {
@@ -149,7 +146,6 @@ func (c *runtimeConfig) addressInUse() bool {
 // therefore skipped for these local lifecycle probes only; nothing else in the
 // CLI reaches a remote host with this client.
 func localClient(timeout time.Duration) *http.Client {
-
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
@@ -161,7 +157,6 @@ func localClient(timeout time.Duration) *http.Client {
 // probe reports the HTTP status of one CDS endpoint, or an error if the
 // process could not be reached at all.
 func probe(base, endpoint string, timeout time.Duration) (int, string, error) {
-
 	resp, err := localClient(timeout).Get(base + endpoint)
 	if err != nil {
 		return 0, "", err

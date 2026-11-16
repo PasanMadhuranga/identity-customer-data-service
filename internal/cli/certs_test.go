@@ -39,11 +39,10 @@ var defaultCertificate = filepath.Join("testdata", "is-7.3.0-default.crt")
 // be able to say it is still in use — which depends on the fingerprint
 // distribution/default-cert.sh pins.
 func TestUsingDefaultCertificate(t *testing.T) {
-
 	dir := t.TempDir()
 
 	if !usingDefaultCertificate(defaultCertificate) {
-		t.Error("the certificate the pack ships was not recognised as the default")
+		t.Error("the certificate the pack ships was not recognized as the default")
 	}
 
 	// The same subject on another key is not the default: only the fingerprint counts.
@@ -59,7 +58,7 @@ func TestUsingDefaultCertificate(t *testing.T) {
 	if usingDefaultCertificate(filepath.Join(dir, "absent.crt")) {
 		t.Error("a missing certificate was reported as the default")
 	}
-	if err := os.WriteFile(filepath.Join(dir, "junk.crt"), []byte("not a certificate"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "junk.crt"), []byte("not a certificate"), 0o600); err != nil {
 		t.Fatalf("could not stage the file: %v", err)
 	}
 	if usingDefaultCertificate(filepath.Join(dir, "junk.crt")) {
@@ -70,7 +69,6 @@ func TestUsingDefaultCertificate(t *testing.T) {
 // The default certificate is issued for localhost alone, which is why it only
 // serves while CDS and the Identity Server reach each other as localhost.
 func TestCertificateCovers(t *testing.T) {
-
 	for host, want := range map[string]bool{"localhost": true, "cds.example.com": false} {
 		covers, err := certificateCovers(defaultCertificate, host)
 		if err != nil {
@@ -92,7 +90,6 @@ func TestCertificateCovers(t *testing.T) {
 }
 
 func writeTestCertificate(t *testing.T, path, host string) {
-
 	t.Helper()
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -110,7 +107,7 @@ func writeTestCertificate(t *testing.T, path, host string) {
 	if err != nil {
 		t.Fatalf("could not create the certificate: %v", err)
 	}
-	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o644); err != nil {
+	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
 		t.Fatalf("could not write the certificate: %v", err)
 	}
 }

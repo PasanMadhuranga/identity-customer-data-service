@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package server runs the CDS runtime: it loads the configuration, starts the
+// database, the workers and the HTTPS server, and shuts them down on a signal.
 package server
 
 import (
@@ -31,6 +33,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+
 	adminConfigProvider "github.com/wso2/identity-customer-data-service/internal/admin_config/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/cors"
@@ -48,7 +51,6 @@ import (
 )
 
 func initDatabaseFromConfig(cdsConfig *config.Config) error {
-
 	if err := provider.ValidateDataSource(cdsConfig.DataSource); err != nil {
 		return err
 	}
@@ -70,7 +72,6 @@ func initDatabaseFromConfig(cdsConfig *config.Config) error {
 // signal arrives. cdsHome is the installation root: the directory holding
 // repository/, logs/ and etc/.
 func Run(cdsHome string) {
-
 	utils.SetCDSHome(cdsHome)
 	const configFile = "/repository/conf/deployment.yaml"
 
@@ -253,7 +254,6 @@ func Run(cdsHome string) {
 
 // initMultiplexer initializes the HTTP multiplexer and registers the services.
 func initMultiplexer() *http.ServeMux {
-
 	mux := http.NewServeMux()
 	serviceManager := managers.NewServiceManager(mux)
 	logger := log.GetLogger()
@@ -266,21 +266,20 @@ func initMultiplexer() *http.ServeMux {
 	return mux
 }
 
-// newCORSMiddleware wraps handler with the organisation-aware CORS middleware. Origins are
-// resolved per organisation from the admin configuration, falling back to the
+// newCORSMiddleware wraps handler with the organization-aware CORS middleware. Origins are
+// resolved per organization from the admin configuration, falling back to the
 // deployment-wide auth.cors_allowed_origins list.
 func newCORSMiddleware(handler http.Handler) http.Handler {
-
 	adminConfigService := adminConfigProvider.NewAdminConfigProvider().GetAdminConfigService()
 
 	return cors.Middleware(handler,
 		func(ctx context.Context, org cors.Org) ([]string, error) {
 			// A handle CDS has no organization for has configured no origins.
-			orgId, found, err := adminConfigService.LookupCORSOrgId(ctx, org.Handle)
+			orgID, found, err := adminConfigService.LookupCORSOrgId(ctx, org.Handle)
 			if err != nil || !found {
 				return nil, err
 			}
-			return adminConfigService.GetCORSAllowedOrigins(ctx, orgId, org.SubOrgId)
+			return adminConfigService.GetCORSAllowedOrigins(ctx, orgID, org.SubOrgId)
 		},
 		func() []string { return config.GetCDSRuntime().Config.Auth.CORSAllowedOrigins },
 	)

@@ -41,7 +41,6 @@ const (
 // export anything to use it. CDS_HOME overrides that for deployments which run
 // the binary from outside the pack.
 func home() (string, error) {
-
 	if env := strings.TrimSpace(os.Getenv("CDS_HOME")); env != "" {
 		abs, err := filepath.Abs(env)
 		if err != nil {
@@ -82,7 +81,6 @@ func path(cdsHome, rel string) string { return filepath.Join(cdsHome, filepath.F
 // Packs always carry it; a source tree may not, which is why the error names
 // the file rather than failing silently.
 func productVersion(cdsHome string) (string, error) {
-
 	raw, err := os.ReadFile(path(cdsHome, versionFile))
 	if err != nil {
 		return "", fmt.Errorf("could not read %s: %w", versionFile, err)
@@ -94,7 +92,7 @@ func productVersion(cdsHome string) (string, error) {
 // Terminal output
 //
 // Lifecycle commands are read by an operator watching a long-running sequence,
-// so each step says what it is doing before it does it. Colour is dropped when
+// so each step says what it is doing before it does it. Color is dropped when
 // the output is not a terminal, so logs and CI output stay plain.
 // ---------------------------------------------------------------------------
 
@@ -106,18 +104,18 @@ var useColour = func() bool {
 	return err == nil && (info.Mode()&os.ModeCharDevice) != 0
 }()
 
-func colour(code, s string) string {
+func color(code, s string) string {
 	if !useColour {
 		return s
 	}
 	return "\033[" + code + "m" + s + "\033[0m"
 }
 
-func red(s string) string  { return colour("31", s) }
-func bold(s string) string { return colour("1", s) }
+func red(s string) string  { return color("31", s) }
+func bold(s string) string { return color("1", s) }
 
-func step(format string, a ...any) { fmt.Printf("\n%s\n", bold(fmt.Sprintf(format, a...))) }
-func info(format string, a ...any) { fmt.Printf("    %s\n", fmt.Sprintf(format, a...)) }
-func done(format string, a ...any) {
-	fmt.Printf("    %s %s\n", colour("32", "+"), fmt.Sprintf(format, a...))
+func stepf(format string, a ...any) { fmt.Printf("\n%s\n", bold(fmt.Sprintf(format, a...))) }
+func infof(format string, a ...any) { fmt.Printf("    %s\n", fmt.Sprintf(format, a...)) }
+func donef(format string, a ...any) {
+	fmt.Printf("    %s %s\n", color("32", "+"), fmt.Sprintf(format, a...))
 }

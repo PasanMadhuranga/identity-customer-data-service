@@ -25,7 +25,6 @@ import (
 )
 
 func TestRuntimeDefaultsCoverTheLogLevel(t *testing.T) {
-
 	if runtimeDefaults["LOG_LEVEL"] == "" {
 		t.Error("LOG_LEVEL has no default, so a pack cannot start without one being supplied")
 	}
@@ -34,7 +33,6 @@ func TestRuntimeDefaultsCoverTheLogLevel(t *testing.T) {
 // start refuses an address something else holds, so the operator reads why
 // rather than a bind error from deep in the server's startup.
 func TestAddressInUseIsDetected(t *testing.T) {
-
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("could not take a port: %v", err)
@@ -63,7 +61,6 @@ func TestAddressInUseIsDetected(t *testing.T) {
 // The CLI looks for the certificates where the runtime does, or verify would
 // report on files the server never reads.
 func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
-
 	home := "/opt/cds"
 	cases := []struct {
 		name    string
@@ -91,7 +88,8 @@ func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
 	}
 	config.TLS.CertDir = "repository/resources/security"
 	config.TLS.TrustStore = "trust_store.pem"
-	if got, want := config.trustStore(home), filepath.FromSlash("/opt/cds/repository/resources/security/trust_store.pem"); got != want {
+	want := filepath.FromSlash("/opt/cds/repository/resources/security/trust_store.pem")
+	if got := config.trustStore(home); got != want {
 		t.Errorf("trustStore = %q, want %q", got, want)
 	}
 }

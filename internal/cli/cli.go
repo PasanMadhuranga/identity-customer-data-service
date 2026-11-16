@@ -46,7 +46,6 @@ type command struct {
 var errUsage = errors.New("invalid arguments")
 
 func commands() []command {
-
 	return []command{
 		{name: "start", summary: "Run CDS in the foreground; Ctrl+C stops it", run: runStart},
 		{name: "verify", summary: "Check CDS, its certificate and the Identity Server it calls", run: runVerify},
@@ -56,7 +55,6 @@ func commands() []command {
 
 // Main runs one subcommand and returns the process exit code.
 func Main(args []string) int {
-
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		usage(os.Stdout)
 		return 0
@@ -84,12 +82,11 @@ func Main(args []string) int {
 }
 
 func usage(out *os.File) {
-
 	var b strings.Builder
 	b.WriteString("Customer Data Service\n\nUsage:\n  cds <command> [options]\n\nCommands:\n")
 	for _, cmd := range commands() {
 		fmt.Fprintf(&b, "  %-9s %s\n", cmd.name, cmd.summary)
 	}
 	b.WriteString("\nRun `cds <command> --help` for the options of one command.\n")
-	fmt.Fprint(out, b.String())
+	_, _ = fmt.Fprint(out, b.String())
 }

@@ -54,7 +54,6 @@ type isOrganizationList struct {
 // GetSelfOrganization returns the organization that primaryHandle names. The bool is false when the
 // organization does not exist.
 func (c *IdentityClient) GetSelfOrganization(orgHandle string) (ISOrganization, bool, error) {
-
 	token, err := c.FetchToken(orgHandle)
 	if err != nil {
 		return ISOrganization{}, false, err
@@ -79,11 +78,10 @@ func (c *IdentityClient) GetSelfOrganizationWithToken(orgHandle, token string) (
 
 // GetOrganization returns a descendant organization of the primary organization. The bool is false
 // when the organization does not exist.
-func (c *IdentityClient) GetOrganization(primaryHandle, orgId string) (ISOrganization, bool, error) {
-
+func (c *IdentityClient) GetOrganization(primaryHandle, orgID string) (ISOrganization, bool, error) {
 	var org ISOrganization
 	endpoint := fmt.Sprintf("https://%s/t/%s/api/server/v1/organizations/%s", c.BaseURL,
-		url.PathEscape(primaryHandle), url.PathEscape(orgId))
+		url.PathEscape(primaryHandle), url.PathEscape(orgID))
 	status, err := c.getJSON(endpoint, primaryHandle, &org)
 	if status == http.StatusNotFound {
 		return org, false, nil
@@ -96,7 +94,6 @@ func (c *IdentityClient) GetOrganization(primaryHandle, orgId string) (ISOrganiz
 
 // ListDescendantOrganizations returns all organizations below the primary organization.
 func (c *IdentityClient) ListDescendantOrganizations(primaryHandle string) ([]ISOrganization, error) {
-
 	next := fmt.Sprintf("https://%s/t/%s/api/server/v1/organizations?recursive=true&limit=100", c.BaseURL,
 		url.PathEscape(primaryHandle))
 	var all []ISOrganization
@@ -126,7 +123,6 @@ func (c *IdentityClient) ListDescendantOrganizations(primaryHandle string) ([]IS
 // getJSON sends a GET request with a token for the organization, and decodes a 200 response into
 // out. It returns the HTTP status.
 func (c *IdentityClient) getJSON(endpoint, orgHandle string, out interface{}) (int, error) {
-
 	token, err := c.FetchToken(orgHandle)
 	if err != nil {
 		return 0, err

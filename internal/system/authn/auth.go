@@ -140,7 +140,6 @@ func IsJWT(tokenString string) bool {
 
 // ParseJWTClaims parses claims from a JWT without verifying the signature
 func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
-
 	logger := log.GetLogger()
 	claims := jwt.MapClaims{}
 	_, _, err := new(jwt.Parser).ParseUnverified(tokenString, claims)
@@ -158,11 +157,10 @@ func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
 }
 
 // validateClaims checks the organization, the expiry, and the audience of the token.
-func validateClaims(orgHandle, pathOrgId string, claims map[string]interface{}) bool {
-
+func validateClaims(orgHandle, pathOrgID string, claims map[string]interface{}) bool {
 	logger := log.GetLogger()
-	if pathOrgId != "" {
-		if orgIdInClaim, _ := claims[constants.OrgIDClaim].(string); orgIdInClaim != pathOrgId {
+	if pathOrgID != "" {
+		if orgIDInClaim, _ := claims[constants.OrgIDClaim].(string); orgIDInClaim != pathOrgID {
 			logger.Debug("Token does not have the org_id claim of the path.")
 			return false
 		}

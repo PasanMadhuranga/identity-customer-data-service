@@ -1285,7 +1285,7 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 				return serverError
 			}
 			//todo: Ensure the need to detach the referer profile from the reference
-			//err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileID, ProfileID)
+			// err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileID, ProfileID)
 			// todo: Ensure the need to detach the referer profile from the reference
 			// err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileId, ProfileId)
 			err = profileStore.DeleteProfile(ctx, ProfileID)

@@ -120,7 +120,7 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 
 	//  Validate token
-	claims, err := authn.ValidateTokenForOrg(token, orgHandle, utils.ExtractPrimaryOrgHandle(r), pathOrgIdOf(r))
+	claims, err := authn.ValidateTokenForOrg(token, orgHandle, utils.ExtractPrimaryOrgHandle(r), pathOrgIDOf(r))
 	if err != nil {
 		clientError := errors.NewClientError(errors.ErrorMessage{
 			Code:        errors.Unauthorized.Code,
@@ -145,7 +145,7 @@ func authorize(r *http.Request, claims map[string]interface{}, operation string)
 		return clientError
 	}
 
-	if !authz.ValidatePermission(scope, authz.OperationFor(operation, pathOrgIdOf(r))) {
+	if !authz.ValidatePermission(scope, authz.OperationFor(operation, pathOrgIDOf(r))) {
 		clientError := errors.NewClientError(errors.ErrorMessage{
 			Code:        errors.FORBIDDEN.Code,
 			Message:     errors.FORBIDDEN.Message,
@@ -159,7 +159,7 @@ func authorize(r *http.Request, claims map[string]interface{}, operation string)
 // authorizePrimary refuses the operation in a sub organization, and authorizes it in a primary
 // organization.
 func authorizePrimary(r *http.Request, claims map[string]interface{}, operation string) error {
-	if pathOrgIdOf(r) != "" {
+	if pathOrgIDOf(r) != "" {
 		return errors.NewClientError(errors.ErrorMessage{
 			Code:        errors.SubOrgConfigNotAllowed.Code,
 			Message:     errors.SubOrgConfigNotAllowed.Message,
@@ -169,9 +169,9 @@ func authorizePrimary(r *http.Request, claims map[string]interface{}, operation 
 	return authorize(r, claims, operation)
 }
 
-// pathOrgIdOf returns the organization ID of a sub organization path, or empty for a primary
+// pathOrgIDOf returns the organization ID of a sub organization path, or empty for a primary
 // organization path.
-func pathOrgIdOf(r *http.Request) string {
-	pathOrgId, _ := r.Context().Value(constants.OrgIDContextKey).(string)
-	return pathOrgId
+func pathOrgIDOf(r *http.Request) string {
+	pathOrgID, _ := r.Context().Value(constants.OrgIDContextKey).(string)
+	return pathOrgID
 }

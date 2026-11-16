@@ -94,7 +94,7 @@ func Test_getDBConfig_sqlite(t *testing.T) {
 		{
 			name:        "a relative path resolves against CDS_HOME",
 			sqlite:      config.SQLiteConfig{Path: "data/cds.db"},
-			expectedDSN: filepath.Join(home, "data/cds.db") + "?" + database.DefaultSQLiteOptions,
+			expectedDSN: filepath.Join(home, "data", "cds.db") + "?" + database.DefaultSQLiteOptions,
 		},
 		{
 			name:        "an absolute path is used as given",

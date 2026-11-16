@@ -366,10 +366,7 @@ func getDBConfig(dataSource config.Config) (DBConfig, error) {
 
 	switch database.ResolveType(ds.Type) {
 	case database.TypeSQLite:
-		path, err := resolveSQLitePath(ds.SQLite.Path)
-		if err != nil {
-			return DBConfig{}, err
-		}
+		path := resolveSQLitePath(ds.SQLite.Path)
 
 		options := ds.SQLite.Options
 		if options == "" {
@@ -402,14 +399,14 @@ func getDBConfig(dataSource config.Config) (DBConfig, error) {
 
 // resolveSQLitePath returns the absolute path of the inbuilt database file,
 // resolving a relative path against CDS_HOME.
-func resolveSQLitePath(path string) (string, error) {
+func resolveSQLitePath(path string) string {
 	if path == "" {
 		path = database.DefaultSQLitePath
 	}
 	if filepath.IsAbs(path) {
-		return path, nil
+		return path
 	}
-	return filepath.Join(config.GetCDSRuntime().CDSHome, path), nil
+	return filepath.Join(config.GetCDSRuntime().CDSHome, path)
 }
 
 // GetDBType returns the configured datasource type.

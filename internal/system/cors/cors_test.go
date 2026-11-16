@@ -67,7 +67,7 @@ func TestSubOrgPathPassesTheSubOrgToTheLookup(t *testing.T) {
 	}
 	h, _ := newTestHandler(lookup, nil)
 
-	w := doRequest(h, http.MethodGet, "/t/acme/o/4b1e/cds/api/v1/profiles", appOrigin)
+	w := doRequest(h, "/t/acme/o/4b1e/cds/api/v1/profiles", appOrigin)
 	if want := (Org{Handle: "acme", SubOrgID: "4b1e"}); got != want {
 		t.Errorf("lookup got %+v, want %+v", got, want)
 	}
@@ -86,8 +86,8 @@ func newTestHandler(lookup OriginsLookup, deployment []string) (http.Handler, *b
 	return Middleware(next, lookup, func() []string { return deployment }), &reached
 }
 
-func doRequest(h http.Handler, method, path, origin string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest(method, path, nil)
+func doRequest(h http.Handler, path, origin string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(http.MethodGet, path, nil)
 	if origin != "" {
 		r.Header.Set("Origin", origin)
 	}
@@ -106,7 +106,7 @@ func TestOrgOriginIsAllowedForThatOrg(t *testing.T) {
 	}
 	h, _ := newTestHandler(lookup, nil)
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", appOrigin)
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", appOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != appOrigin {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want the org origin", got)
 	}
@@ -129,7 +129,7 @@ func TestOrgOriginIsNotAllowedForAnotherOrg(t *testing.T) {
 	}
 	h, _ := newTestHandler(lookup, nil)
 
-	w := doRequest(h, http.MethodGet, "/t/globex/cds/api/v1/profiles", appOrigin)
+	w := doRequest(h, "/t/globex/cds/api/v1/profiles", appOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "" {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want empty for a foreign org origin", got)
 	}
@@ -141,7 +141,7 @@ func TestDeploymentOriginsApplyWhenOrgHasNone(t *testing.T) {
 	lookup := func(_ context.Context, _ Org) ([]string, error) { return nil, nil }
 	h, _ := newTestHandler(lookup, []string{consoleOrigin})
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", consoleOrigin)
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", consoleOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != consoleOrigin {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want the deployment origin", got)
 	}
@@ -154,7 +154,7 @@ func TestOrgOriginsAddToDeploymentOrigins(t *testing.T) {
 	h, _ := newTestHandler(lookup, []string{consoleOrigin})
 
 	for _, origin := range []string{consoleOrigin, appOrigin} {
-		w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", origin)
+		w := doRequest(h, "/t/acme/cds/api/v1/profiles", origin)
 		if got := w.Header().Get("Access-Control-Allow-Origin"); got != origin {
 			t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, origin)
 		}
@@ -169,7 +169,7 @@ func TestDeploymentOriginNeedsNoLookup(t *testing.T) {
 	}
 	h, _ := newTestHandler(lookup, []string{consoleOrigin})
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", consoleOrigin)
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", consoleOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != consoleOrigin {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want the deployment origin", got)
 	}
@@ -183,7 +183,7 @@ func TestPathWithoutOrgUsesDeploymentOrigins(t *testing.T) {
 	}
 	h, _ := newTestHandler(lookup, []string{consoleOrigin})
 
-	w := doRequest(h, http.MethodGet, "/health", consoleOrigin)
+	w := doRequest(h, "/health", consoleOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != consoleOrigin {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want the deployment origin", got)
 	}
@@ -200,14 +200,14 @@ func TestFailedLookupAllowsDeploymentOriginsOnly(t *testing.T) {
 	}
 	h, reached := newTestHandler(lookup, []string{consoleOrigin})
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", appOrigin)
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", appOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "" {
 		t.Errorf("Access-Control-Allow-Origin = %q, want empty when the origins cannot be read", got)
 	}
 	if !*reached {
 		t.Error("request did not reach the wrapped handler")
 	}
-	w = doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", consoleOrigin)
+	w = doRequest(h, "/t/acme/cds/api/v1/profiles", consoleOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != consoleOrigin {
 		t.Errorf("Access-Control-Allow-Origin = %q, want the deployment origin", got)
 	}
@@ -217,7 +217,7 @@ func TestDisallowedOriginGetsNoCORSHeaders(t *testing.T) {
 	lookup := func(_ context.Context, _ Org) ([]string, error) { return []string{appOrigin}, nil }
 	h, _ := newTestHandler(lookup, nil)
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", "https://evil.example.com")
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", "https://evil.example.com")
 	for _, header := range []string{
 		"Access-Control-Allow-Origin",
 		"Access-Control-Allow-Credentials",
@@ -257,7 +257,7 @@ func TestVaryOriginIsAlwaysSet(t *testing.T) {
 	h, _ := newTestHandler(lookup, nil)
 
 	for _, origin := range []string{appOrigin, "https://evil.example.com"} {
-		w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", origin)
+		w := doRequest(h, "/t/acme/cds/api/v1/profiles", origin)
 		if got := w.Header().Get("Vary"); got != "Origin" {
 			t.Errorf("Vary = %q for origin %s, want Origin", got, origin)
 		}
@@ -269,7 +269,7 @@ func TestRequestWithoutOriginPassesThrough(t *testing.T) {
 	lookup := func(_ context.Context, _ Org) ([]string, error) { return []string{appOrigin}, nil }
 	h, reached := newTestHandler(lookup, nil)
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", "")
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", "")
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "" {
 		t.Errorf("Access-Control-Allow-Origin = %q, want empty with no Origin header", got)
 	}
@@ -284,7 +284,7 @@ func TestOriginMatchIsCaseInsensitiveOnSchemeAndHost(t *testing.T) {
 	lookup := func(_ context.Context, _ Org) ([]string, error) { return []string{"HTTPS://App.Acme.COM"}, nil }
 	h, _ := newTestHandler(lookup, nil)
 
-	w := doRequest(h, http.MethodGet, "/t/acme/cds/api/v1/profiles", appOrigin)
+	w := doRequest(h, "/t/acme/cds/api/v1/profiles", appOrigin)
 	if got := w.Header().Get("Access-Control-Allow-Origin"); got != appOrigin {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want the request origin", got)
 	}

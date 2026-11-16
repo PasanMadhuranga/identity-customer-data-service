@@ -73,10 +73,10 @@ func insertFuzzyNameRule(t *testing.T, org string) {
 
 // findableUnder reports whether the profile can be reached through one blocking key value.
 // The org is a handle.
-func findableUnder(t *testing.T, org, attribute, keyValue, profileID string) bool {
+func findableUnder(t *testing.T, org, keyValue, profileID string) bool {
 	t.Helper()
 
-	ids, err := irStore.FindCandidateIDsByKeys(context.Background(), setup.TestOrg(t, org).ID, attribute,
+	ids, err := irStore.FindCandidateIDsByKeys(context.Background(), setup.TestOrg(t, org).ID, "traits.name",
 		[]string{keyValue}, "none", 100)
 	if err != nil {
 		t.Fatalf("candidate lookup: %v", err)
@@ -118,10 +118,10 @@ func Test_FuzzyMatchingSwitch(t *testing.T) {
 
 		irWorker.ResolveProfileAsync(context.Background(), setup.TestOrg(t, org).ID, profile)
 
-		if !findableUnder(t, org, "traits.name", "jonathan smith", profile.ProfileID) {
+		if !findableUnder(t, org, "jonathan smith", profile.ProfileID) {
 			t.Error("the exact key was not written")
 		}
-		if !findableUnder(t, org, "traits.name", phonetic, profile.ProfileID) {
+		if !findableUnder(t, org, phonetic, profile.ProfileID) {
 			t.Errorf("no phonetic key %q: tolerant matching is on but the index was not widened", phonetic)
 		}
 	})
@@ -137,10 +137,10 @@ func Test_FuzzyMatchingSwitch(t *testing.T) {
 
 		irWorker.ResolveProfileAsync(context.Background(), setup.TestOrg(t, org).ID, profile)
 
-		if !findableUnder(t, org, "traits.name", "jonathan smith", profile.ProfileID) {
+		if !findableUnder(t, org, "jonathan smith", profile.ProfileID) {
 			t.Error("the exact key must still be written; the rule is not disabled, only narrowed")
 		}
-		if findableUnder(t, org, "traits.name", phonetic, profile.ProfileID) {
+		if findableUnder(t, org, phonetic, profile.ProfileID) {
 			t.Errorf("phonetic key %q written while tolerant matching is switched off", phonetic)
 		}
 	})
@@ -176,7 +176,7 @@ func Test_FuzzyMatchingSwitch_SearchPath(t *testing.T) {
 		irWorker.ResolveProfileAsync(context.Background(), setup.TestOrg(t, org).ID, profile)
 
 		phonetic, _ := algorithms.DoubleMetaphonePhrase(stored)
-		if !findableUnder(t, org, "traits.name", phonetic, profile.ProfileID) {
+		if !findableUnder(t, org, phonetic, profile.ProfileID) {
 			t.Fatal("setup failed: the profile was not indexed for tolerant matching, " +
 				"so a search finding nothing below would prove nothing")
 		}
@@ -249,8 +249,8 @@ func Test_FuzzyMatchingSwitch_Backfill(t *testing.T) {
 		}
 		irWorker.IndexNewAttribute(context.Background(), setup.TestOrg(t, org).ID, rules[0])
 
-		return findableUnder(t, org, "traits.name", "jonathan smith", profile.ProfileID),
-			findableUnder(t, org, "traits.name", phonetic, profile.ProfileID)
+		return findableUnder(t, org, "jonathan smith", profile.ProfileID),
+			findableUnder(t, org, phonetic, profile.ProfileID)
 	}
 
 	t.Run("on — the backfill widens the index", func(t *testing.T) {

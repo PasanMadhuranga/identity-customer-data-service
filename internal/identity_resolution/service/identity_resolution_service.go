@@ -190,11 +190,11 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 	}
 
 	// Redirect to master if either profile is a child (may have been merged since the task was created).
-	incomingProfile, err = redirectToMasterIfChild(ctx, orgID, incomingProfile, logger)
+	incomingProfile, err = redirectToMasterIfChild(ctx, orgID, incomingProfile)
 	if err != nil {
 		return err
 	}
-	candidate, err = redirectToMasterIfChild(ctx, orgID, candidate, logger)
+	candidate, err = redirectToMasterIfChild(ctx, orgID, candidate)
 	if err != nil {
 		return err
 	}
@@ -293,8 +293,8 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 	return nil
 }
 
-func redirectToMasterIfChild(ctx context.Context, orgID string, p *profileModel.Profile,
-	logger *log.Logger) (*profileModel.Profile, error) {
+func redirectToMasterIfChild(ctx context.Context, orgID string, p *profileModel.Profile) (*profileModel.Profile,
+	error) {
 	if p.ProfileStatus == nil || p.ProfileStatus.ReferenceProfileID == "" {
 		return p, nil
 	}

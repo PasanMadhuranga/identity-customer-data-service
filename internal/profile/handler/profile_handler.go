@@ -670,11 +670,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Create and set a new cookie
-	err = setProfileCookie(w, cookie.CookieID, r)
-	if err != nil {
-		utils.HandleError(w, err)
-		return
-	}
+	setProfileCookie(w, cookie.CookieID, r)
 
 	profileResponse.AnonymousTracker = cookie.CookieID
 
@@ -712,13 +708,13 @@ func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Re
 		return true
 	}
 
-	_ = setProfileCookie(w, cookieObj.CookieID, r)
+	setProfileCookie(w, cookieObj.CookieID, r)
 	profileResponse.AnonymousTracker = cookieObj.CookieID
 	utils.RespondJSON(w, http.StatusOK, profileResponse, constants.ProfileResource)
 	return true
 }
 
-func setProfileCookie(w http.ResponseWriter, cookieID string, r *http.Request) error {
+func setProfileCookie(w http.ResponseWriter, cookieID string, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:     constants.ProfileCookie,
 		Value:    cookieID,
@@ -729,7 +725,6 @@ func setProfileCookie(w http.ResponseWriter, cookieID string, r *http.Request) e
 		SameSite: http.SameSiteNoneMode,
 	}
 	http.SetCookie(w, cookie)
-	return nil
 }
 
 func resolveDomain() string {

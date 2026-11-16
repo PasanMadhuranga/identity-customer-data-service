@@ -83,7 +83,7 @@ func NewIdentityClient(cfg config.Config) *IdentityClient {
 	}
 	log.GetLogger().Info("Creating IdentityClient with base URL: " + baseHostPort)
 
-	httpClient, err := newOutboundHTTPClient(cfg.TLS, cfg.AuthServer.Host)
+	httpClient, err := newOutboundHTTPClient(cfg.TLS)
 	if err != nil {
 		log.GetLogger().Error("Failed to create outbound HTTPS client for IS", log.Error(err))
 		os.Exit(1)
@@ -97,7 +97,7 @@ func NewIdentityClient(cfg config.Config) *IdentityClient {
 
 // Builds an HTTP client with TLS/mTLS configuration for outbound requests.
 // Validates the server using CA, and optionally presents a client certificate if mTLS is enabled.
-func newOutboundHTTPClient(tlsCfg config.TLSConfig, serverHostForSNI string) (*http.Client, error) {
+func newOutboundHTTPClient(tlsCfg config.TLSConfig) (*http.Client, error) {
 	// Resolve cert dir to absolute to avoid CWD surprises
 	certDir := tlsCfg.CertDir
 	cdsHome := utils.GetCDSHome()

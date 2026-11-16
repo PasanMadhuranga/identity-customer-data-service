@@ -46,8 +46,6 @@ func GetProfilesForOrgAfter(
 	afterProfileID string,
 	limit int,
 ) ([]model.ProfileData, error) {
-	logger := log.GetLogger()
-
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
@@ -72,18 +70,14 @@ func GetProfilesForOrgAfter(
 
 	profiles := make([]model.ProfileData, 0, len(results))
 	for _, row := range results {
-		pd, err := scanProfileData(row)
-		if err != nil {
-			logger.Warn("Store: skipping profile due to scan error", log.Error(err))
-			continue
-		}
+		pd := scanProfileData(row)
 		profiles = append(profiles, pd)
 	}
 
 	return profiles, nil
 }
 
-func scanProfileData(row map[string]interface{}) (model.ProfileData, error) {
+func scanProfileData(row map[string]interface{}) model.ProfileData {
 	pd := model.ProfileData{
 		Attributes: make(map[string]interface{}),
 	}
@@ -116,7 +110,7 @@ func scanProfileData(row map[string]interface{}) (model.ProfileData, error) {
 		}
 	}
 
-	return pd, nil
+	return pd
 }
 
 // InsertReviewTask stores a pending review task. If the reverse pair already has a pending task, that task is
@@ -193,7 +187,7 @@ func InsertReviewTask(ctx context.Context, orgID string, task model.ReviewTask) 
 // Returns the incoming profile IDs of the cancelled tasks so they can be re-evaluated.
 func CancelRelatedReviewTasks(
 	ctx context.Context,
-	excludeTaskID, IncomingProfileID, CandidateProfileID, cancelledBy string,
+	excludeTaskID, incomingProfileID, candidateProfileID, cancelledBy string,
 ) ([]string, error) {
 	logger := log.GetLogger()
 
@@ -208,7 +202,7 @@ func CancelRelatedReviewTasks(
 	findQuery := scripts.IRFindRelatedPendingReviewTasks
 	rows, err := dbClient.ExecuteQueryContext(ctx, findQuery,
 		excludeTaskID, constants.ReviewStatusPending,
-		IncomingProfileID, CandidateProfileID)
+		incomingProfileID, candidateProfileID)
 	if err != nil {
 		logger.Warn("Store: failed to query related tasks for re-evaluation", log.Error(err))
 		// Non-fatal for the find step — proceed with cancel anyway.
@@ -219,7 +213,7 @@ func CancelRelatedReviewTasks(
 		if v, ok := row["incoming_profile_id"]; ok && v != nil {
 			id := fmt.Sprintf("%v", v)
 			// Don't re-evaluate profiles that were just merged (incoming or candidate of the resolved task).
-			if id != IncomingProfileID && id != CandidateProfileID {
+			if id != incomingProfileID && id != candidateProfileID {
 				affectedIncomingIDs = append(affectedIncomingIDs, id)
 			}
 		}
@@ -231,7 +225,7 @@ func CancelRelatedReviewTasks(
 		constants.ReviewStatusCancelled, cancelledBy,
 		fmt.Sprintf("Auto-cancelled: related task %s was resolved", excludeTaskID),
 		excludeTaskID, constants.ReviewStatusPending,
-		IncomingProfileID, CandidateProfileID)
+		incomingProfileID, candidateProfileID)
 	if err != nil {
 		logger.Error("Store: failed to cancel related review tasks", log.Error(err))
 		return nil, err

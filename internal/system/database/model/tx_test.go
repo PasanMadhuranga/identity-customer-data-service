@@ -100,7 +100,10 @@ func Test_QueryContext_usesTheSuppliedContext(t *testing.T) {
 	statementCtx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err = NewTx(tx, database.TypeSQLite).QueryContext(statementCtx, countItems)
+	rows, err := NewTx(tx, database.TypeSQLite).QueryContext(statementCtx, countItems)
+	if rows != nil {
+		_ = rows.Close()
+	}
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("want context.Canceled, got %v", err)
 	}

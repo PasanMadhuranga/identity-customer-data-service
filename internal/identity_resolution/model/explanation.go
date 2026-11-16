@@ -139,6 +139,7 @@ func (e MatchExplanation) RuleIDsFor(properties []string) []string {
 func (e MatchExplanation) WithReason(reason ReviewReason) MatchExplanation {
 	reasons := make([]ReviewReason, 0, len(e.Reasons)+1)
 	reasons = append(reasons, e.Reasons...)
-	e.Reasons = append(reasons, reason)
+	reasons = append(reasons, reason)
+	e.Reasons = reasons
 	return e
 }

@@ -955,7 +955,7 @@ func (s *ProfileSchemaService) GetProfileSchemaAttributesByScopeAndFilter(ctx co
 				Code:    errors2.GetProfileSchema.Code,
 				Message: errors2.GetProfileSchema.Message,
 				Description: fmt.Sprintf(
-					"Invalid filter for schema attributes: `%s`. Filter must be in the format: field operator value",
+					"Invalid filter for schema attributes: %#q. Filter must be in the format: field operator value",
 					f,
 				),
 			}, http.StatusBadRequest)
@@ -979,7 +979,7 @@ func (s *ProfileSchemaService) GetProfileSchemaAttributesByScopeAndFilter(ctx co
 			return nil, errors2.NewClientError(errors2.ErrorMessage{
 				Code:        errors2.GetProfileSchema.Code,
 				Message:     errors2.GetProfileSchema.Message,
-				Description: fmt.Sprintf("Unsupported filter field: `%s` when filtering schema attributes.", field),
+				Description: fmt.Sprintf("Unsupported filter field: %#q when filtering schema attributes.", field),
 			}, http.StatusBadRequest)
 		}
 

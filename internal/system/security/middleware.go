@@ -49,8 +49,7 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 
 	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Basic "))
 
-	isValidAdmin, err := validateAdminCredentials(token)
-	if err != nil || !isValidAdmin {
+	if !validateAdminCredentials(token) {
 		logger.Debug("Invalid admin credentials")
 		return errors.NewClientError(errors.ErrorMessage{
 			Code:        errors.Unauthorized.Code,
@@ -62,14 +61,14 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 	return nil
 }
 
-func validateAdminCredentials(token string) (bool, error) {
+func validateAdminCredentials(token string) bool {
 	authServerConfig := config.GetCDSRuntime().Config.AuthServer
 	username := strings.TrimSpace(authServerConfig.AdminUsername)
 	password := strings.TrimSpace(authServerConfig.AdminPassword)
 	logger := log.GetLogger()
 	if username == "" || password == "" || token == "" {
 		logger.Debug("Admin credentials are not set properly in the configuration.")
-		return false, nil
+		return false
 	}
 
 	creds := username + ":" + password
@@ -77,10 +76,10 @@ func validateAdminCredentials(token string) (bool, error) {
 
 	if subtle.ConstantTimeCompare([]byte(token), []byte(expected)) == 1 {
 		logger.Debug("Admin credentials validated successfully.")
-		return true, nil
+		return true
 	}
 
-	return false, nil
+	return false
 }
 
 // AuthnAndAuthz performs authentication and authorization for the given HTTP request and operation.

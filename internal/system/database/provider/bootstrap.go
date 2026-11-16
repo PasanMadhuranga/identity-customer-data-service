@@ -109,10 +109,7 @@ func EnsureDatabase() error {
 		return err
 	}
 
-	path, err := resolveSQLitePath(runtimeConfig.DataSource.SQLite.Path)
-	if err != nil {
-		return err
-	}
+	path := resolveSQLitePath(runtimeConfig.DataSource.SQLite.Path)
 	log.GetLogger().Info(fmt.Sprintf("Inbuilt database initialized at %s", path))
 
 	return nil
@@ -120,10 +117,7 @@ func EnsureDatabase() error {
 
 // ensureSQLiteDir creates the directory that holds the inbuilt database file.
 func ensureSQLiteDir(configuredPath string) error {
-	path, err := resolveSQLitePath(configuredPath)
-	if err != nil {
-		return err
-	}
+	path := resolveSQLitePath(configuredPath)
 
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o750); err != nil {

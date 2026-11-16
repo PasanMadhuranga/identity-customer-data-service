@@ -17,12 +17,12 @@ import (
 )
 
 // createAttr is a helper to quickly generate a schema attribute.
-func createAttr(org, name, vType, merge, mut string) model.ProfileSchemaAttribute {
+func createAttr(org, name, merge, mut string) model.ProfileSchemaAttribute {
 	return model.ProfileSchemaAttribute{
 		OrgID:                 org,
 		AttributeID:           uuid.New().String(),
 		AttributeName:         name,
-		ValueType:             vType,
+		ValueType:             constants.StringDataType,
 		MergeStrategy:         merge,
 		Mutability:            mut,
 		ApplicationIdentifier: "",
@@ -45,14 +45,12 @@ func Test_ProfileSchemaService(t *testing.T) {
 				createAttr(
 					SuperTenantOrg.ID,
 					"identity_attributes.email",
-					constants.StringDataType,
 					"combine",
 					constants.MutabilityReadWrite,
 				),
 				createAttr(
 					SuperTenantOrg.ID,
 					"identity_attributes.phone",
-					constants.StringDataType,
 					"combine",
 					constants.MutabilityReadWrite,
 				),
@@ -118,7 +116,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"invalidscope.email",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -136,7 +133,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.email",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -154,7 +150,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"application_data.email",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -286,7 +281,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment.card.type.extra",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -309,7 +303,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment.card.type",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -333,7 +326,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			subAttr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -428,8 +420,7 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 		t.Run("Add_MaxDepthHierarchy_ShouldSucceed", func(t *testing.T) {
 			// 1️ Level 4 leaf
-			l4 := createAttr(SuperTenantOrg.ID, "traits.orders.payment.card.type",
-				constants.StringDataType, "combine", constants.MutabilityReadWrite)
+			l4 := createAttr(SuperTenantOrg.ID, "traits.orders.payment.card.type", "combine", constants.MutabilityReadWrite)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
 				[]model.ProfileSchemaAttribute{l4},
@@ -508,14 +499,12 @@ func Test_ProfileSchemaService(t *testing.T) {
 			createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.email",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			),
 			createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.phone",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			),
@@ -574,7 +563,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.phone_number",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -611,7 +599,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.temp_field",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)
@@ -649,7 +636,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.to_delete",
-				constants.StringDataType,
 				"combine",
 				constants.MutabilityReadWrite,
 			)

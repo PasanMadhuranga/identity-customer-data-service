@@ -190,11 +190,7 @@ func DoubleMetaphone(s string) (primary, alternate string) {
 				addBoth("K")
 				current += 2
 			} else if stringAt(current, 2, "CI", "CE", "CY") {
-				if stringAt(current, 3, "CIO", "CIE", "CIA") {
-					addBoth("S")
-				} else {
-					addBoth("S")
-				}
+				addBoth("S")
 				current += 2
 			} else {
 				addBoth("K")

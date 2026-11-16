@@ -466,19 +466,19 @@ func TestOrgEndpointRefusesURLsThatLeaveTheHost(t *testing.T) {
 func TestNewOutboundHTTPClient(t *testing.T) {
 	dir := t.TempDir()
 
-	client, err := newOutboundHTTPClient(config.TLSConfig{CertDir: dir}, "is.example.com")
+	client, err := newOutboundHTTPClient(config.TLSConfig{CertDir: dir})
 	require.NoError(t, err)
 	assert.NotNil(t, client.Transport)
 
-	_, err = newOutboundHTTPClient(config.TLSConfig{CertDir: dir, TrustStore: "missing.pem"}, "is.example.com")
+	_, err = newOutboundHTTPClient(config.TLSConfig{CertDir: dir, TrustStore: "missing.pem"})
 	assert.Error(t, err, "a trust store that cannot be read")
 
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "bad.pem"), []byte("not a certificate"), 0o600))
-	_, err = newOutboundHTTPClient(config.TLSConfig{CertDir: dir, TrustStore: "bad.pem"}, "is.example.com")
+	_, err = newOutboundHTTPClient(config.TLSConfig{CertDir: dir, TrustStore: "bad.pem"})
 	assert.Error(t, err, "a trust store without certificates")
 
 	_, err = newOutboundHTTPClient(config.TLSConfig{CertDir: dir, MTLSEnabled: true, CDSPublicCert: "a.crt",
-		CDSPrivateKey: "a.key"}, "is.example.com")
+		CDSPrivateKey: "a.key"})
 	assert.Error(t, err, "a client certificate that cannot be loaded")
 }
 

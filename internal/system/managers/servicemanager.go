@@ -55,7 +55,6 @@ func (sm *ServiceManager) RegisterServices() error {
 
 	// Initialize services with the shared tenant routes mux so they don't create their own mux
 	routesMux := http.NewServeMux()
-	// _ = services.NewHealthService(routesMux)
 	_ = services.NewProfileService(routesMux)
 	_ = services.NewProfileSchemaService(routesMux)
 	_ = services.NewUnificationRulesService(routesMux)

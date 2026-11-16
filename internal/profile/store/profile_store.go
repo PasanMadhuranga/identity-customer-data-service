@@ -88,13 +88,13 @@ func scanProfileRow(row map[string]interface{}) (model.Profile, error) {
 	return profile, nil
 }
 
-func scanProfileConsentRow(row map[string]interface{}) (model.ConsentRecord, error) {
+func scanProfileConsentRow(row map[string]interface{}) model.ConsentRecord {
 	var profileConsent model.ConsentRecord
 
 	profileConsent.CategoryIdentifier = row["category_id"].(string)
 	profileConsent.IsConsented = row["consent_status"].(bool)
 	profileConsent.ConsentedAt = row["consented_at"].(time.Time)
-	return profileConsent, nil
+	return profileConsent
 }
 
 // InsertProfile inserts a new profile into the database
@@ -333,18 +333,7 @@ func GetProfileConsents(ctx context.Context, profileID, orgID string) ([]model.C
 	}
 	profileConsents := make([]model.ConsentRecord, 0)
 	for _, row := range results {
-		profileConsent, err := scanProfileConsentRow(row)
-		if err != nil {
-			errorMsg := fmt.Sprintf("Failed fetching profile consents with Id: %s", profileID)
-			logger.Debug(errorMsg, log.Error(err))
-			serverError := errors2.NewServerError(errors2.ErrorMessage{
-				Code:        errors2.GetProfile.Code,
-				Message:     errors2.GetProfile.Message,
-				Description: errorMsg,
-			}, err)
-			return nil, serverError
-		}
-		profileConsents = append(profileConsents, profileConsent)
+		profileConsents = append(profileConsents, scanProfileConsentRow(row))
 	}
 	return profileConsents, nil
 }

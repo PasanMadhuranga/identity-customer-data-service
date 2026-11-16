@@ -426,11 +426,7 @@ func GetProfilesByIDs(ctx context.Context, profileIDs []string) ([]model.Profile
 
 	profiles := make([]model.ProfileData, 0, len(results))
 	for _, row := range results {
-		pd, err := scanProfileData(row)
-		if err != nil {
-			logger.Warn("BlockingStore: skipping profile due to scan error", log.Error(err))
-			continue
-		}
+		pd := scanProfileData(row)
 		profiles = append(profiles, pd)
 	}
 

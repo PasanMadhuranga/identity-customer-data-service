@@ -977,10 +977,10 @@ func ConvertAppDataToMap(appDataList []profileModel.ApplicationData) map[string]
 // GetProfile retrieves a profile
 func (ps *ProfilesService) GetProfile(
 	ctx context.Context,
-	ProfileID string,
+	profileID string,
 	orgID string,
 ) (*profileModel.ProfileResponse, error) {
-	profile, err := profileStore.GetProfile(ctx, ProfileID, orgID)
+	profile, err := profileStore.GetProfile(ctx, profileID, orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -998,10 +998,10 @@ func (ps *ProfilesService) GetProfile(
 	}
 
 	if profile.ProfileStatus.IsReferenceProfile {
-		alias, err := profileStore.FetchReferencedProfiles(ctx, ProfileID)
+		alias, err := profileStore.FetchReferencedProfiles(ctx, profileID)
 
 		if err != nil {
-			errorMsg := fmt.Sprintf("Error fetching references for profile: %s", ProfileID)
+			errorMsg := fmt.Sprintf("Error fetching references for profile: %s", profileID)
 			logger := log.GetLogger()
 			logger.Debug(errorMsg, log.Error(err))
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
@@ -1069,15 +1069,15 @@ func (ps *ProfilesService) GetProfile(
 
 // GetProfileConsents retrieves a profile
 func (ps *ProfilesService) GetProfileConsents(ctx context.Context,
-	ProfileID string, orgID string) ([]profileModel.ConsentRecord, error) {
-	profile, err := profileStore.GetProfile(ctx, ProfileID, orgID)
+	profileID string, orgID string) ([]profileModel.ConsentRecord, error) {
+	profile, err := profileStore.GetProfile(ctx, profileID, orgID)
 	if err != nil {
 		return nil, err
 	}
 	if profile == nil {
 		return nil, profileNotFoundError()
 	}
-	consentRecords, err := profileStore.GetProfileConsents(ctx, ProfileID, orgID)
+	consentRecords, err := profileStore.GetProfileConsents(ctx, profileID, orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -1163,28 +1163,28 @@ func (ps *ProfilesService) UpdateProfileConsents(ctx context.Context,
 }
 
 // DeleteProfile removes a profile from MongoDB by `perma_id`
-func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, orgID string) error {
+func (ps *ProfilesService) DeleteProfile(ctx context.Context, profileID string, orgID string) error {
 	// Fetch the existing profile before deletion
-	profile, err := profileStore.GetProfile(ctx, ProfileID, orgID)
+	profile, err := profileStore.GetProfile(ctx, profileID, orgID)
 	logger := log.GetLogger()
 	if err == nil && profile == nil {
 		logger.Debug(fmt.Sprintf("Profile with profile_id: %s that is requested for deletion is not found",
-			ProfileID))
+			profileID))
 		return nil
 	}
 
 	// Drop the resolution index entries first. They are not reached by any cascade, so a
 	// profile left indexed keeps surfacing as a merge candidate after deletion.
-	if err := irStore.DeleteBlockingKeys(ctx, orgID, ProfileID); err != nil {
-		logger.Warn(fmt.Sprintf("DeleteProfile: failed to remove blocking keys for '%s'", ProfileID),
+	if err := irStore.DeleteBlockingKeys(ctx, orgID, profileID); err != nil {
+		logger.Warn(fmt.Sprintf("DeleteProfile: failed to remove blocking keys for '%s'", profileID),
 			log.Error(err))
 	}
-	if err := irStore.DeleteRejectionPairsForProfile(ctx, orgID, ProfileID); err != nil {
-		logger.Warn(fmt.Sprintf("DeleteProfile: failed to remove rejection pairs for '%s'", ProfileID),
+	if err := irStore.DeleteRejectionPairsForProfile(ctx, orgID, profileID); err != nil {
+		logger.Warn(fmt.Sprintf("DeleteProfile: failed to remove rejection pairs for '%s'", profileID),
 			log.Error(err))
 	}
 	if err != nil {
-		errorMsg := fmt.Sprintf("Error deleting profile with profile_id: %s", ProfileID)
+		errorMsg := fmt.Sprintf("Error deleting profile with profile_id: %s", profileID)
 		logger.Debug(errorMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.DeleteProfile.Code,
@@ -1200,13 +1200,13 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 	}
 
 	if profile.ProfileStatus.IsReferenceProfile && len(profile.ProfileStatus.References) == 0 {
-		logger.Info(fmt.Sprintf("Deleting parent profile: %s with no children", ProfileID))
+		logger.Info(fmt.Sprintf("Deleting parent profile: %s with no children", profileID))
 		// Delete the parent with no children
-		err = profileStore.DeleteProfile(ctx, ProfileID)
+		err = profileStore.DeleteProfile(ctx, profileID)
 		if err != nil {
 			errorMsg := fmt.Sprintf(
 				"Error deleting profile with profile_id: %s which is a parent and no children",
-				ProfileID,
+				profileID,
 			)
 			logger.Debug(errorMsg, log.Error(err))
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
@@ -1224,7 +1224,7 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 		for _, childProfile := range profile.ProfileStatus.References {
 			err = profileStore.DeleteProfile(ctx, childProfile.ProfileID)
 			logger.Info(fmt.Sprintf("Deleting child  profile: %s with of parent: %s",
-				childProfile.ProfileID, ProfileID))
+				childProfile.ProfileID, profileID))
 
 			if err != nil {
 				errorMsg := fmt.Sprintf("Error while deleting profile with profile_id: %s ", childProfile.ProfileID)
@@ -1238,10 +1238,10 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 			}
 		}
 		// now delete master
-		err = profileStore.DeleteProfile(ctx, ProfileID)
-		logger.Info(fmt.Sprintf("Deleting parent profile: %s with children", ProfileID))
+		err = profileStore.DeleteProfile(ctx, profileID)
+		logger.Info(fmt.Sprintf("Deleting parent profile: %s with children", profileID))
 		if err != nil {
-			errorMsg := fmt.Sprintf("Error while deleting parent profile: %s ", ProfileID)
+			errorMsg := fmt.Sprintf("Error while deleting parent profile: %s ", profileID)
 			logger.Debug(errorMsg, log.Error(err))
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.DeleteProfile.Code,
@@ -1260,11 +1260,11 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 	// GetProfile signals that as (nil, nil) — so without this guard the nil parent is
 	// dereferenced and deleting any never-merged profile panics.
 	if !profile.ProfileStatus.IsReferenceProfile && profile.ProfileStatus.ReferenceProfileID != "" {
-		logger.Info(fmt.Sprintf("Deleting child profile: %s with parent: %s", ProfileID,
+		logger.Info(fmt.Sprintf("Deleting child profile: %s with parent: %s", profileID,
 			profile.ProfileStatus.ReferenceProfileID))
 		parentProfile, err := profileStore.GetProfile(ctx, profile.ProfileStatus.ReferenceProfileID, orgID)
 		if err != nil {
-			errorMsg := fmt.Sprintf("Error while deleting the child profile: %s ", ProfileID)
+			errorMsg := fmt.Sprintf("Error while deleting the child profile: %s ", profileID)
 			logger.Debug(errorMsg, log.Error(err))
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.DeleteProfile.Code,
@@ -1278,10 +1278,10 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 		if len(parentProfile.ProfileStatus.References) == 1 {
 			// delete the parent as this is the only child
 			logger.Info(fmt.Sprintf("Deleting parent profile: %s with of current : %s",
-				profile.ProfileStatus.ReferenceProfileID, ProfileID))
+				profile.ProfileStatus.ReferenceProfileID, profileID))
 			err = profileStore.DeleteProfile(ctx, profile.ProfileStatus.ReferenceProfileID)
 			if err != nil {
-				errorMsg := fmt.Sprintf("Error while deleting the master profile: %s ", ProfileID)
+				errorMsg := fmt.Sprintf("Error while deleting the master profile: %s ", profileID)
 				logger.Debug(errorMsg, log.Error(err))
 				serverError := errors2.NewServerError(errors2.ErrorMessage{
 					Code:        errors2.DeleteProfile.Code,
@@ -1291,12 +1291,12 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 				return serverError
 			}
 			//todo: Ensure the need to detach the referer profile from the reference
-			// err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileID, ProfileID)
+			// err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileID, profileID)
 			// todo: Ensure the need to detach the referer profile from the reference
 			// err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileId, ProfileId)
-			err = profileStore.DeleteProfile(ctx, ProfileID)
+			err = profileStore.DeleteProfile(ctx, profileID)
 			if err != nil {
-				errorMsg := fmt.Sprintf("Error while deleting the  profile: %s ", ProfileID)
+				errorMsg := fmt.Sprintf("Error while deleting the  profile: %s ", profileID)
 				logger.Debug(errorMsg, log.Error(err))
 				serverError := errors2.NewServerError(errors2.ErrorMessage{
 					Code:        errors2.DeleteProfile.Code,
@@ -1305,13 +1305,13 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 				}, err)
 				return serverError
 			}
-			logger.Info(fmt.Sprintf("Deleted current profile: %s with parent: %s", ProfileID,
+			logger.Info(fmt.Sprintf("Deleted current profile: %s with parent: %s", profileID,
 				profile.ProfileStatus.ReferenceProfileID))
 		} else {
 			err = profileStore.DetachRefererProfileFromReference(ctx, profile.ProfileStatus.ReferenceProfileID,
-				ProfileID)
+				profileID)
 			if err != nil {
-				errorMsg := fmt.Sprintf("Error while current profile from parent: %s ", ProfileID)
+				errorMsg := fmt.Sprintf("Error while current profile from parent: %s ", profileID)
 				logger.Debug(errorMsg, log.Error(err))
 				serverError := errors2.NewServerError(errors2.ErrorMessage{
 					Code:        errors2.DeleteProfile.Code,
@@ -1320,11 +1320,11 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 				}, err)
 				return serverError
 			}
-			logger.Debug(fmt.Sprintf("Detaching current profile: %s from parent: %s", ProfileID,
+			logger.Debug(fmt.Sprintf("Detaching current profile: %s from parent: %s", profileID,
 				profile.ProfileStatus.ReferenceProfileID))
-			err = profileStore.DeleteProfile(ctx, ProfileID)
+			err = profileStore.DeleteProfile(ctx, profileID)
 			if err != nil {
-				errorMsg := fmt.Sprintf("Error while deleting the current profile: %s ", ProfileID)
+				errorMsg := fmt.Sprintf("Error while deleting the current profile: %s ", profileID)
 				logger.Debug(errorMsg, log.Error(err))
 				serverError := errors2.NewServerError(errors2.ErrorMessage{
 					Code:        errors2.DeleteProfile.Code,
@@ -1334,7 +1334,7 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 				return serverError
 			}
 			logger.Info(fmt.Sprintf("Deleted current profile: %s with parent: %s",
-				ProfileID, profile.ProfileStatus.ReferenceProfileID))
+				profileID, profile.ProfileStatus.ReferenceProfileID))
 		}
 	}
 

@@ -35,20 +35,18 @@ import (
 
 func insertCandidateFixture(t *testing.T, id, org, userID, status, attributes string, created time.Time) {
 	t.Helper()
-	args := []interface{}{id, resolveOrgId(t, org), userID, attributes, created}
-	if suiteDBType == database.TypeSQLite {
-		args = database.NormalizeSQLiteArgs(args)
-	}
-	_, err := suiteDB.Exec(`INSERT INTO profiles
+	orgID := resolveOrgId(t, org)
+	_, err := setup.ExecStatement(suiteDB, suiteDBType, `INSERT INTO profiles
 		(profile_id, org_id, user_id, identity_attributes, traits, created_at)
-		VALUES ($1, $2, $3, $4, $4, $5)`, args...)
+		VALUES ($1, $2, $3, $4, $4, $5)`, id, orgID, userID, attributes, created)
 	require.NoError(t, err)
-	_, err = suiteDB.Exec(`INSERT INTO profile_reference (profile_id, org_id, profile_status)
-		VALUES ($1, $2, $3)`, id, args[1], status)
+	_, err = setup.ExecStatement(suiteDB, suiteDBType,
+		`INSERT INTO profile_reference (profile_id, org_id, profile_status) VALUES ($1, $2, $3)`,
+		id, orgID, status)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = suiteDB.Exec(`DELETE FROM profile_reference WHERE profile_id = $1`, id)
-		_, _ = suiteDB.Exec(`DELETE FROM profiles WHERE profile_id = $1`, id)
+		_, _ = setup.ExecStatement(suiteDB, suiteDBType, `DELETE FROM profile_reference WHERE profile_id = $1`, id)
+		_, _ = setup.ExecStatement(suiteDB, suiteDBType, `DELETE FROM profiles WHERE profile_id = $1`, id)
 	})
 }
 
@@ -115,7 +113,14 @@ func Test_UnificationCandidateScopeAndOrder(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	ids := map[string]string{}
 	for _, name := range []string{"self", "child", "other-org", "newer", "old-b", "old-a"} {
-		id, tenant, status, created := org+"-"+name, org, "REFERENCE_PROFILE", now.Add(-time.Hour)
+		ids[name] = uuid.NewString()
+	}
+	// The two oldest profiles tie on creation time, so the lower ID must win.
+	if ids["old-a"] > ids["old-b"] {
+		ids["old-a"], ids["old-b"] = ids["old-b"], ids["old-a"]
+	}
+	for _, name := range []string{"self", "child", "other-org", "newer", "old-b", "old-a"} {
+		id, tenant, status, created := ids[name], org, "REFERENCE_PROFILE", now.Add(-time.Hour)
 		if name == "other-org" {
 			tenant = org + "-other"
 		}
@@ -126,7 +131,6 @@ func Test_UnificationCandidateScopeAndOrder(t *testing.T) {
 			created = now
 		}
 		insertCandidateFixture(t, id, tenant, "same-user", status, `{"email":"shared"}`, created)
-		ids[name] = id
 	}
 	incoming := profileModel.Profile{ProfileId: ids["self"], OrgId: setup.TestOrgId(org), UserId: "same-user"}
 	for _, property := range []string{"", "identity_attributes.email"} {

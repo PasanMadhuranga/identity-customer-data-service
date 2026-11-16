@@ -26,6 +26,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/identity_resolution/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/cache"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
+	"github.com/wso2/identity-customer-data-service/internal/system/database"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/scripts"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
@@ -251,8 +252,10 @@ func InsertBlockingKeysBatch(ctx context.Context, orgId string, perProfileKeys m
 	}
 	defer dbClient.Close()
 
-	for start := 0; start < len(rows); start += maxBlockingKeyRowsPerInsert {
-		end := start + maxBlockingKeyRowsPerInsert
+	rowsPerInsert := min(maxBlockingKeyRowsPerInsert,
+		database.MaxRowsPerStatement(dbClient.DBType(), blockingKeyColumns))
+	for start := 0; start < len(rows); start += rowsPerInsert {
+		end := start + rowsPerInsert
 		if end > len(rows) {
 			end = len(rows)
 		}

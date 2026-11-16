@@ -55,6 +55,22 @@ else
 	CDS_TEST_DB=sqlite go test -v ./test/integration
 endif
 
+# Run the same integration suite against MySQL, which needs Docker.
+integration-test-mysql:
+ifdef test
+	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mysql go test -v ./test/integration -run $(test)
+else
+	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mysql go test -v ./test/integration
+endif
+
+# Run the same integration suite against SQL Server, which needs Docker.
+integration-test-mssql:
+ifdef test
+	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mssql go test -v ./test/integration -run $(test)
+else
+	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mssql go test -v ./test/integration
+endif
+
 # Run the unit tests.
 #
 # The race detector runs here because the process shares one connection pool
@@ -103,13 +119,15 @@ help:
 	@echo "  build                      - Build the Go project."
 	@echo "  integration-test           - Run integration tests against PostgreSQL (use test=TestName to filter)."
 	@echo "  integration-test-sqlite    - Run integration tests against the inbuilt database (use test=TestName to filter)."
+	@echo "  integration-test-mysql     - Run integration tests against MySQL (use test=TestName to filter)."
+	@echo "  integration-test-mssql     - Run integration tests against SQL Server (use test=TestName to filter)."
 	@echo "  mq-integration-test        - Run message queue integration tests (use test=TestName to filter)."
 	@echo "  unit-test                  - Run unit tests with the race detector."
 	@echo "  unit-test-coverage         - Run unit tests and write coverage reports to target/coverage."
 	@echo "  lint                       - Run golangci-lint."
 	@echo "  help                       - Show this help message."
 
-.PHONY: all clean build lint lint-all help integration-test integration-test-sqlite mq-integration-test unit-test unit-test-coverage
+.PHONY: all clean build lint lint-all help integration-test integration-test-sqlite integration-test-mysql integration-test-mssql mq-integration-test unit-test unit-test-coverage
 
 .PHONY: go_install_tool golangci-lint
 

@@ -28,12 +28,27 @@ import (
 
 	"github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
+	"github.com/wso2/identity-customer-data-service/internal/system/database"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/rows"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/scripts"
 	"github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
+
+func valueTuples(rows [][]interface{}) (string, []interface{}) {
+	tuples := make([]string, len(rows))
+	var args []interface{}
+	for i, row := range rows {
+		placeholders := make([]string, len(row))
+		for j := range row {
+			placeholders[j] = "$" + strconv.Itoa(len(args)+j+1)
+		}
+		tuples[i] = "(" + strings.Join(placeholders, ", ") + ")"
+		args = append(args, row...)
+	}
+	return strings.Join(tuples, ", "), args
+}
 
 // AddProfileSchemaAttributesForScope adds multiple profile schema attributes.
 func AddProfileSchemaAttributesForScope(ctx context.Context,
@@ -56,11 +71,9 @@ func AddProfileSchemaAttributesForScope(ctx context.Context,
 		return nil // nothing to insert
 	}
 
-	valueStrings := make([]string, 0, len(attrs))
-	valueArgs := make([]interface{}, 0, len(attrs)*12)
+	rows := make([][]interface{}, 0, len(attrs))
 
-	for i, attr := range attrs {
-		idx := i * 12
+	for _, attr := range attrs {
 		subAttrsJSON, err := json.Marshal(attr.SubAttributes)
 		if err != nil {
 			errorMsg := fmt.Sprintf("Failed to marshal sub attributes for attribute %s", attr.AttributeId)
@@ -81,24 +94,26 @@ func AddProfileSchemaAttributesForScope(ctx context.Context,
 			}, err)
 		}
 
-		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d,  $%d, $%d,  $%d, $%d, $%d, $%d) ",
-			idx+1, idx+2, idx+3, idx+4, idx+5, idx+6, idx+7, idx+8, idx+9, idx+10, idx+11, idx+12))
-		valueArgs = append(valueArgs, orgId, attr.AttributeId, attr.AttributeName, attr.ValueType,
+		rows = append(rows, []interface{}{orgId, attr.AttributeId, attr.AttributeName, attr.ValueType,
 			attr.MergeStrategy, attr.ApplicationIdentifier, attr.Mutability, attr.MultiValued, subAttrsJSON,
-			canonicalJSON, scope, attr.DisplayName)
+			canonicalJSON, scope, attr.DisplayName})
 
 	}
 
-	query := scripts.InsertProfileSchemaAttributesForScope.Append(strings.Join(valueStrings, ", "))
-	_, err = dbClient.ExecuteQueryContext(ctx, query, valueArgs...)
-	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to insert profile schema attributes for org: %s", attrs[0].OrgId)
-		logger.Debug(errorMsg, log.Error(err))
-		return errors.NewServerError(errors.ErrorMessage{
-			Code:        errors.ADD_PROFILE_SCHEMA.Code,
-			Message:     errors.ADD_PROFILE_SCHEMA.Message,
-			Description: errorMsg,
-		}, err)
+	batchSize := min(len(rows), database.MaxRowsPerStatement(dbClient.DBType(), 12))
+	for start := 0; start < len(rows); start += batchSize {
+		tuples, valueArgs := valueTuples(rows[start:min(start+batchSize, len(rows))])
+		query := scripts.InsertProfileSchemaAttributesForScope.Append(tuples)
+		_, err = dbClient.ExecuteQueryContext(ctx, query, valueArgs...)
+		if err != nil {
+			errorMsg := fmt.Sprintf("Failed to insert profile schema attributes for org: %s", attrs[0].OrgId)
+			logger.Debug(errorMsg, log.Error(err))
+			return errors.NewServerError(errors.ErrorMessage{
+				Code:        errors.ADD_PROFILE_SCHEMA.Code,
+				Message:     errors.ADD_PROFILE_SCHEMA.Message,
+				Description: errorMsg,
+			}, err)
+		}
 	}
 	logger.Info(fmt.Sprintf("Successfully added %d profile schema attributes for organization: %s",
 		len(attrs), attrs[0].OrgId))
@@ -720,9 +735,7 @@ func UpsertIdentityAttributes(ctx context.Context, orgId string, attrs []model.P
 	// Step 1: Upsert incoming attributes in-place so that existing attribute_id rows
 	// are updated rather than deleted and re-created. This preserves FK references
 	// in unification_rules (ON DELETE CASCADE) and any other dependent tables.
-	var valueStrings []string
-	var valueArgs []interface{}
-	argIndex := 1
+	var rows [][]interface{}
 	incomingIDs := make([]string, 0, len(attrs))
 
 	for _, attr := range attrs {
@@ -732,10 +745,7 @@ func UpsertIdentityAttributes(ctx context.Context, orgId string, attrs []model.P
 		attr.AttributeName = attrKey
 		incomingIDs = append(incomingIDs, attr.AttributeId)
 
-		valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
-			argIndex, argIndex+1, argIndex+2, argIndex+3, argIndex+4, argIndex+5, argIndex+6,
-			argIndex+7, argIndex+8, argIndex+9, argIndex+10, argIndex+11, argIndex+12))
-		valueArgs = append(valueArgs,
+		rows = append(rows, []interface{}{
 			orgId,
 			attr.AttributeId,
 			attr.AttributeName,
@@ -749,19 +759,23 @@ func UpsertIdentityAttributes(ctx context.Context, orgId string, attrs []model.P
 			attr.SCIMDialect,
 			constants.IdentityAttributes,
 			attr.DisplayName,
-		)
-		argIndex += 13
+		})
 	}
 
-	upsertQuery := scripts.UpsertIdentityClaimsForProfileSchema.Format(strings.Join(valueStrings, ","))
-	if _, err = tx.ExecContext(ctx, upsertQuery, valueArgs...); err != nil {
-		errorMsg := fmt.Sprintf("Failed to upsert identity attributes of profile schema for organization: %s", orgId)
-		logger.Debug(errorMsg, log.Error(err))
-		return errors.NewServerError(errors.ErrorMessage{
-			Code:        errors.SYNC_PROFILE_SCHEMA.Code,
-			Message:     errors.SYNC_PROFILE_SCHEMA.Message,
-			Description: errorMsg,
-		}, err)
+	batchSize := min(max(len(rows), 1), database.MaxRowsPerStatement(tx.DBType(), 13))
+	for start := 0; start < len(rows); start += batchSize {
+		tuples, valueArgs := valueTuples(rows[start:min(start+batchSize, len(rows))])
+		upsertQuery := scripts.UpsertIdentityClaimsForProfileSchema.Format(tuples)
+		if _, err = tx.ExecContext(ctx, upsertQuery, valueArgs...); err != nil {
+			errorMsg := fmt.Sprintf(
+				"Failed to upsert identity attributes of profile schema for organization: %s", orgId)
+			logger.Debug(errorMsg, log.Error(err))
+			return errors.NewServerError(errors.ErrorMessage{
+				Code:        errors.SYNC_PROFILE_SCHEMA.Code,
+				Message:     errors.SYNC_PROFILE_SCHEMA.Message,
+				Description: errorMsg,
+			}, err)
+		}
 	}
 
 	// Step 2: Delete only attributes that are no longer present in the identity server.
@@ -830,7 +844,17 @@ func GetProfileSchemaAttributesByScopeAndFilter(ctx context.Context,
 	// statement.
 	dbType := dbClient.DBType()
 	baseSQL := scripts.FilterProfileSchemaAttributes.GetQuery(dbType)
-	likeOperator := scripts.LikeOperator(dbType)
+	likeOperator, err := scripts.LikeOperator(dbType)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to prepare the profile schema filter query for org: %s and scope: %s",
+			orgId, scope)
+		logger.Debug(errorMsg, log.Error(err))
+		return nil, errors.NewServerError(errors.ErrorMessage{
+			Code:        errors.GET_PROFILE_SCHEMA.Code,
+			Message:     errors.GET_PROFILE_SCHEMA.Message,
+			Description: errorMsg,
+		}, err)
+	}
 	conditions := []string{}
 	args := []interface{}{orgId}
 	argID := 2

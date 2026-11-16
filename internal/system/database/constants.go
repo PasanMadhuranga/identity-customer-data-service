@@ -33,6 +33,10 @@ const (
 	// needs no external database server and is intended for development, demos
 	// and single-instance deployments.
 	TypeSQLite = "sqlite"
+	// TypeMySQL is the MySQL datasource.
+	TypeMySQL = "mysql"
+	// TypeMSSQL is the Microsoft SQL Server datasource.
+	TypeMSSQL = "mssql"
 )
 
 // DefaultType is the datasource used when `datasource.type` is not configured,
@@ -40,7 +44,7 @@ const (
 const DefaultType = TypeSQLite
 
 // SupportedTypes lists every value `datasource.type` accepts.
-var SupportedTypes = []string{TypePostgres, TypeSQLite}
+var SupportedTypes = []string{TypePostgres, TypeSQLite, TypeMySQL, TypeMSSQL}
 
 // ResolveType normalizes a configured `datasource.type`. An empty value means
 // DefaultType. The returned value may still be unsupported, which
@@ -69,6 +73,8 @@ func IsSupportedType(dbType string) bool {
 const (
 	DriverPostgres = "postgres"
 	DriverSQLite   = "sqlite"
+	DriverMySQL    = "mysql"
+	DriverMSSQL    = "sqlserver"
 )
 
 // SQLite defaults, applied when the corresponding configuration values are
@@ -123,4 +129,24 @@ const (
 	// shorter deadline stops waiting for the connection, but the attempt
 	// itself ends at connect_timeout.
 	DefaultPostgresConnectTimeout = 10 * time.Second
+)
+
+// MySQL connection pool defaults, applied when the corresponding configuration
+// value is zero. They match the PostgreSQL defaults.
+const (
+	DefaultMySQLMaxOpenConns    = DefaultPostgresMaxOpenConns
+	DefaultMySQLMaxIdleConns    = DefaultPostgresMaxIdleConns
+	DefaultMySQLConnMaxLifetime = DefaultPostgresConnMaxLifetime
+	DefaultMySQLConnMaxIdleTime = DefaultPostgresConnMaxIdleTime
+	DefaultMySQLConnectTimeout  = DefaultPostgresConnectTimeout
+)
+
+// MSSQL connection pool defaults, applied when the corresponding configuration
+// value is zero. They match the PostgreSQL defaults.
+const (
+	DefaultMSSQLMaxOpenConns    = DefaultPostgresMaxOpenConns
+	DefaultMSSQLMaxIdleConns    = DefaultPostgresMaxIdleConns
+	DefaultMSSQLConnMaxLifetime = DefaultPostgresConnMaxLifetime
+	DefaultMSSQLConnMaxIdleTime = DefaultPostgresConnMaxIdleTime
+	DefaultMSSQLConnectTimeout  = DefaultPostgresConnectTimeout
 )

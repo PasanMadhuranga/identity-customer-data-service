@@ -88,11 +88,31 @@ type PostgresConfig struct {
 	ConnectTimeoutSeconds int `yaml:"connect_timeout_seconds"`
 }
 
+// MySQLConfig holds the connection pool settings for MySQL. The fields mean the
+// same as the fields of PostgresConfig, and zero takes the application default.
+type MySQLConfig struct {
+	MaxOpenConns           int `yaml:"max_open_conns"`
+	MaxIdleConns           int `yaml:"max_idle_conns"`
+	ConnMaxLifetimeSeconds int `yaml:"conn_max_lifetime_seconds"`
+	ConnMaxIdleTimeSeconds int `yaml:"conn_max_idle_time_seconds"`
+	ConnectTimeoutSeconds  int `yaml:"connect_timeout_seconds"`
+}
+
+// MSSQLConfig holds the connection pool settings for Microsoft SQL Server. The
+// fields mean the same as the fields of PostgresConfig, and zero takes the
+// application default.
+type MSSQLConfig struct {
+	MaxOpenConns           int `yaml:"max_open_conns"`
+	MaxIdleConns           int `yaml:"max_idle_conns"`
+	ConnMaxLifetimeSeconds int `yaml:"conn_max_lifetime_seconds"`
+	ConnMaxIdleTimeSeconds int `yaml:"conn_max_idle_time_seconds"`
+	ConnectTimeoutSeconds  int `yaml:"connect_timeout_seconds"`
+}
+
 // DataSourceConfig selects and configures the database.
 type DataSourceConfig struct {
-	Type string `yaml:"type"` // "sqlite" (inbuilt, the default) or "postgres"
+	Type string `yaml:"type"` // "sqlite" (inbuilt, the default), "postgres", "mysql" or "mssql"
 
-	// PostgreSQL settings. Read only when Type is "postgres".
 	Hostname string `yaml:"hostname"`
 	Port     int    `yaml:"port"`
 	Name     string `yaml:"name"`
@@ -102,6 +122,12 @@ type DataSourceConfig struct {
 
 	// PostgreSQL connection pool settings. Read only when Type is "postgres".
 	Postgres PostgresConfig `yaml:"postgres"`
+
+	// MySQL connection pool settings. Read only when Type is "mysql".
+	MySQL MySQLConfig `yaml:"mysql"`
+
+	// MSSQL connection pool settings. Read only when Type is "mssql".
+	MSSQL MSSQLConfig `yaml:"mssql"`
 
 	// SQLite settings. Read only when Type is "sqlite".
 	SQLite SQLiteConfig `yaml:"sqlite"`

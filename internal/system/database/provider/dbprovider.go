@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package provider opens the process-wide database connection pools, one per
+// datasource, and hands out clients over them.
 package provider
 
 import (
@@ -58,6 +60,8 @@ var (
 	dbMu           sync.Mutex
 	sqliteHandle   *sql.DB
 	postgresHandle *sql.DB
+	mysqlHandle    *sql.DB
+	mssqlHandle    *sql.DB
 	// closed records that CloseDB ran.
 	closed bool
 )
@@ -103,10 +107,18 @@ func (d *DBProvider) GetDBClient() (client.DBClientInterface, error) {
 // getDB returns the process-wide pool for the given datasource type.
 func getDB(dbType string) (*sql.DB, error) {
 
-	if dbType == database.TypeSQLite {
+	switch dbType {
+	case database.TypeSQLite:
 		return getSQLiteDB()
+	case database.TypePostgres:
+		return getPostgresDB()
+	case database.TypeMySQL:
+		return getMySQLDB()
+	case database.TypeMSSQL:
+		return getMSSQLDB()
+	default:
+		return nil, fmt.Errorf("unsupported datasource type %q", dbType)
 	}
-	return getPostgresDB()
 }
 
 // getPostgresDB opens the PostgreSQL pool once and returns it on every later
@@ -146,7 +158,7 @@ func getPostgresDB() (*sql.DB, error) {
 	}
 
 	db := sql.OpenDB(connector)
-	applyPostgresPoolSettings(db, settings)
+	applyPoolSettings(db, settings)
 
 	// Verify before the handle is published, so a pool no caller can reach is
 	// not cached.
@@ -219,10 +231,10 @@ func resolveSQLiteMaxOpenConns(cfg config.SQLiteConfig) (int, error) {
 	return maxOpenConns, resolution.err()
 }
 
-// postgresPoolSettings holds every PostgreSQL number the provider uses, with a
-// default already applied to each one, so that one function decides them and
-// the rest of the code reads them.
-type postgresPoolSettings struct {
+// serverPoolSettings holds every number the pool of a server datasource uses,
+// with a default already applied to each one, so that one function decides them
+// and the rest of the code reads them.
+type serverPoolSettings struct {
 	maxOpenConns    int
 	maxIdleConns    int
 	connMaxLifetime time.Duration
@@ -232,51 +244,124 @@ type postgresPoolSettings struct {
 	connectTimeout time.Duration
 }
 
-// resolvePostgresPoolSettings returns every number the PostgreSQL pool uses.
+// postgresPoolSettings is the PostgreSQL pool's settings.
+type postgresPoolSettings = serverPoolSettings
+
+// poolInput is the configured pool numbers of one datasource, as written in the
+// configuration.
+type poolInput struct {
+	maxOpenConns           int
+	maxIdleConns           int
+	connMaxLifetimeSeconds int
+	connMaxIdleTimeSeconds int
+	connectTimeoutSeconds  int
+}
+
+// poolDefaults is what each pool number becomes when it is left at zero.
+type poolDefaults struct {
+	maxOpenConns    int
+	maxIdleConns    int
+	connMaxLifetime time.Duration
+	connMaxIdleTime time.Duration
+	connectTimeout  time.Duration
+}
+
+// resolveServerPoolSettings returns every number a server datasource's pool
+// uses. prefix is the configuration key of the datasource, such as
+// "datasource.postgres", so that an error names the setting to fix.
 //
 // It is the only place that reads these settings, so the rule cannot differ
 // between the check at start and the pool itself. Zero takes the default, a
 // negative value is refused, and so is an idle limit above the open limit.
-func resolvePostgresPoolSettings(cfg config.PostgresConfig) (postgresPoolSettings, error) {
-
+func resolveServerPoolSettings(prefix string, in poolInput, defaults poolDefaults) (serverPoolSettings, error) {
 	var resolution poolResolution
 
-	settings := postgresPoolSettings{
-		maxOpenConns: resolution.count("datasource.postgres.max_open_conns",
-			cfg.MaxOpenConns, database.DefaultPostgresMaxOpenConns),
-		maxIdleConns: resolution.count("datasource.postgres.max_idle_conns",
-			cfg.MaxIdleConns, database.DefaultPostgresMaxIdleConns),
-		connMaxLifetime: resolution.seconds("datasource.postgres.conn_max_lifetime_seconds",
-			cfg.ConnMaxLifetimeSeconds, database.DefaultPostgresConnMaxLifetime),
-		connMaxIdleTime: resolution.seconds("datasource.postgres.conn_max_idle_time_seconds",
-			cfg.ConnMaxIdleTimeSeconds, database.DefaultPostgresConnMaxIdleTime),
-		connectTimeout: resolution.seconds("datasource.postgres.connect_timeout_seconds",
-			cfg.ConnectTimeoutSeconds, database.DefaultPostgresConnectTimeout),
+	settings := serverPoolSettings{
+		maxOpenConns: resolution.count(prefix+".max_open_conns",
+			in.maxOpenConns, defaults.maxOpenConns),
+		maxIdleConns: resolution.count(prefix+".max_idle_conns",
+			in.maxIdleConns, defaults.maxIdleConns),
+		connMaxLifetime: resolution.seconds(prefix+".conn_max_lifetime_seconds",
+			in.connMaxLifetimeSeconds, defaults.connMaxLifetime),
+		connMaxIdleTime: resolution.seconds(prefix+".conn_max_idle_time_seconds",
+			in.connMaxIdleTimeSeconds, defaults.connMaxIdleTime),
+		connectTimeout: resolution.seconds(prefix+".connect_timeout_seconds",
+			in.connectTimeoutSeconds, defaults.connectTimeout),
 	}
 
 	// An idle limit above the open limit reserves connections the pool can
 	// never hold, so the two settings contradict each other. The comparison is
 	// against the limit the pool really uses: an open limit of zero is the
 	// default, not no limit.
-	if cfg.MaxIdleConns > settings.maxOpenConns {
-		openSource := "the default datasource.postgres.max_open_conns"
-		if cfg.MaxOpenConns > 0 {
-			openSource = "datasource.postgres.max_open_conns"
+	if in.maxIdleConns > settings.maxOpenConns {
+		openSource := "the default " + prefix + ".max_open_conns"
+		if in.maxOpenConns > 0 {
+			openSource = prefix + ".max_open_conns"
 		}
 		resolution.problems = append(resolution.problems, fmt.Sprintf(
-			"datasource.postgres.max_idle_conns is %d, which is above %s of %d",
-			cfg.MaxIdleConns, openSource, settings.maxOpenConns))
+			"%s.max_idle_conns is %d, which is above %s of %d",
+			prefix, in.maxIdleConns, openSource, settings.maxOpenConns))
 	}
 
 	if err := resolution.err(); err != nil {
-		return postgresPoolSettings{}, err
+		return serverPoolSettings{}, err
 	}
 
 	return settings, nil
 }
 
-func applyPostgresPoolSettings(db *sql.DB, settings postgresPoolSettings) {
+// resolvePostgresPoolSettings returns every number the PostgreSQL pool uses.
+func resolvePostgresPoolSettings(cfg config.PostgresConfig) (postgresPoolSettings, error) {
+	return resolveServerPoolSettings("datasource.postgres", poolInput{
+		maxOpenConns:           cfg.MaxOpenConns,
+		maxIdleConns:           cfg.MaxIdleConns,
+		connMaxLifetimeSeconds: cfg.ConnMaxLifetimeSeconds,
+		connMaxIdleTimeSeconds: cfg.ConnMaxIdleTimeSeconds,
+		connectTimeoutSeconds:  cfg.ConnectTimeoutSeconds,
+	}, poolDefaults{
+		maxOpenConns:    database.DefaultPostgresMaxOpenConns,
+		maxIdleConns:    database.DefaultPostgresMaxIdleConns,
+		connMaxLifetime: database.DefaultPostgresConnMaxLifetime,
+		connMaxIdleTime: database.DefaultPostgresConnMaxIdleTime,
+		connectTimeout:  database.DefaultPostgresConnectTimeout,
+	})
+}
 
+// resolveMSSQLPoolSettings returns every number the MSSQL pool uses.
+func resolveMSSQLPoolSettings(cfg config.MSSQLConfig) (serverPoolSettings, error) {
+	return resolveServerPoolSettings("datasource.mssql", poolInput{
+		maxOpenConns:           cfg.MaxOpenConns,
+		maxIdleConns:           cfg.MaxIdleConns,
+		connMaxLifetimeSeconds: cfg.ConnMaxLifetimeSeconds,
+		connMaxIdleTimeSeconds: cfg.ConnMaxIdleTimeSeconds,
+		connectTimeoutSeconds:  cfg.ConnectTimeoutSeconds,
+	}, poolDefaults{
+		maxOpenConns:    database.DefaultMSSQLMaxOpenConns,
+		maxIdleConns:    database.DefaultMSSQLMaxIdleConns,
+		connMaxLifetime: database.DefaultMSSQLConnMaxLifetime,
+		connMaxIdleTime: database.DefaultMSSQLConnMaxIdleTime,
+		connectTimeout:  database.DefaultMSSQLConnectTimeout,
+	})
+}
+
+// resolveMySQLPoolSettings returns every number the MySQL pool uses.
+func resolveMySQLPoolSettings(cfg config.MySQLConfig) (serverPoolSettings, error) {
+	return resolveServerPoolSettings("datasource.mysql", poolInput{
+		maxOpenConns:           cfg.MaxOpenConns,
+		maxIdleConns:           cfg.MaxIdleConns,
+		connMaxLifetimeSeconds: cfg.ConnMaxLifetimeSeconds,
+		connMaxIdleTimeSeconds: cfg.ConnMaxIdleTimeSeconds,
+		connectTimeoutSeconds:  cfg.ConnectTimeoutSeconds,
+	}, poolDefaults{
+		maxOpenConns:    database.DefaultMySQLMaxOpenConns,
+		maxIdleConns:    database.DefaultMySQLMaxIdleConns,
+		connMaxLifetime: database.DefaultMySQLConnMaxLifetime,
+		connMaxIdleTime: database.DefaultMySQLConnMaxIdleTime,
+		connectTimeout:  database.DefaultMySQLConnectTimeout,
+	})
+}
+
+func applyPoolSettings(db *sql.DB, settings serverPoolSettings) {
 	db.SetMaxOpenConns(settings.maxOpenConns)
 	db.SetMaxIdleConns(settings.maxIdleConns)
 	db.SetConnMaxLifetime(settings.connMaxLifetime)
@@ -291,17 +376,17 @@ func applyPostgresPoolSettings(db *sql.DB, settings postgresPoolSettings) {
 func CloseDB() error {
 
 	dbMu.Lock()
-	postgres, sqlite := postgresHandle, sqliteHandle
-	postgresHandle, sqliteHandle = nil, nil
+	handles := []*sql.DB{postgresHandle, mysqlHandle, mssqlHandle, sqliteHandle}
+	postgresHandle, mysqlHandle, mssqlHandle, sqliteHandle = nil, nil, nil, nil
 	closed = true
 	dbMu.Unlock()
 
 	var firstErr error
-	if postgres != nil {
-		firstErr = postgres.Close()
-	}
-	if sqlite != nil {
-		if err := sqlite.Close(); err != nil && firstErr == nil {
+	for _, handle := range handles {
+		if handle == nil {
+			continue
+		}
+		if err := handle.Close(); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
@@ -394,19 +479,44 @@ func getDBConfig(dataSource config.Config) (DBConfig, error) {
 			dsn:        path + options,
 		}, nil
 
-	default:
-		// PostgreSQL. connect_timeout bounds the startup handshake that follows
-		// the dial, which no context can reach.
+	case database.TypePostgres:
+		// connect_timeout bounds the startup handshake that follows the dial,
+		// which no context can reach.
 		settings, err := resolvePostgresPoolSettings(ds.Postgres)
 		if err != nil {
 			return DBConfig{}, err
 		}
 		connectTimeout := int(settings.connectTimeout.Seconds())
 		return DBConfig{
-			driverName: ds.Type,
+			driverName: database.DriverPostgres,
 			dsn: fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 				ds.Hostname, ds.Port, ds.Username, ds.Password, ds.Name, ds.SSLMode, connectTimeout),
 		}, nil
+
+	case database.TypeMySQL:
+		settings, err := resolveMySQLPoolSettings(ds.MySQL)
+		if err != nil {
+			return DBConfig{}, err
+		}
+		dsn, err := MySQLDSN(ds, settings.connectTimeout)
+		if err != nil {
+			return DBConfig{}, err
+		}
+		return DBConfig{driverName: database.DriverMySQL, dsn: dsn}, nil
+
+	case database.TypeMSSQL:
+		settings, err := resolveMSSQLPoolSettings(ds.MSSQL)
+		if err != nil {
+			return DBConfig{}, err
+		}
+		dsn, err := MSSQLDSN(ds, settings.connectTimeout)
+		if err != nil {
+			return DBConfig{}, err
+		}
+		return DBConfig{driverName: database.DriverMSSQL, dsn: dsn}, nil
+
+	default:
+		return DBConfig{}, fmt.Errorf("unsupported datasource type %q", ds.Type)
 	}
 }
 

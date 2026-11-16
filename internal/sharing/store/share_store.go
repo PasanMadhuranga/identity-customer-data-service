@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/wso2/identity-customer-data-service/internal/sharing/model"
+	"github.com/wso2/identity-customer-data-service/internal/system/database"
 	dbmodel "github.com/wso2/identity-customer-data-service/internal/system/database/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/rows"
@@ -105,8 +106,9 @@ const targetBatchSize = 1000
 
 func insertTargets(ctx context.Context, tx *dbmodel.Tx, policyId string, targets []model.Target) error {
 
-	for start := 0; start < len(targets); start += targetBatchSize {
-		batch := targets[start:min(start+targetBatchSize, len(targets))]
+	batchSize := min(targetBatchSize, database.MaxRowsPerStatement(tx.DBType(), 3))
+	for start := 0; start < len(targets); start += batchSize {
+		batch := targets[start:min(start+batchSize, len(targets))]
 		values := make([]string, len(batch))
 		args := make([]interface{}, 0, 3*len(batch))
 		for i, target := range batch {

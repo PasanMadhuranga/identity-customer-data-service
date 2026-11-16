@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	orgModel "github.com/wso2/identity-customer-data-service/internal/organization/model"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/database/rows"
@@ -31,10 +33,12 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/idp"
 )
 
-// TestOrgId is the org ID that the test identity provider gives a primary organization.
+// TestOrgId is the org ID that the test identity provider gives a primary organization. Like the
+// ID the identity server gives, it is a UUID, which also fits the 36-character org_id columns. It
+// derives from the handle, so a handle always has the same ID.
 func TestOrgId(handle string) string {
 
-	return "org-id-" + handle
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(handle)).String()
 }
 
 // TestOrg returns the organization of the handle, as the organization service resolves it with the

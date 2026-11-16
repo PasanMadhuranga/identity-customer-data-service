@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/lib/pq"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/database"
 )

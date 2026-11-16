@@ -35,7 +35,6 @@ import (
 // QueryPlaceholders returns "($1, $2, ... $n)", the value tuple the stores
 // build for the batch inserts.
 func QueryPlaceholders(n int) string {
-
 	parts := make([]string, n)
 	for i := range parts {
 		parts[i] = fmt.Sprintf("$%d", i+1)
@@ -46,7 +45,6 @@ func QueryPlaceholders(n int) string {
 // CompleteStatement returns the statement as a store executes it, since a
 // template cannot be prepared. name is its name in scripts.AllQueries.
 func CompleteStatement(name, statement string) string {
-
 	switch name {
 	case "FindOldestReferenceProfileIDByAttributeValues":
 		return fmt.Sprintf(statement, "p.identity_attributes")
@@ -62,8 +60,8 @@ func CompleteStatement(name, statement string) string {
 		return fmt.Sprintf(statement, QueryPlaceholders(3))
 	case "DeleteStaleIdentityClaimsForProfileSchema", "GetSharePoliciesByOwners":
 		return fmt.Sprintf(statement, "$2")
-	case "GetAppDataByProfileIds", "GetConsentCategoryAttributesByCategoryIds", "GetOrganizationsByIds",
-		"GetProfileSchemaAttributesByIds", "GetUnificationRulesByIds":
+	case "GetAppDataByProfileIDs", "GetConsentCategoryAttributesByCategoryIDs", "GetOrganizationsByIDs",
+		"GetProfileSchemaAttributesByIDs", "GetUnificationRulesByIDs":
 		return fmt.Sprintf(statement, "$1")
 	case "IRGetProfilesByIDs":
 		return fmt.Sprintf(statement, "$1")

@@ -50,7 +50,6 @@ import (
 // for each server datasource is listed by statement id in queries_mysql.go and
 // queries_mssql.go.
 func newQuery(id, base string, sqliteOverride ...string) model.DBQuery {
-
 	query := model.DBQuery{
 		ID:    id,
 		Query: base,

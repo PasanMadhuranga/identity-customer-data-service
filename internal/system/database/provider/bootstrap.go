@@ -38,7 +38,6 @@ import (
 // Only the settings that apply to the configured type are read, because the
 // Helm chart renders the PostgreSQL block whatever the type is.
 func validateNumericSettings(ds config.DataSourceConfig) error {
-
 	switch database.ResolveType(ds.Type) {
 	case database.TypeSQLite:
 		_, err := resolveSQLiteMaxOpenConns(ds.SQLite)
@@ -58,7 +57,6 @@ func validateNumericSettings(ds config.DataSourceConfig) error {
 // ValidateDataSource reports whether the datasource configuration is one CDS
 // can run on. The server refuses to start when it is not.
 func ValidateDataSource(ds config.DataSourceConfig) error {
-
 	dbType := database.ResolveType(ds.Type)
 	if !database.IsSupportedType(dbType) {
 		return fmt.Errorf("unsupported datasource.type %q: supported types are %s",
@@ -114,7 +112,6 @@ func ValidateDataSource(ds config.DataSourceConfig) error {
 // verifies that the server answers within the connect timeout. The schema of
 // those servers is applied by the operator. It is safe to call more than once.
 func EnsureDatabase() error {
-
 	runtimeConfig := config.GetCDSRuntime().Config
 	dbType := database.ResolveType(runtimeConfig.DataSource.Type)
 	if dbType != database.TypeSQLite {
@@ -131,10 +128,7 @@ func EnsureDatabase() error {
 		return err
 	}
 
-	path, err := resolveSQLitePath(runtimeConfig.DataSource.SQLite.Path)
-	if err != nil {
-		return err
-	}
+	path := resolveSQLitePath(runtimeConfig.DataSource.SQLite.Path)
 	log.GetLogger().Info(fmt.Sprintf("Inbuilt database initialized at %s", path))
 
 	return nil
@@ -142,15 +136,11 @@ func EnsureDatabase() error {
 
 // ensureSQLiteDir creates the directory that holds the inbuilt database file.
 func ensureSQLiteDir(configuredPath string) error {
-
-	path, err := resolveSQLitePath(configuredPath)
-	if err != nil {
-		return err
-	}
+	path := resolveSQLitePath(configuredPath)
 
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return fmt.Errorf("failed to create the inbuilt database directory %s: %v", dir, err)
+		return fmt.Errorf("failed to create the inbuilt database directory %s: %w", dir, err)
 	}
 
 	return nil
@@ -159,11 +149,10 @@ func ensureSQLiteDir(configuredPath string) error {
 // initializeSQLiteSchema applies the embedded schema. The script is idempotent,
 // so applying it to an existing database is a no-op.
 func initializeSQLiteSchema(db *sql.DB) error {
-
 	// A transaction keeps a partial failure from leaving a half-built database.
 	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin the inbuilt database schema transaction: %v", err)
+		return fmt.Errorf("failed to begin the inbuilt database schema transaction: %w", err)
 	}
 
 	if _, err := tx.Exec(dbscripts.SQLiteSchema); err != nil {
@@ -172,13 +161,13 @@ func initializeSQLiteSchema(db *sql.DB) error {
 		// Fall back to statement-by-statement execution if the driver rejects
 		// a multi-statement script.
 		if fallbackErr := applySchemaStatements(db, dbscripts.SQLiteSchema); fallbackErr != nil {
-			return fmt.Errorf("failed to apply the inbuilt database schema: %v (%v)", err, fallbackErr)
+			return fmt.Errorf("failed to apply the inbuilt database schema: %w (%w)", err, fallbackErr)
 		}
 		return nil
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit the inbuilt database schema: %v", err)
+		return fmt.Errorf("failed to commit the inbuilt database schema: %w", err)
 	}
 
 	return nil
@@ -187,14 +176,13 @@ func initializeSQLiteSchema(db *sql.DB) error {
 // applySchemaStatements executes a DDL script one statement at a time.
 // Comments are stripped first: a semicolon inside one would split the script.
 func applySchemaStatements(db *sql.DB, script string) error {
-
 	for _, statement := range strings.Split(stripSQLComments(script), ";") {
 		trimmed := strings.TrimSpace(statement)
 		if trimmed == "" {
 			continue
 		}
 		if _, err := db.Exec(trimmed); err != nil {
-			return fmt.Errorf("failed to execute %q: %v", truncate(trimmed, 80), err)
+			return fmt.Errorf("failed to execute %q: %w", truncate(trimmed, 80), err)
 		}
 	}
 
@@ -203,7 +191,6 @@ func applySchemaStatements(db *sql.DB, script string) error {
 
 // stripSQLComments removes whole-line `--` comments from a statement.
 func stripSQLComments(statement string) string {
-
 	var builder strings.Builder
 	for _, line := range strings.Split(statement, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "--") {
@@ -218,7 +205,6 @@ func stripSQLComments(statement string) string {
 
 // truncate shortens a string for error messages.
 func truncate(value string, max int) string {
-
 	if len(value) <= max {
 		return value
 	}

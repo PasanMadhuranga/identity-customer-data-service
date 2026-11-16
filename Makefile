@@ -42,7 +42,7 @@ lint-all: golangci-lint
 # Run the integration suite against PostgreSQL, which needs Docker.
 integration-test:
 ifdef test
-	TESTCONTAINERS_RYUK_DISABLED=true go test -v ./test/integration -run $(test)
+	TESTCONTAINERS_RYUK_DISABLED=true go test -v ./test/integration -run '$(test)'
 else
 	TESTCONTAINERS_RYUK_DISABLED=true go test -v ./test/integration
 endif
@@ -50,7 +50,7 @@ endif
 # Run the same integration suite against the inbuilt database, which needs no Docker.
 integration-test-sqlite:
 ifdef test
-	CDS_TEST_DB=sqlite go test -v ./test/integration -run $(test)
+	CDS_TEST_DB=sqlite go test -v ./test/integration -run '$(test)'
 else
 	CDS_TEST_DB=sqlite go test -v ./test/integration
 endif
@@ -58,7 +58,7 @@ endif
 # Run the same integration suite against MySQL, which needs Docker.
 integration-test-mysql:
 ifdef test
-	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mysql go test -v ./test/integration -run $(test)
+	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mysql go test -v ./test/integration -run '$(test)'
 else
 	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mysql go test -v ./test/integration
 endif
@@ -66,7 +66,7 @@ endif
 # Run the same integration suite against SQL Server, which needs Docker.
 integration-test-mssql:
 ifdef test
-	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mssql go test -v ./test/integration -run $(test)
+	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mssql go test -v ./test/integration -run '$(test)'
 else
 	TESTCONTAINERS_RYUK_DISABLED=true CDS_TEST_DB=mssql go test -v ./test/integration
 endif

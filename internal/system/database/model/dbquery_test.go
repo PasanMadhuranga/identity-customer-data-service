@@ -27,7 +27,6 @@ import (
 const selectOne = `SELECT 1`
 
 func Test_GetQuery(t *testing.T) {
-
 	t.Run("the SQLite override is used when present", func(t *testing.T) {
 		query := DBQuery{
 			ID:        "CDS-TST-01",
@@ -91,7 +90,6 @@ func Test_GetQuery(t *testing.T) {
 // override optional: a statement with no override must still have none after
 // being completed.
 func Test_TemplateHelpersPreserveTheFallback(t *testing.T) {
-
 	t.Run("Format leaves an absent override absent", func(t *testing.T) {
 		formatted := DBQuery{ID: "CDS-TST-03", Query: `SELECT %s`}.Format("1")
 		if len(formatted.Overrides) != 0 {

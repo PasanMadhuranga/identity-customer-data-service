@@ -28,7 +28,6 @@ import (
 // Test_QueriesPrepare prepares every declared statement against the datasource
 // the suite runs on, which is PostgreSQL by default.
 func Test_QueriesPrepare(t *testing.T) {
-
 	for name, query := range scripts.AllQueries() {
 		t.Run(name, func(t *testing.T) {
 			statement := setup.CompleteStatement(name, query.GetQuery(suiteDBType))

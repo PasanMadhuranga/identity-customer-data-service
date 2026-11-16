@@ -134,7 +134,7 @@ Actions → **🚀 CDS Release Builder** → Run workflow.
 | `use_existing_version` | `false` | Retrying a release whose version bump already landed. See [Retrying a failed release](#retrying-a-failed-release). |
 | `branch` | `main` | Releasing a maintenance version from a release branch. |
 | `commit_version_bump` | `true` | Set `false` to release without moving the branch. |
-| `prerelease` | `false` | Marks the GitHub release as a pre-release. |
+| `prerelease` | `true` | Marks the GitHub release as a pre-release. Untick for a release. |
 
 `version`, `bump_type` and `use_existing_version` are mutually exclusive, in that order of precedence.
 
@@ -144,13 +144,14 @@ Actions → **🚀 CDS Release Builder** → Run workflow.
 
 ### Scheduled release
 
-The common case takes no inputs at all:
+A run is a **pre-release by default**, so a release unticks `prerelease`:
 
 ```bash
-gh workflow run release.yml --repo wso2/identity-customer-data-service
+gh workflow run release.yml --repo wso2/identity-customer-data-service -f prerelease=false
 ```
 
 `v0.3.65` → releases and tags `v0.4.0`, and commits `version.txt` as `v0.4.0`.
+Without `-f prerelease=false` the same run publishes `v0.4.0` as a pre-release.
 
 ### Maintenance release
 
@@ -158,7 +159,7 @@ A third-digit release, run against the relevant release branch:
 
 ```bash
 gh workflow run release.yml --repo wso2/identity-customer-data-service \
-  -f branch=0.3.x -f bump_type=patch
+  -f branch=0.3.x -f bump_type=patch -f prerelease=false
 ```
 
 `branch` controls what is checked out, built, bumped and pushed, so this reads `0.3.x`'s own `version.txt` and pushes the bump there. `main` is untouched.
@@ -168,14 +169,15 @@ Leave `--ref` alone so the canonical workflow definition on `main` is the one th
 ### Major release
 
 ```bash
-gh workflow run release.yml --repo wso2/identity-customer-data-service -f bump_type=major
+gh workflow run release.yml --repo wso2/identity-customer-data-service \
+  -f bump_type=major -f prerelease=false
 ```
 
 ### Prerelease, or an exact version
 
 ```bash
 gh workflow run release.yml --repo wso2/identity-customer-data-service \
-  -f version=v0.4.0-beta1 -f prerelease=true
+  -f version=v0.4.0-beta1
 ```
 
 Use an explicit `version` to go from a prerelease to GA. A `patch` bump off `v0.4.0-beta1` computes `v0.4.1`, not `v0.4.0`.

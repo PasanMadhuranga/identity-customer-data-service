@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -363,7 +364,7 @@ func (s *ProfileSchemaService) GetProfileSchemaAttributeByID(ctx context.Context
 	if err == nil {
 		return attr, nil
 	}
-	if _, isClientError := err.(*errors2.ClientError); !isClientError {
+	if clientErr := new(errors2.ClientError); !errors.As(err, &clientErr) {
 		return attr, err
 	}
 	shared, sharedErr := getVisibleSharedAttribute(ctx, orgID, attributeID)
@@ -390,7 +391,7 @@ func getOwnedAttribute(ctx context.Context, orgID string, attributeID string) (m
 	if err == nil {
 		return attr, nil
 	}
-	if _, isClientError := err.(*errors2.ClientError); isClientError {
+	if clientErr := new(errors2.ClientError); errors.As(err, &clientErr) {
 		if shared, sharedErr := getVisibleSharedAttribute(ctx, orgID, attributeID); sharedErr == nil && shared != nil {
 			return attr, sharingService.ReadOnlyError()
 		}
@@ -597,11 +598,11 @@ func (s *ProfileSchemaService) DeleteProfileSchemaAttributeByID(ctx context.Cont
 	attribute, err := getOwnedAttribute(ctx, orgID, attributeID)
 	logger := log.GetLogger()
 	if err != nil {
-		if clientErr, ok := err.(*errors2.ClientError); ok && clientErr.StatusCode == http.StatusForbidden {
+		if clientErr := new(errors2.ClientError); errors.As(err, &clientErr) && clientErr.StatusCode == http.StatusForbidden {
 			return err
 		}
 		// If the attribute does not exist, treat delete as a no-op (idempotent).
-		if _, ok := err.(*errors2.ClientError); ok {
+		if clientErr := new(errors2.ClientError); errors.As(err, &clientErr) {
 			logger.Debug(fmt.Sprintf("Attribute with Id '%s' does not exist in organization '%s', skipping delete", attributeID, orgID))
 			return nil
 		}
@@ -1135,7 +1136,7 @@ func getInheritedAttribute(ctx context.Context, orgID string,
 	}
 	attr, err := psstr.GetProfileSchemaAttributeByID(ctx, source, attributeID)
 	if err != nil {
-		if _, isClientError := err.(*errors2.ClientError); isClientError {
+		if clientErr := new(errors2.ClientError); errors.As(err, &clientErr) {
 			return nil, nil
 		}
 		return nil, err

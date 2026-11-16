@@ -154,7 +154,7 @@ func getPostgresDB() (*sql.DB, error) {
 
 	if err := db.PingContext(ctx); err != nil {
 		if closeErr := db.Close(); closeErr != nil {
-			return nil, fmt.Errorf("failed to reach the database within %s: %w (close error: %v)",
+			return nil, fmt.Errorf("failed to reach the database within %s: %w (close error: %w)",
 				settings.connectTimeout, err, closeErr)
 		}
 		return nil, fmt.Errorf("failed to reach the database within %s: %w", settings.connectTimeout, err)
@@ -335,7 +335,7 @@ func getSQLiteDB() (*sql.DB, error) {
 
 	db, err := sql.Open(dbConfig.driverName, dbConfig.dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open the inbuilt database: %v", err)
+		return nil, fmt.Errorf("failed to open the inbuilt database: %w", err)
 	}
 	db.SetMaxOpenConns(maxOpenConns)
 	db.SetMaxIdleConns(maxOpenConns)
@@ -344,14 +344,14 @@ func getSQLiteDB() (*sql.DB, error) {
 	// its own. The DSN carries busy_timeout, which bounds a wait for the lock.
 	if err := db.Ping(); err != nil {
 		if closeErr := db.Close(); closeErr != nil {
-			return nil, fmt.Errorf("failed to ping the inbuilt database: %v (close error: %v)", err, closeErr)
+			return nil, fmt.Errorf("failed to ping the inbuilt database: %w (close error: %w)", err, closeErr)
 		}
-		return nil, fmt.Errorf("failed to ping the inbuilt database: %v", err)
+		return nil, fmt.Errorf("failed to ping the inbuilt database: %w", err)
 	}
 
 	if err := initializeSQLiteSchema(db); err != nil {
 		if closeErr := db.Close(); closeErr != nil {
-			return nil, fmt.Errorf("%v (close error: %v)", err, closeErr)
+			return nil, fmt.Errorf("%w (close error: %w)", err, closeErr)
 		}
 		return nil, err
 	}

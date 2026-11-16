@@ -127,7 +127,7 @@ func ensureSQLiteDir(configuredPath string) error {
 
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return fmt.Errorf("failed to create the inbuilt database directory %s: %v", dir, err)
+		return fmt.Errorf("failed to create the inbuilt database directory %s: %w", dir, err)
 	}
 
 	return nil
@@ -139,7 +139,7 @@ func initializeSQLiteSchema(db *sql.DB) error {
 	// A transaction keeps a partial failure from leaving a half-built database.
 	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin the inbuilt database schema transaction: %v", err)
+		return fmt.Errorf("failed to begin the inbuilt database schema transaction: %w", err)
 	}
 
 	if _, err := tx.Exec(dbscripts.SQLiteSchema); err != nil {
@@ -148,13 +148,13 @@ func initializeSQLiteSchema(db *sql.DB) error {
 		// Fall back to statement-by-statement execution if the driver rejects
 		// a multi-statement script.
 		if fallbackErr := applySchemaStatements(db, dbscripts.SQLiteSchema); fallbackErr != nil {
-			return fmt.Errorf("failed to apply the inbuilt database schema: %v (%v)", err, fallbackErr)
+			return fmt.Errorf("failed to apply the inbuilt database schema: %w (%w)", err, fallbackErr)
 		}
 		return nil
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit the inbuilt database schema: %v", err)
+		return fmt.Errorf("failed to commit the inbuilt database schema: %w", err)
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func applySchemaStatements(db *sql.DB, script string) error {
 			continue
 		}
 		if _, err := db.Exec(trimmed); err != nil {
-			return fmt.Errorf("failed to execute %q: %v", truncate(trimmed, 80), err)
+			return fmt.Errorf("failed to execute %q: %w", truncate(trimmed, 80), err)
 		}
 	}
 

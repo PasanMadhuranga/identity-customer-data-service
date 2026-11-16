@@ -52,14 +52,14 @@ func (h HealthCheckService) CheckReadiness(ctx context.Context) error {
 	dbProvider := provider.NewDBProvider()
 	dbClient, err := dbProvider.GetDBClient()
 	if err != nil {
-		return fmt.Errorf("failed to create database client: %v", err)
+		return fmt.Errorf("failed to create database client: %w", err)
 	}
 	defer func() { _ = dbClient.Close() }()
 
 	// Perform a lightweight query to ensure DB connectivity.
 	_, err = dbClient.ExecuteQueryContext(ctx, scripts.HealthCheckPing)
 	if err != nil {
-		return fmt.Errorf("database connectivity check failed: %v", err)
+		return fmt.Errorf("database connectivity check failed: %w", err)
 	}
 
 	return nil

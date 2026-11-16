@@ -22,6 +22,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -519,7 +520,7 @@ func (urh *UnificationRulesHandler) DeleteUnificationRule(w http.ResponseWriter,
 	// Delete only a rule that the organization owns.
 	rule, err := ruleService.GetOwnedUnificationRule(ctx, ruleID, org.ID)
 	if err != nil {
-		if clientErr, ok := err.(*errors2.ClientError); ok && clientErr.StatusCode == http.StatusNotFound {
+		if clientErr := new(errors2.ClientError); errors.As(err, &clientErr) && clientErr.StatusCode == http.StatusNotFound {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}

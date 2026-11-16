@@ -20,6 +20,7 @@ package suborg
 
 import (
 	"context"
+	stderrors "errors"
 	"net/http"
 	"testing"
 
@@ -69,8 +70,8 @@ func TestRejectWrite(t *testing.T) {
 		t.Fatalf("an org that CDS does not know must write, got %v", err)
 	}
 	err := RejectWrite(ctx, "sub-id")
-	clientErr, ok := err.(*errors.ClientError)
-	if !ok {
+	var clientErr *errors.ClientError
+	if !stderrors.As(err, &clientErr) {
 		t.Fatalf("a sub org must get a client error, got %v", err)
 	}
 	if clientErr.StatusCode != http.StatusForbidden {

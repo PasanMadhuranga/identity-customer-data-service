@@ -20,6 +20,7 @@ package service
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -95,8 +96,8 @@ func TestValidateCORSOriginsRejectsMalformedOrigins(t *testing.T) {
 			if err == nil {
 				t.Fatalf("validateCORSOrigins(%q) = %v, want an error", origin, got)
 			}
-			clientError, ok := err.(*errors.ClientError)
-			if !ok {
+			var clientError *errors.ClientError
+			if !stderrors.As(err, &clientError) {
 				t.Fatalf("error is %T, want *errors.ClientError", err)
 			}
 			if clientError.StatusCode != http.StatusBadRequest {
@@ -125,7 +126,8 @@ func TestValidateCORSOriginsRejectsAListTooLongToStore(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error for a list too long to store")
 	}
-	if clientError, ok := err.(*errors.ClientError); !ok || clientError.StatusCode != http.StatusBadRequest {
+	if clientError := new(errors.ClientError); !stderrors.As(err, &clientError) ||
+		clientError.StatusCode != http.StatusBadRequest {
 		t.Errorf("error = %v, want a bad request client error", err)
 	}
 

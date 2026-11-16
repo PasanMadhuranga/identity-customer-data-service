@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	stderrors "errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -73,8 +74,8 @@ func claims(scope string) map[string]interface{} {
 
 func statusOf(t *testing.T, err error) (int, string) {
 	t.Helper()
-	clientErr, ok := err.(*errors.ClientError)
-	require.True(t, ok, "expected a client error, got %v", err)
+	var clientErr *errors.ClientError
+	require.True(t, stderrors.As(err, &clientErr), "expected a client error, got %v", err)
 	return clientErr.StatusCode, clientErr.Code
 }
 

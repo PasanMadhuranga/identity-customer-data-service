@@ -41,7 +41,7 @@ const refCacheTTL = 5 * time.Minute
 // that another pod stores is found on the next lookup.
 var refs = cache.NewCache(refCacheTTL)
 
-// refsByID caches LookupOrganizationRefById by org ID, as refs does by org handle.
+// refsByID caches LookupOrganizationRefByID by org ID, as refs does by org handle.
 var refsByID = cache.NewCache(refCacheTTL)
 
 func serverError(description string, err error) error {

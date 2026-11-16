@@ -322,7 +322,7 @@ func GetProfileSchemaAttributesForOrg(ctx context.Context, orgID string) ([]mode
 	return schema, nil
 }
 
-// GetProfileSchemaAttributesByIDs returns the attributes with the IDs. OwnerOrgId of each
+// GetProfileSchemaAttributesByIDs returns the attributes with the IDs. OwnerOrgID of each
 // attribute is set.
 func GetProfileSchemaAttributesByIDs(ctx context.Context,
 	attributeIDs []string) ([]model.ProfileSchemaAttribute, error) {

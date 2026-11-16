@@ -89,7 +89,7 @@ func complexAttribute(id, owner, name string, subs ...model.ProfileSchemaAttribu
 	attr.ValueType = constants.ComplexDataType
 	for _, sub := range subs {
 		attr.SubAttributes = append(attr.SubAttributes,
-			model.SubAttribute{AttributeId: sub.AttributeId, AttributeName: sub.AttributeName})
+			model.SubAttribute{AttributeID: sub.AttributeID, AttributeName: sub.AttributeName})
 	}
 	return attr
 }
@@ -102,13 +102,13 @@ func TestSelectActiveSharedAttributesAddsSubAttributesOfComplexAttribute(t *test
 	address := complexAttribute("address", "r", "traits.address", city, geo)
 	// A sub-attribute of another owner is not in the group.
 	address.SubAttributes = append(address.SubAttributes,
-		model.SubAttribute{AttributeId: "foreign", AttributeName: "traits.address.zip"})
+		model.SubAttribute{AttributeID: "foreign", AttributeName: "traits.address.zip"})
 	foreign := sharedAttribute("foreign", "a", "traits.address.zip", "")
 
 	attrs := []model.ProfileSchemaAttribute{address, city, geo, lat, foreign}
-	shared := []shareModel.SharedResource{{ResourceId: "address", OwnerOrgId: "r", OwnerDepth: 1}}
+	shared := []shareModel.SharedResource{{ResourceID: "address", OwnerOrgID: "r", OwnerDepth: 1}}
 
-	got := attributeIds(selectActiveSharedAttributes(shared, attrs, nil))
+	got := attributeIDs(selectActiveSharedAttributes(shared, attrs, nil))
 	if expected := []string{"address", "city", "geo", "lat"}; !reflect.DeepEqual(got, expected) {
 		t.Fatalf("expected %v, got %v", expected, got)
 	}
@@ -122,12 +122,12 @@ func TestSelectActiveSharedAttributesComplexAttributeConflicts(t *testing.T) {
 	plan := sharedAttribute("r-plan", "r", "traits.plan", "")
 	attrs := []model.ProfileSchemaAttribute{address, city, plan}
 	shared := []shareModel.SharedResource{
-		{ResourceId: "r-address", OwnerOrgId: "r", OwnerDepth: 1},
-		{ResourceId: "r-plan", OwnerOrgId: "r", OwnerDepth: 1},
+		{ResourceID: "r-address", OwnerOrgID: "r", OwnerDepth: 1},
+		{ResourceID: "r-plan", OwnerOrgID: "r", OwnerDepth: 1},
 	}
 
-	owned := []model.ProfileSchemaAttribute{{AttributeId: "local-city", AttributeName: "traits.address.city"}}
-	got := attributeIds(selectActiveSharedAttributes(shared, attrs, owned))
+	owned := []model.ProfileSchemaAttribute{{AttributeID: "local-city", AttributeName: "traits.address.city"}}
+	got := attributeIDs(selectActiveSharedAttributes(shared, attrs, owned))
 	if expected := []string{"r-plan"}; !reflect.DeepEqual(got, expected) {
 		t.Fatalf("expected %v, got %v", expected, got)
 	}
@@ -136,9 +136,9 @@ func TestSelectActiveSharedAttributesComplexAttributeConflicts(t *testing.T) {
 	aCity := sharedAttribute("a-city", "a", "traits.address.city", "")
 	aAddress := complexAttribute("a-address", "a", "traits.address", aCity)
 	attrs = []model.ProfileSchemaAttribute{address, city, plan, aAddress, aCity}
-	shared = append([]shareModel.SharedResource{{ResourceId: "a-address", OwnerOrgId: "a", OwnerDepth: 1}},
-		shareModel.SharedResource{ResourceId: "r-address", OwnerOrgId: "r", OwnerDepth: 2})
-	got = attributeIds(selectActiveSharedAttributes(shared, attrs, nil))
+	shared = append([]shareModel.SharedResource{{ResourceID: "a-address", OwnerOrgID: "a", OwnerDepth: 1}},
+		shareModel.SharedResource{ResourceID: "r-address", OwnerOrgID: "r", OwnerDepth: 2})
+	got = attributeIDs(selectActiveSharedAttributes(shared, attrs, nil))
 	if expected := []string{"a-address", "a-city"}; !reflect.DeepEqual(got, expected) {
 		t.Fatalf("expected %v, got %v", expected, got)
 	}

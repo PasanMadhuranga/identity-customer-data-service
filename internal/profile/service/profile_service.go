@@ -1191,7 +1191,7 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 	// If it is a child profile, delete it.
 	//
 	// A standalone profile also reports IsReferenceProfile false, but has no parent to
-	// look up. Reading its empty ReferenceProfileId as an id returns no profile, and
+	// look up. Reading its empty ReferenceProfileID as an id returns no profile, and
 	// GetProfile signals that as (nil, nil) — so without this guard the nil parent is
 	// dereferenced and deleting any never-merged profile panics.
 	if !profile.ProfileStatus.IsReferenceProfile && profile.ProfileStatus.ReferenceProfileID != "" {
@@ -1226,7 +1226,7 @@ func (ps *ProfilesService) DeleteProfile(ctx context.Context, ProfileID string, 
 				return serverError
 			}
 			//todo: Ensure the need to detach the referer profile from the reference
-			//err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileId, ProfileId)
+			//err = profileStore.DetachRefererProfileFromReference(profile.ProfileStatus.ReferenceProfileID, ProfileID)
 			err = profileStore.DeleteProfile(ctx, ProfileID)
 			if err != nil {
 				errorMsg := fmt.Sprintf("Error while deleting the  profile: %s ", ProfileID)

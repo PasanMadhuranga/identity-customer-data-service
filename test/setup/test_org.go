@@ -38,7 +38,7 @@ func TestOrgID(handle string) string {
 
 // TestOrg returns the organization of the handle, as the organization service resolves it with the
 // test identity provider: a handle without an organizations row gets a primary organization with the
-// ID TestOrgId(handle). Rows that a test stores itself, for example a sub organization, are used as
+// ID TestOrgID(handle). Rows that a test stores itself, for example a sub organization, are used as
 // they are.
 //
 // It reads and writes the organizations table through the statements, not the organization service,
@@ -53,7 +53,7 @@ func TestOrg(t testing.TB, handle string) orgModel.Ref {
 }
 
 // InstallTestIdentityProvider installs an identity provider adapter that needs no identity server: it
-// knows every handle as a primary organization with the ID TestOrgId(handle), with no descendants.
+// knows every handle as a primary organization with the ID TestOrgID(handle), with no descendants.
 func InstallTestIdentityProvider() {
 	idp.SetAdapter(testIdentityProvider{})
 }

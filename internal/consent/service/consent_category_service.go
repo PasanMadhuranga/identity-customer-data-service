@@ -158,7 +158,7 @@ func (cs *ConsentCategoryService) validateConsentCat(category model.ConsentCateg
 }
 
 // resolveAttributeScopes looks up each attribute in the profile schema by name and populates
-// Scope (converted to API scope) and AttributeId. Returns an error if any attribute_name is
+// Scope (converted to API scope) and AttributeID. Returns an error if any attribute_name is
 // not found in the org's schema. For applicationData scope, app_id must also be provided.
 func resolveAttributeScopes(ctx context.Context,
 	orgID string, attrs []model.ConsentAttribute) ([]model.ConsentAttribute, error) {

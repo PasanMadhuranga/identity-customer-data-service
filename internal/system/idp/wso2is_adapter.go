@@ -68,7 +68,7 @@ func (a *WSO2ISAdapter) VerifyServiceCredentials(_ context.Context, orgHandle, c
 	}
 	primary := toOrganization(org)
 	primary.Handle = orgHandle
-	primary.ParentId = ""
+	primary.ParentID = ""
 	return primary, nil
 }
 

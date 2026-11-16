@@ -19,7 +19,7 @@
 package models
 
 // ConsentAttribute represents a profile attribute covered by a consent category.
-// Callers provide attribute_name (e.g. "traits.age"). Scope and AttributeId are derived
+// Callers provide attribute_name (e.g. "traits.age"). Scope and AttributeID are derived
 // automatically from the profile schema at write time and are never supplied by the caller.
 // For applicationData scope, ApplicationIdentifier identifies which app's data the attribute belongs to.
 type ConsentAttribute struct {

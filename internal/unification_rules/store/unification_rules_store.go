@@ -137,7 +137,7 @@ func GetUnificationRules(ctx context.Context, orgID string) ([]model.Unification
 	return rules, nil
 }
 
-// GetUnificationRule fetches a specific unification rule by its Id
+// GetUnificationRule fetches a specific unification rule by its ID
 func GetUnificationRule(ctx context.Context, ruleID, orgID string) (*model.UnificationRule, error) {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 
@@ -260,7 +260,7 @@ func PatchUnificationRule(ctx context.Context, ruleID, orgID string, updatedRule
 	return nil
 }
 
-// DeleteUnificationRule deletes a unification rule by its Id
+// DeleteUnificationRule deletes a unification rule by its ID
 func DeleteUnificationRule(ctx context.Context, ruleID, orgID string) error {
 	// An organization that CDS does not know gets an empty key, which matches no row.
 

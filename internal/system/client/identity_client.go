@@ -238,8 +238,8 @@ func (c *IdentityClient) fetchOrganizationToken(
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to fetch super-tenant token for the organization:%s", orgHandle)
 		return "", errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.TOKEN_FETCH_FAILED.Code,
-			Message:     errors2.TOKEN_FETCH_FAILED.Message,
+			Code:        errors2.TokenFetchFailed.Code,
+			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -325,8 +325,8 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 		errorMsg := fmt.Sprintf("Failed to create token request for the organization:%s in system_app_grant", orgId)
 		logger.Debug(errorMsg, log.Error(err))
 		return "", errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.TOKEN_FETCH_FAILED.Code,
-			Message:     errors2.TOKEN_FETCH_FAILED.Message,
+			Code:        errors2.TokenFetchFailed.Code,
+			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -339,8 +339,8 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 		logger.Debug(err.Error())
 		// This is an internal communication. So for the clients of CDS, we treat this as a server error.
 		return "", errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.TOKEN_FETCH_FAILED.Code,
-			Message:     errors2.TOKEN_FETCH_FAILED.Message,
+			Code:        errors2.TokenFetchFailed.Code,
+			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -354,8 +354,8 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 		)
 		logger.Debug(errorMsg)
 		return "", errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.TOKEN_FETCH_FAILED.Code,
-			Message:     errors2.TOKEN_FETCH_FAILED.Message,
+			Code:        errors2.TokenFetchFailed.Code,
+			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, &tokenEndpointStatusError{StatusCode: resp.StatusCode})
 	}
@@ -367,8 +367,8 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 		errorMsg := fmt.Sprintf("Failed to parse token response for the organization:%s in system_app_grant", orgId)
 		logger.Debug(errorMsg, log.Error(err))
 		return "", errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.TOKEN_FETCH_FAILED.Code,
-			Message:     errors2.TOKEN_FETCH_FAILED.Message,
+			Code:        errors2.TokenFetchFailed.Code,
+			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -376,8 +376,8 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 		errorMsg := fmt.Sprintf("Failed to read token response for the organization:%s in system_app_grant", orgId)
 		logger.Debug(errorMsg)
 		return "", errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.TOKEN_FETCH_FAILED.Code,
-			Message:     errors2.TOKEN_FETCH_FAILED.Message,
+			Code:        errors2.TokenFetchFailed.Code,
+			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, nil)
 	}
@@ -427,8 +427,8 @@ func (c *IdentityClient) FetchApplicationIdentifier(applicationIdentifier, orgHa
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to fetch applications for org: %s", orgHandle)
 		return result, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_APPLICATIONS_FAILED.Code,
-			Message:     errors2.GET_APPLICATIONS_FAILED.Message,
+			Code:        errors2.GetApplicationsFailed.Code,
+			Message:     errors2.GetApplicationsFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -438,8 +438,8 @@ func (c *IdentityClient) FetchApplicationIdentifier(applicationIdentifier, orgHa
 	if resp.StatusCode != 200 {
 		errorMsg := fmt.Sprintf("Failed to fetch applications for org: %s", orgHandle)
 		return result, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_APPLICATIONS_FAILED.Code,
-			Message:     errors2.GET_APPLICATIONS_FAILED.Message,
+			Code:        errors2.GetApplicationsFailed.Code,
+			Message:     errors2.GetApplicationsFailed.Message,
 			Description: errorMsg,
 		}, fmt.Errorf("applications endpoint returned status: %d", resp.StatusCode))
 	}
@@ -448,8 +448,8 @@ func (c *IdentityClient) FetchApplicationIdentifier(applicationIdentifier, orgHa
 		errorMsg := fmt.Sprintf("Failed to parse applications response for org: %s", orgHandle)
 		logger.Debug(errorMsg, log.Error(err))
 		return result, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_APPLICATIONS_FAILED.Code,
-			Message:     errors2.GET_APPLICATIONS_FAILED.Message,
+			Code:        errors2.GetApplicationsFailed.Code,
+			Message:     errors2.GetApplicationsFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -472,8 +472,8 @@ func (c *IdentityClient) GetApplication(appID, orgHandle string) (idpModel.Appli
 
 	appsFailed := func(desc string, cause error) error {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_APPLICATIONS_FAILED.Code,
-			Message:     errors2.GET_APPLICATIONS_FAILED.Message,
+			Code:        errors2.GetApplicationsFailed.Code,
+			Message:     errors2.GetApplicationsFailed.Message,
 			Description: desc,
 		}, cause)
 	}
@@ -544,7 +544,7 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 		return nil, err
 	}
 
-	return c.introspect(introspectionEndpoint, authConfig.IntrospectionClientId, authConfig.IntrospectionClientSecret,
+	return c.introspect(introspectionEndpoint, authConfig.IntrospectionClientID, authConfig.IntrospectionClientSecret,
 		form)
 }
 
@@ -686,8 +686,8 @@ func (c *IdentityClient) GetProfileSchema(orgHandle string) ([]model.ProfileSche
 				}
 				logger.Warn(fmt.Sprintf("Adding synthetic parent attribute: %s", parent))
 				result = append(result, model.ProfileSchemaAttribute{
-					OrgId:         orgHandle,
-					AttributeId:   uuid.New().String(),
+					OrgID:         orgHandle,
+					AttributeID:   uuid.New().String(),
 					AttributeName: parent,
 					ValueType:     constants.ComplexDataType,
 					MergeStrategy: constants.MergeStrategyOverwrite,
@@ -729,8 +729,8 @@ func (c *IdentityClient) GetAllDialects(orgHandle string) ([]map[string]interfac
 		// This is an internal communication. So for the clients of CDS, we treat this as a server error.
 		errorMsg := fmt.Sprintf("Failed to fetch all dialects for the organization:%s", orgHandle)
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_SCIM_DIALECTS.Code,
-			Message:     errors2.GET_SCIM_DIALECTS.Message,
+			Code:        errors2.GetSCIMDialects.Code,
+			Message:     errors2.GetSCIMDialects.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -743,8 +743,8 @@ func (c *IdentityClient) GetAllDialects(orgHandle string) ([]map[string]interfac
 		errorMsg := fmt.Sprintf("Failed to parse dialects response for the organization:%s", orgHandle)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_SCIM_DIALECTS.Code,
-			Message:     errors2.GET_SCIM_DIALECTS.Message,
+			Code:        errors2.GetSCIMDialects.Code,
+			Message:     errors2.GetSCIMDialects.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -776,8 +776,8 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgId string) ([]map[stri
 		errMsg := fmt.Sprintf("Failed to fetch claims for dialectID:%s of the organization:%s", dialectID, orgId)
 		logger.Debug(errMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_DIALECT_CLAIMS.Code,
-			Message:     errors2.GET_DIALECT_CLAIMS.Message,
+			Code:        errors2.GetDialectClaims.Code,
+			Message:     errors2.GetDialectClaims.Message,
 			Description: errMsg,
 		}, err)
 	}
@@ -790,8 +790,8 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgId string) ([]map[stri
 		errMsg := fmt.Sprintf("Failed to parse claims response for dialectID:%s of the organization:%s", dialectID, orgId)
 		logger.Debug(errMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_DIALECT_CLAIMS.Code,
-			Message:     errors2.GET_DIALECT_CLAIMS.Message,
+			Code:        errors2.GetDialectClaims.Code,
+			Message:     errors2.GetDialectClaims.Message,
 			Description: errMsg,
 		}, err)
 	}
@@ -825,8 +825,8 @@ func (c *IdentityClient) GetLocalClaimsMap(orgId string) (map[string]map[string]
 		errorMsg := fmt.Sprintf("Failed to fetch local claims for the organization:%s", orgId)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_LOCAL_CLAIMS_FAILED.Code,
-			Message:     errors2.GET_LOCAL_CLAIMS_FAILED.Message,
+			Code:        errors2.GetLocalClaimsFailed.Code,
+			Message:     errors2.GetLocalClaimsFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -838,8 +838,8 @@ func (c *IdentityClient) GetLocalClaimsMap(orgId string) (map[string]map[string]
 		errorMsg := fmt.Sprintf("Failed to fetch local claims, status code: %d, response: %s", resp.StatusCode, string(body))
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_LOCAL_CLAIMS_FAILED.Code,
-			Message:     errors2.GET_LOCAL_CLAIMS_FAILED.Message,
+			Code:        errors2.GetLocalClaimsFailed.Code,
+			Message:     errors2.GetLocalClaimsFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -848,8 +848,8 @@ func (c *IdentityClient) GetLocalClaimsMap(orgId string) (map[string]map[string]
 		errorMsg := fmt.Sprintf("Failed to parse local claims response for the organization:%s", orgId)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_LOCAL_CLAIMS_FAILED.Code,
-			Message:     errors2.GET_LOCAL_CLAIMS_FAILED.Message,
+			Code:        errors2.GetLocalClaimsFailed.Code,
+			Message:     errors2.GetLocalClaimsFailed.Message,
 			Description: errorMsg,
 		}, err)
 	}
@@ -942,7 +942,7 @@ func ConvertSCIMClaimWithLocal(
 				}
 
 				subAttrs = append(subAttrs, model.SubAttribute{
-					AttributeId:   fmt.Sprintf("%v", uuid.New().String()),
+					AttributeID:   fmt.Sprintf("%v", uuid.New().String()),
 					AttributeName: "identity_attributes." + attrKey + "." + subAttrKey,
 				})
 			}
@@ -960,12 +960,12 @@ func ConvertSCIMClaimWithLocal(
 	if strings.Contains(attrKey, ".") {
 		parentAttrName := "identity_attributes." + strings.Split(attrKey, ".")[0]
 		subAttr := model.SubAttribute{
-			AttributeId:   fmt.Sprintf("%v", uuid.New().String()),
+			AttributeID:   fmt.Sprintf("%v", uuid.New().String()),
 			AttributeName: fullAttrName,
 		}
 		return model.ProfileSchemaAttribute{
-			OrgId:           orgId,
-			AttributeId:     subAttr.AttributeId,
+			OrgID:           orgId,
+			AttributeID:     subAttr.AttributeID,
 			AttributeName:   fullAttrName,
 			ValueType:       valueType,
 			MergeStrategy:   "overwrite",
@@ -980,8 +980,8 @@ func ConvertSCIMClaimWithLocal(
 
 	// It's a top-level or parent attribute
 	return model.ProfileSchemaAttribute{
-		OrgId:           orgId,
-		AttributeId:     fmt.Sprintf("%v", uuid.New().String()),
+		OrgID:           orgId,
+		AttributeID:     fmt.Sprintf("%v", uuid.New().String()),
 		AttributeName:   fullAttrName,
 		ValueType:       valueType,
 		MergeStrategy:   "overwrite",
@@ -1028,8 +1028,8 @@ func (c *IdentityClient) GetSCIMUser(orgId, userId string) (map[string]interface
 		errMsg := fmt.Sprintf("Failed to fetch SCIM user:%s of the organization:%s", userId, orgId)
 		logger.Debug(errMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_SCIM_USER_FAILED.Code,
-			Message:     errors2.GET_SCIM_USER_FAILED.Message,
+			Code:        errors2.GetSCIMUserFailed.Code,
+			Message:     errors2.GetSCIMUserFailed.Message,
 			Description: errMsg,
 		}, err)
 	}
@@ -1041,8 +1041,8 @@ func (c *IdentityClient) GetSCIMUser(orgId, userId string) (map[string]interface
 		errMsg := fmt.Sprintf("Failed to parse SCIM user response for user:%s of the organization:%s", userId, orgId)
 		logger.Debug(errMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.GET_SCIM_USER_FAILED.Code,
-			Message:     errors2.GET_SCIM_USER_FAILED.Message,
+			Code:        errors2.GetSCIMUserFailed.Code,
+			Message:     errors2.GetSCIMUserFailed.Message,
 			Description: errMsg,
 		}, err)
 	}

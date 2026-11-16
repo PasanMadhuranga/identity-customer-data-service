@@ -40,8 +40,8 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Basic ") {
 		logger.Debug("Missing or invalid Authorization header")
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.UN_AUTHORIZED.Code,
-			Message:     errors.UN_AUTHORIZED.Message,
+			Code:        errors.Unauthorized.Code,
+			Message:     errors.Unauthorized.Message,
 			Description: "Missing or invalid Authorization header",
 		}, http.StatusUnauthorized)
 	}
@@ -52,8 +52,8 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 	if err != nil || !isValidAdmin {
 		logger.Debug("Invalid admin credentials")
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.UN_AUTHORIZED.Code,
-			Message:     errors.UN_AUTHORIZED.Message,
+			Code:        errors.Unauthorized.Code,
+			Message:     errors.Unauthorized.Message,
 			Description: "Missing or invalid Authorization header",
 		}, http.StatusUnauthorized)
 	}
@@ -107,8 +107,8 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") || authHeader == "" {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.UN_AUTHORIZED.Code,
-			Message:     errors.UN_AUTHORIZED.Message,
+			Code:        errors.Unauthorized.Code,
+			Message:     errors.Unauthorized.Message,
 			Description: "Missing or invalid Authorization header",
 		}, http.StatusUnauthorized)
 		return nil, clientError
@@ -122,8 +122,8 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 	claims, err := authn.ValidateTokenForOrg(token, orgHandle, utils.ExtractPrimaryOrgHandle(r), pathOrgIdOf(r))
 	if err != nil {
 		clientError := errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.UN_AUTHORIZED.Code,
-			Message:     errors.UN_AUTHORIZED.Message,
+			Code:        errors.Unauthorized.Code,
+			Message:     errors.Unauthorized.Message,
 			Description: "Missing or invalid Authorization header",
 		}, http.StatusUnauthorized)
 		return nil, clientError
@@ -160,8 +160,8 @@ func authorize(r *http.Request, claims map[string]interface{}, operation string)
 func authorizePrimary(r *http.Request, claims map[string]interface{}, operation string) error {
 	if pathOrgIdOf(r) != "" {
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:        errors.SUB_ORG_CONFIG_NOT_ALLOWED.Code,
-			Message:     errors.SUB_ORG_CONFIG_NOT_ALLOWED.Message,
+			Code:        errors.SubOrgConfigNotAllowed.Code,
+			Message:     errors.SubOrgConfigNotAllowed.Message,
 			Description: "Only the primary organization can perform this operation.",
 		}, http.StatusBadRequest)
 	}
@@ -171,6 +171,6 @@ func authorizePrimary(r *http.Request, claims map[string]interface{}, operation 
 // pathOrgIdOf returns the organization ID of a sub organization path, or empty for a primary
 // organization path.
 func pathOrgIdOf(r *http.Request) string {
-	pathOrgId, _ := r.Context().Value(constants.OrgIdContextKey).(string)
+	pathOrgId, _ := r.Context().Value(constants.OrgIDContextKey).(string)
 	return pathOrgId
 }

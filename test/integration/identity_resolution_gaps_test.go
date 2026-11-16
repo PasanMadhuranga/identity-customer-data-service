@@ -257,7 +257,7 @@ func Test_ReviewTask_CanBeRecreatedAfterCancellation(t *testing.T) {
 // remove them explicitly or the profile keeps surfacing as a merge candidate.
 //
 // Note this exercises the service-level delete. The underlying store still leaves the
-// profiles row in place — see the separate finding on DeleteProfileByProfileId — so this
+// profiles row in place — see the separate finding on DeleteProfileByProfileID — so this
 // asserts only that the profile is no longer discoverable through the index.
 func Test_BlockingKeys_RemovedWhenProfileDeleted(t *testing.T) {
 	org := newOrg("delete-index")

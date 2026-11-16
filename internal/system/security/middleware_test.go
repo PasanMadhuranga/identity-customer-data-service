@@ -144,9 +144,9 @@ func newIntrospectionServer(t *testing.T) *[]string {
 		require.NoError(t, r.ParseForm())
 		body := map[string]interface{}{"active": false}
 		if r.URL.Path == "/t/acme/oauth2/introspect" && r.PostForm.Get("token") == "switched-token" {
-			body = map[string]interface{}{"active": true, "client_id": constants.CONSOLE_APP, "org_id": subOrgId}
+			body = map[string]interface{}{"active": true, "client_id": constants.ConsoleApp, "org_id": subOrgID}
 		} else if r.URL.Path == "/t/acme/oauth2/introspect" && r.PostForm.Get("token") == "primary-token" {
-			body = map[string]interface{}{"active": true, "client_id": constants.CONSOLE_APP, "org_handle": "acme"}
+			body = map[string]interface{}{"active": true, "client_id": constants.ConsoleApp, "org_handle": "acme"}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(body)
@@ -176,11 +176,11 @@ func authenticatePath(t *testing.T, path, token string) error {
 	defer func(resolver func(context.Context, string, string) (string, error)) {
 		utils.SubOrgResolver = resolver
 	}(utils.SubOrgResolver)
-	utils.SubOrgResolver = func(_ context.Context, primaryHandle, orgId string) (string, error) {
-		if primaryHandle == "acme" && orgId == subOrgId {
+	utils.SubOrgResolver = func(_ context.Context, primaryHandle, orgID string) (string, error) {
+		if primaryHandle == "acme" && orgID == subOrgID {
 			return "region1", nil
 		}
-		return "", errors.NewClientError(errors.ORGANIZATION_NOT_FOUND, http.StatusNotFound)
+		return "", errors.NewClientError(errors.OrganizationNotFound, http.StatusNotFound)
 	}
 
 	mux := http.NewServeMux()
@@ -200,7 +200,7 @@ func authenticatePath(t *testing.T, path, token string) error {
 func TestAuthenticate_subOrgPathIntrospectsAtThePrimaryOrg(t *testing.T) {
 	paths := newIntrospectionServer(t)
 
-	err := authenticatePath(t, "/t/acme/o/"+subOrgId+"/cds/api/v1/profiles", "switched-token")
+	err := authenticatePath(t, "/t/acme/o/"+subOrgID+"/cds/api/v1/profiles", "switched-token")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"/t/acme/oauth2/introspect"}, *paths)
@@ -209,7 +209,7 @@ func TestAuthenticate_subOrgPathIntrospectsAtThePrimaryOrg(t *testing.T) {
 func TestAuthenticate_subOrgPathRejectsATokenOfAnotherOrg(t *testing.T) {
 	newIntrospectionServer(t)
 
-	err := authenticatePath(t, "/t/acme/o/"+subOrgId+"/cds/api/v1/profiles", "primary-token")
+	err := authenticatePath(t, "/t/acme/o/"+subOrgID+"/cds/api/v1/profiles", "primary-token")
 
 	require.Error(t, err)
 	status, _ := statusOf(t, err)

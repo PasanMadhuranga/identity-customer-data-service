@@ -34,12 +34,12 @@ import (
 
 // ISOrganization is an organization from the IS organization management API.
 type ISOrganization struct {
-	Id        string `json:"id"`
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	OrgHandle string `json:"orgHandle"`
 	Status    string `json:"status"`
 	Parent    *struct {
-		Id string `json:"id"`
+		ID string `json:"id"`
 	} `json:"parent,omitempty"`
 }
 
@@ -137,8 +137,8 @@ func (c *IdentityClient) getJSON(endpoint, orgHandle string, out interface{}) (i
 func (c *IdentityClient) getJSONWithToken(endpoint, token string, out interface{}) (int, error) {
 	failed := func(desc string, cause error) error {
 		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.ORGANIZATION_SYNC.Code,
-			Message:     errors2.ORGANIZATION_SYNC.Message,
+			Code:        errors2.OrganizationSync.Code,
+			Message:     errors2.OrganizationSync.Message,
 			Description: desc,
 		}, cause)
 	}

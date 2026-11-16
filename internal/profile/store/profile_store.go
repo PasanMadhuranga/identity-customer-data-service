@@ -754,8 +754,8 @@ func DeleteProfile(ctx context.Context, profileID string) error {
 	//	errorMsg := fmt.Sprintf("failed to delete child profile links for profile: %s", profileId)
 	//	logger.Debug(errorMsg, log.Error(err))
 	//	serverError := errors2.NewServerError(errors2.ErrorMessage{
-	//		Code:        errors2.DELETE_PROFILE.Code,
-	//		Message:     errors2.DELETE_PROFILE.Message,
+	//		Code:        errors2.DeleteProfile.Code,
+	//		Message:     errors2.DeleteProfile.Message,
 	//		Description: errorMsg,
 	//	}, err)
 	//	return serverError

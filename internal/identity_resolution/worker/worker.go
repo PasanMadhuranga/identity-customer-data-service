@@ -344,7 +344,7 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 		}
 
 		// Surface remaining qualified candidates as review tasks against the new master.
-		// Incoming = mergedMaster.ProfileId, the new master is the live entity that holds the matched attributes.
+		// Incoming = mergedMaster.ProfileID, the new master is the live entity that holds the matched attributes.
 		for _, sc := range remaining {
 			decision := model.Decide(sc.score, thresholds)
 			if decision == constants.DecisionAutoMerge && !reconsidered[sc.id] {

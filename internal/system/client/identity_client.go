@@ -255,7 +255,11 @@ func (c *IdentityClient) fetchOrganizationToken(
 // them. They have to be: the endpoint is that organization's token endpoint, and
 // an Identity Server client can only authenticate at the token endpoint of its
 // own tenant. An organization with none uses the configured pair, as before.
-func (c *IdentityClient) fetchClientCredentialsToken(orgID string, authCfg config.AuthServerConfig, scope string) (string, error) {
+func (c *IdentityClient) fetchClientCredentialsToken(
+	orgID string,
+	authCfg config.AuthServerConfig,
+	scope string,
+) (string, error) {
 	clientID, clientSecret := authCfg.ClientID, authCfg.ClientSecret
 	if servicecreds.Enabled() {
 		// FetchToken carries no context of its own, and this is a primary-key read that
@@ -386,7 +390,9 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 }
 
 // FetchApplicationIdentifier fetches the application ID for a given application identifier (clientId or issuer)
-func (c *IdentityClient) FetchApplicationIdentifier(applicationIdentifier, orgHandle string) (idpModel.ApplicationsListResponse, error) {
+func (c *IdentityClient) FetchApplicationIdentifier(
+	applicationIdentifier, orgHandle string,
+) (idpModel.ApplicationsListResponse, error) {
 	logger := log.GetLogger()
 	var result idpModel.ApplicationsListResponse
 	filter := fmt.Sprintf(`clientId eq %s or issuer eq %s`, applicationIdentifier, applicationIdentifier)
@@ -533,7 +539,8 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 			c.orgAPIPathPrefix(orgHandle)+authConfig.IntrospectionEndPoint)
 		form.Set("appTenant", "carbon.super")
 	} else {
-		// It is possible to introspect any token against super tenant introspection endpoint and super tenant client credentials
+		// Any token can be introspected at the super tenant's introspection endpoint
+		// with super tenant client credentials.
 		introspectionEndpoint, err = orgEndpoint(c.BaseURL, "carbon.super",
 			"/t/carbon.super"+authConfig.IntrospectionEndPoint)
 	}
@@ -762,7 +769,14 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgID string) ([]map[stri
 	token, err := c.FetchToken(orgID)
 	logger := log.GetLogger()
 	if err != nil {
-		logger.Debug(fmt.Sprintf("Failed to get token for fetching the claims of dialectID:%s of the organization:%s", dialectID, orgID), log.Error(err))
+		logger.Debug(
+			fmt.Sprintf(
+				"Failed to get token for fetching the claims of dialectID:%s of the organization:%s",
+				dialectID,
+				orgID,
+			),
+			log.Error(err),
+		)
 		return nil, err
 	}
 	authCfg := config.GetCDSRuntime().Config.AuthServer
@@ -788,7 +802,11 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgID string) ([]map[stri
 	body, _ := io.ReadAll(resp.Body)
 	err = json.Unmarshal(body, &claims)
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to parse claims response for dialectID:%s of the organization:%s", dialectID, orgID)
+		errMsg := fmt.Sprintf(
+			"Failed to parse claims response for dialectID:%s of the organization:%s",
+			dialectID,
+			orgID,
+		)
 		logger.Debug(errMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetDialectClaims.Code,
@@ -801,7 +819,11 @@ func (c *IdentityClient) GetClaimsByDialect(dialectID, orgID string) ([]map[stri
 
 // GetLocalClaimsMap returns the local claims of an org, keyed by claim URI.
 func (c *IdentityClient) GetLocalClaimsMap(orgID string) (map[string]map[string]interface{}, error) {
-	endpoint, err := orgEndpoint(c.BaseURL, orgID, c.orgAPIPathPrefix(orgID)+"/api/server/v1/claim-dialects/local/claims")
+	endpoint, err := orgEndpoint(
+		c.BaseURL,
+		orgID,
+		c.orgAPIPathPrefix(orgID)+"/api/server/v1/claim-dialects/local/claims",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +858,11 @@ func (c *IdentityClient) GetLocalClaimsMap(orgID string) (map[string]map[string]
 	var claims []map[string]interface{}
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		errorMsg := fmt.Sprintf("Failed to fetch local claims, status code: %d, response: %s", resp.StatusCode, string(body))
+		errorMsg := fmt.Sprintf(
+			"Failed to fetch local claims, status code: %d, response: %s",
+			resp.StatusCode,
+			string(body),
+		)
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetLocalClaimsFailed.Code,
@@ -895,7 +921,9 @@ func ConvertSCIMClaimWithLocal(
 		for _, p := range props {
 			prop, ok := p.(map[string]interface{})
 			if !ok {
-				log.GetLogger().Debug(fmt.Sprintf("GetProfileSchema: skipping non-map property entry (type=%T) for org=%s", p, orgID))
+				log.GetLogger().
+					Debug(fmt.Sprintf("GetProfileSchema: skipping non-map property entry (type=%T) for org=%s",
+						p, orgID))
 				continue
 			}
 			if prop["key"] == "multiValued" && prop["value"] == "true" {

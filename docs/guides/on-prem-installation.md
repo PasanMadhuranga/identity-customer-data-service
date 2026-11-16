@@ -204,17 +204,12 @@ from there and needs no file.
 │   ├── database/                   the inbuilt database, when one is used
 │   ├── dbscripts/                  DDL for an external database
 │   └── resources/security/         the TLS material
-├── bin/
-│   └── update_tool_setup.sh        in packs from wso2.com, for the WSO2 update tool
 ├── updates/
 │   └── product.txt                 the update-service identity of this pack
 ├── version.txt
 ├── LICENSE.txt
 └── README.md
 ```
-
-`bin/` and `updates/` have to stay siblings at the pack root: the update tool
-setup script resolves `../updates/product.txt` relative to itself.
 
 ## Air-gapped installations
 

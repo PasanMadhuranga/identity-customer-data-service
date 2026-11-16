@@ -36,7 +36,7 @@ import (
 )
 
 // backendPID asks PostgreSQL which server process answered. Two queries that
-// report the same value travelled the same connection.
+// report the same value traveled the same connection.
 var backendPID = model.DBQuery{ID: "PROVIDER-IT-01", Query: "SELECT pg_backend_pid() AS pid"}
 
 // providerPoolLimit is the open limit this suite configures. It is small, so
@@ -45,10 +45,10 @@ const providerPoolLimit = 3
 
 // useProductionProvider points the runtime at the test container and takes the
 // test override away, so the DSN, the pool settings, the check before the
-// handle is published, the reuse of one pool and the shutdown all run. The rest of the suite installs the container's own handle with SetTestDB
+// handle is published, the reuse of one pool and the shutdown all run. The rest of the suite installs the container's
+// own handle with SetTestDB
 // and bypasses them.
 func useProductionProvider(t *testing.T) {
-
 	t.Helper()
 
 	if suiteDBType != database.TypePostgres || suitePostgres == nil {
@@ -85,7 +85,6 @@ func useProductionProvider(t *testing.T) {
 // queryBackendPID runs one statement and returns the server process that
 // answered it.
 func queryBackendPID(t *testing.T, dbClient client.DBClientInterface) string {
-
 	t.Helper()
 
 	rows, err := dbClient.ExecuteQueryContext(context.Background(), backendPID)
@@ -106,7 +105,6 @@ func queryBackendPID(t *testing.T, dbClient client.DBClientInterface) string {
 // for good. Nothing reopens a pool after shutdown, because the server does
 // not.
 func Test_ProductionProvider(t *testing.T) {
-
 	useProductionProvider(t)
 
 	// The configuration has to pass the same check the server runs at start.

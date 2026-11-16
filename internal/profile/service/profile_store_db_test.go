@@ -29,9 +29,9 @@ import (
 
 func TestProfileIDsByFilterAndRestriction(t *testing.T) {
 	env := newProfileEnv(t)
-	first, err := env.svc.CreateProfile(env.ctx, profileModel.ProfileRequest{UserId: "u-1"}, env.orgID)
+	first, err := env.svc.CreateProfile(env.ctx, profileModel.ProfileRequest{UserID: "u-1"}, env.orgID)
 	require.NoError(t, err)
-	second, err := env.svc.CreateProfile(env.ctx, profileModel.ProfileRequest{UserId: "u-2"}, env.orgID)
+	second, err := env.svc.CreateProfile(env.ctx, profileModel.ProfileRequest{UserID: "u-2"}, env.orgID)
 	require.NoError(t, err)
 
 	ids := func(filters, restrictTo []string) []string {
@@ -40,14 +40,14 @@ func TestProfileIDsByFilterAndRestriction(t *testing.T) {
 		return got
 	}
 
-	assert.ElementsMatch(t, []string{first.ProfileId, second.ProfileId}, ids(nil, nil), "no filter lists every master")
-	assert.ElementsMatch(t, []string{first.ProfileId}, ids([]string{"user_id eq u-1"}, nil))
-	assert.ElementsMatch(t, []string{second.ProfileId}, ids([]string{"profile_id eq " + second.ProfileId}, nil))
+	assert.ElementsMatch(t, []string{first.ProfileID, second.ProfileID}, ids(nil, nil), "no filter lists every master")
+	assert.ElementsMatch(t, []string{first.ProfileID}, ids([]string{"user_id eq u-1"}, nil))
+	assert.ElementsMatch(t, []string{second.ProfileID}, ids([]string{"profile_id eq " + second.ProfileID}, nil))
 	assert.Empty(t, ids([]string{"user_id eq nobody"}, nil))
-	assert.ElementsMatch(t, []string{second.ProfileId}, ids(nil, []string{second.ProfileId}),
+	assert.ElementsMatch(t, []string{second.ProfileID}, ids(nil, []string{second.ProfileID}),
 		"the result is limited to the profiles it is restricted to")
-	assert.Empty(t, ids([]string{"user_id eq u-1"}, []string{second.ProfileId}))
-	assert.ElementsMatch(t, []string{first.ProfileId, second.ProfileId}, ids([]string{"malformed", "traits.city gt 5"},
+	assert.Empty(t, ids([]string{"user_id eq u-1"}, []string{second.ProfileID}))
+	assert.ElementsMatch(t, []string{first.ProfileID, second.ProfileID}, ids([]string{"malformed", "traits.city gt 5"},
 		nil),
 		"a condition the builder cannot read is left out")
 }
@@ -81,16 +81,16 @@ func TestMergedMasterDataIsWrittenToTheMaster(t *testing.T) {
 	}, env.orgID)
 	require.NoError(t, err)
 
-	require.NoError(t, profileStore.InsertMergedMasterProfileTraitData(env.ctx, master.ProfileId, env.orgID,
+	require.NoError(t, profileStore.InsertMergedMasterProfileTraitData(env.ctx, master.ProfileID, env.orgID,
 		map[string]interface{}{"city": "Kandy", "tier": "gold"}))
-	require.NoError(t, profileStore.MergeIdentityDataOfProfiles(env.ctx, master.ProfileId, env.orgID,
+	require.NoError(t, profileStore.MergeIdentityDataOfProfiles(env.ctx, master.ProfileID, env.orgID,
 		map[string]interface{}{"email": "a@b.c"}))
-	require.NoError(t, profileStore.InsertMergedMasterProfileAppData(env.ctx, master.ProfileId, env.orgID,
-		profileModel.ApplicationData{AppId: "app-1", AppSpecificData: map[string]interface{}{"lang": "en"}}))
-	require.NoError(t, profileStore.InsertMergedMasterProfileAppData(env.ctx, master.ProfileId, env.orgID,
-		profileModel.ApplicationData{AppId: "app-2", AppSpecificData: map[string]interface{}{"theme": "light"}}))
+	require.NoError(t, profileStore.InsertMergedMasterProfileAppData(env.ctx, master.ProfileID, env.orgID,
+		profileModel.ApplicationData{AppID: "app-1", AppSpecificData: map[string]interface{}{"lang": "en"}}))
+	require.NoError(t, profileStore.InsertMergedMasterProfileAppData(env.ctx, master.ProfileID, env.orgID,
+		profileModel.ApplicationData{AppID: "app-2", AppSpecificData: map[string]interface{}{"theme": "light"}}))
 
-	stored, err := profileStore.GetProfile(env.ctx, master.ProfileId, env.orgID)
+	stored, err := profileStore.GetProfile(env.ctx, master.ProfileID, env.orgID)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{"city": "Kandy", "tier": "gold"}, stored.Traits, "the traits are replaced")
 	assert.Equal(t, "a@b.c", stored.IdentityAttributes["email"])
@@ -106,7 +106,7 @@ func TestMergedMasterWritesRefuseAnUnknownProfile(t *testing.T) {
 	assert.Error(t, profileStore.InsertMergedMasterProfileTraitData(env.ctx, "missing", env.orgID, nil))
 	assert.Error(t, profileStore.MergeIdentityDataOfProfiles(env.ctx, "missing", env.orgID, nil))
 	assert.Error(t, profileStore.InsertMergedMasterProfileAppData(env.ctx, "missing", env.orgID,
-		profileModel.ApplicationData{AppId: "app-1"}))
+		profileModel.ApplicationData{AppID: "app-1"}))
 }
 
 func TestProfilesAreRepointedAtAMasterAndDetached(t *testing.T) {
@@ -115,27 +115,27 @@ func TestProfilesAreRepointedAtAMasterAndDetached(t *testing.T) {
 	first := env.createWithCity(t, "Kandy")
 	second := env.createWithCity(t, "Galle")
 
-	require.NoError(t, profileStore.UpdateProfileReferences(env.ctx, profileModel.Profile{ProfileId: master.ProfileId},
-		[]profileModel.Reference{{ProfileId: first.ProfileId, Reason: "email"}, {ProfileId: second.ProfileId,
+	require.NoError(t, profileStore.UpdateProfileReferences(env.ctx, profileModel.Profile{ProfileID: master.ProfileID},
+		[]profileModel.Reference{{ProfileID: first.ProfileID, Reason: "email"}, {ProfileID: second.ProfileID,
 			Reason: "phone"}}))
 
-	children, err := profileStore.FetchReferencedProfiles(env.ctx, master.ProfileId)
+	children, err := profileStore.FetchReferencedProfiles(env.ctx, master.ProfileID)
 	require.NoError(t, err)
 	reasons := map[string]string{}
 	for _, child := range children {
-		reasons[child.ProfileId] = child.Reason
+		reasons[child.ProfileID] = child.Reason
 	}
-	assert.Equal(t, map[string]string{first.ProfileId: "email", second.ProfileId: "phone"}, reasons)
-	merged, err := env.svc.GetProfile(env.ctx, first.ProfileId, env.orgID)
+	assert.Equal(t, map[string]string{first.ProfileID: "email", second.ProfileID: "phone"}, reasons)
+	merged, err := env.svc.GetProfile(env.ctx, first.ProfileID, env.orgID)
 	require.NoError(t, err)
 	require.NotNil(t, merged.MergedTo)
-	assert.Equal(t, master.ProfileId, merged.MergedTo.ProfileId)
+	assert.Equal(t, master.ProfileID, merged.MergedTo.ProfileID)
 
-	require.NoError(t, profileStore.DetachRefererProfileFromReference(env.ctx, master.ProfileId, first.ProfileId))
-	children, err = profileStore.FetchReferencedProfiles(env.ctx, master.ProfileId)
+	require.NoError(t, profileStore.DetachRefererProfileFromReference(env.ctx, master.ProfileID, first.ProfileID))
+	children, err = profileStore.FetchReferencedProfiles(env.ctx, master.ProfileID)
 	require.NoError(t, err)
 	require.Len(t, children, 1)
-	assert.Equal(t, second.ProfileId, children[0].ProfileId)
+	assert.Equal(t, second.ProfileID, children[0].ProfileID)
 }
 
 func TestProfileApplicationDataIsReadInSeveralWays(t *testing.T) {
@@ -151,24 +151,24 @@ func TestProfileApplicationDataIsReadInSeveralWays(t *testing.T) {
 	require.NoError(t, err)
 	without := env.createWithCity(t, "Colombo")
 
-	withData, err := profileStore.GetProfileWithOptions(env.ctx, withApps.ProfileId, env.orgID,
+	withData, err := profileStore.GetProfileWithOptions(env.ctx, withApps.ProfileID, env.orgID,
 		profileStore.GetProfileOptions{IncludeApplicationData: true})
 	require.NoError(t, err)
 	assert.Len(t, withData.ApplicationData, 2)
-	withoutData, err := profileStore.GetProfileWithOptions(env.ctx, withApps.ProfileId, env.orgID,
+	withoutData, err := profileStore.GetProfileWithOptions(env.ctx, withApps.ProfileID, env.orgID,
 		profileStore.GetProfileOptions{IncludeApplicationData: false})
 	require.NoError(t, err)
 	assert.Empty(t, withoutData.ApplicationData, "the data of the applications is read only when asked for")
 
-	one, err := profileStore.FetchApplicationDataWithAppId(env.ctx, withApps.ProfileId, "app-2")
+	one, err := profileStore.FetchApplicationDataWithAppID(env.ctx, withApps.ProfileID, "app-2")
 	require.NoError(t, err)
-	assert.Equal(t, "app-2", one.AppId)
+	assert.Equal(t, "app-2", one.AppID)
 	assert.Equal(t, "light", one.AppSpecificData["theme"])
 
-	batch, err := profileStore.FetchApplicationDataBatch(env.ctx, []string{withApps.ProfileId, without.ProfileId})
+	batch, err := profileStore.FetchApplicationDataBatch(env.ctx, []string{withApps.ProfileID, without.ProfileID})
 	require.NoError(t, err)
-	assert.Len(t, batch[withApps.ProfileId], 2)
-	assert.Empty(t, batch[without.ProfileId])
+	assert.Len(t, batch[withApps.ProfileID], 2)
+	assert.Empty(t, batch[without.ProfileID])
 	empty, err := profileStore.FetchApplicationDataBatch(env.ctx, nil)
 	require.NoError(t, err)
 	assert.Empty(t, empty)
@@ -176,18 +176,18 @@ func TestProfileApplicationDataIsReadInSeveralWays(t *testing.T) {
 
 func TestAProfileIsFoundByItsUserID(t *testing.T) {
 	env := newProfileEnv(t)
-	created, err := env.svc.CreateProfile(env.ctx, profileModel.ProfileRequest{UserId: "u-1"}, env.orgID)
+	created, err := env.svc.CreateProfile(env.ctx, profileModel.ProfileRequest{UserID: "u-1"}, env.orgID)
 	require.NoError(t, err)
 
-	found, err := profileStore.GetProfileWithUserId(env.ctx, "u-1", env.orgID)
+	found, err := profileStore.GetProfileWithUserID(env.ctx, "u-1", env.orgID)
 	require.NoError(t, err)
 	require.NotNil(t, found)
-	assert.Equal(t, created.ProfileId, found.ProfileId)
+	assert.Equal(t, created.ProfileID, found.ProfileID)
 
-	none, err := profileStore.GetProfileWithUserId(env.ctx, "nobody", env.orgID)
+	none, err := profileStore.GetProfileWithUserID(env.ctx, "nobody", env.orgID)
 	require.NoError(t, err)
 	assert.Nil(t, none)
-	otherOrg, err := profileStore.GetProfileWithUserId(env.ctx, "u-1", "another-org")
+	otherOrg, err := profileStore.GetProfileWithUserID(env.ctx, "u-1", "another-org")
 	require.NoError(t, err)
 	assert.Nil(t, otherOrg)
 }

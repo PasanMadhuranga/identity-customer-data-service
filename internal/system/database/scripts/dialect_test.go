@@ -26,17 +26,18 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/database"
 )
 
-func Test_newQuery(t *testing.T) {
+const selectOne = "SELECT 1"
 
+func Test_newQuery(t *testing.T) {
 	t.Run("without an override both dialects share the statement", func(t *testing.T) {
-		query := newQuery("CDS-TST-01", `SELECT 1`)
+		query := newQuery("CDS-TST-01", selectOne)
 		if query.ID != "CDS-TST-01" {
 			t.Fatalf("unexpected id: %q", query.ID)
 		}
-		if statement := query.GetQuery(database.TypePostgres); statement != `SELECT 1` {
+		if statement := query.GetQuery(database.TypePostgres); statement != selectOne {
 			t.Fatalf("unexpected PostgreSQL statement: %q", statement)
 		}
-		if statement := query.GetQuery(database.TypeSQLite); statement != `SELECT 1` {
+		if statement := query.GetQuery(database.TypeSQLite); statement != selectOne {
 			t.Fatalf("unexpected SQLite statement: %q", statement)
 		}
 	})
@@ -52,22 +53,21 @@ func Test_newQuery(t *testing.T) {
 	})
 
 	t.Run("an empty override falls back to the base statement", func(t *testing.T) {
-		query := newQuery("CDS-TST-03", `SELECT 1`, "")
-		if statement := query.GetQuery(database.TypeSQLite); statement != `SELECT 1` {
+		query := newQuery("CDS-TST-03", selectOne, "")
+		if statement := query.GetQuery(database.TypeSQLite); statement != selectOne {
 			t.Fatalf("unexpected SQLite statement: %q", statement)
 		}
 	})
 
-	t.Run("an unrecognised dialect falls back to the base statement", func(t *testing.T) {
-		query := newQuery("CDS-TST-04", `SELECT 1`, `SELECT 2`)
-		if statement := query.GetQuery("mysql"); statement != `SELECT 1` {
+	t.Run("an unrecognized dialect falls back to the base statement", func(t *testing.T) {
+		query := newQuery("CDS-TST-04", selectOne, `SELECT 2`)
+		if statement := query.GetQuery("mysql"); statement != selectOne {
 			t.Fatalf("expected the PostgreSQL statement, got %q", statement)
 		}
 	})
 }
 
 func Test_LikeOperator(t *testing.T) {
-
 	if operator := LikeOperator(database.TypeSQLite); operator != "LIKE" {
 		t.Errorf("expected LIKE for the inbuilt database, got %q", operator)
 	}
@@ -77,7 +77,6 @@ func Test_LikeOperator(t *testing.T) {
 }
 
 func Test_ValidateJSONKey(t *testing.T) {
-
 	valid := []string{"email", "app_specific_data", "ui.mode", "a-b", "A1"}
 	for _, key := range valid {
 		if err := ValidateJSONKey(key); err != nil {
@@ -94,7 +93,6 @@ func Test_ValidateJSONKey(t *testing.T) {
 }
 
 func Test_JSONEqCondition(t *testing.T) {
-
 	t.Run("sqlite extracts the value and binds it directly", func(t *testing.T) {
 		condition, arg, err := JSONEqCondition(database.TypeSQLite, "p.traits", []string{"email"}, "a@b.com", 3)
 		if err != nil {
@@ -145,7 +143,9 @@ func Test_JSONEqCondition(t *testing.T) {
 
 	t.Run("an invalid key is rejected", func(t *testing.T) {
 		for _, dbType := range []string{database.TypeSQLite, database.TypePostgres} {
-			if _, _, err := JSONEqCondition(dbType, "p.traits", []string{`e"; DROP TABLE profiles; --`}, "x", 1); err == nil {
+			if _, _, err := JSONEqCondition(
+				dbType, "p.traits", []string{`e"; DROP TABLE profiles; --`}, "x", 1,
+			); err == nil {
 				t.Errorf("expected an error for %s", dbType)
 			}
 		}
@@ -159,7 +159,6 @@ func Test_JSONEqCondition(t *testing.T) {
 }
 
 func Test_JSONLikeCondition(t *testing.T) {
-
 	t.Run("sqlite", func(t *testing.T) {
 		condition, err := JSONLikeCondition(database.TypeSQLite, "a.application_data",
 			[]string{"app_specific_data", "email"}, 4)
@@ -192,7 +191,6 @@ func Test_JSONLikeCondition(t *testing.T) {
 }
 
 func Test_KeysetCondition(t *testing.T) {
-
 	if actual := KeysetCondition(database.TypeSQLite, "<", 2, 3); actual !=
 		`(p.created_at, p.profile_id) < ($2, $3)` {
 		t.Errorf("unexpected SQLite condition: %q", actual)
@@ -204,7 +202,6 @@ func Test_KeysetCondition(t *testing.T) {
 }
 
 func Test_EncodeStringArray(t *testing.T) {
-
 	t.Run("sqlite stores a JSON array", func(t *testing.T) {
 		if encoded := EncodeStringArray(database.TypeSQLite, []string{"a", "b"}); encoded != `["a","b"]` {
 			t.Errorf("expected a JSON array, got %#v", encoded)
@@ -231,7 +228,6 @@ func Test_EncodeStringArray(t *testing.T) {
 }
 
 func Test_DecodeStringArray(t *testing.T) {
-
 	testCases := []struct {
 		name     string
 		raw      interface{}
@@ -262,7 +258,6 @@ func Test_DecodeStringArray(t *testing.T) {
 // Test_EncodeDecodeStringArrayRoundTrip checks that what is stored is what is
 // read back.
 func Test_EncodeDecodeStringArrayRoundTrip(t *testing.T) {
-
 	values := []string{"crm", "marketing-tool", "a,b"}
 
 	encoded, ok := EncodeStringArray(database.TypeSQLite, values).(string)

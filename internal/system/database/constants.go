@@ -46,7 +46,6 @@ var SupportedTypes = []string{TypePostgres, TypeSQLite}
 // DefaultType. The returned value may still be unsupported, which
 // IsSupportedType reports on.
 func ResolveType(dbType string) string {
-
 	normalized := strings.ToLower(strings.TrimSpace(dbType))
 	if normalized == "" {
 		return DefaultType
@@ -56,7 +55,6 @@ func ResolveType(dbType string) string {
 
 // IsSupportedType reports whether dbType is a datasource CDS can run on.
 func IsSupportedType(dbType string) bool {
-
 	for _, supported := range SupportedTypes {
 		if dbType == supported {
 			return true
@@ -90,7 +88,7 @@ const (
 	DefaultSQLiteOptions = "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)" +
 		"&_txlock=immediate&_time_format=sqlite&_timezone=UTC&_texttotime=true"
 
-	// DefaultSQLiteMaxOpenConns bounds the connection pool. SQLite serialises
+	// DefaultSQLiteMaxOpenConns bounds the connection pool. SQLite serializes
 	// writers, so a small pool avoids lock contention.
 	DefaultSQLiteMaxOpenConns = 4
 )

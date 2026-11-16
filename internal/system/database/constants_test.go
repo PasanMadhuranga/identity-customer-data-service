@@ -21,7 +21,6 @@ package database
 import "testing"
 
 func Test_ResolveType(t *testing.T) {
-
 	testCases := map[string]string{
 		"":          TypeSQLite,
 		"   ":       TypeSQLite,
@@ -39,10 +38,9 @@ func Test_ResolveType(t *testing.T) {
 }
 
 // Test_unsupportedTypeIsRejected records that normalization is not validation:
-// ResolveType passes an unrecognised value through, and the startup check is
+// ResolveType passes an unrecognized value through, and the startup check is
 // what refuses to run on it.
 func Test_unsupportedTypeIsRejected(t *testing.T) {
-
 	if normalized := ResolveType(" MySQL "); normalized != "mysql" {
 		t.Errorf("ResolveType(%q) = %q, expected %q", " MySQL ", normalized, "mysql")
 	}

@@ -16,21 +16,27 @@
  * under the License.
  */
 
+// Package config defines the CDS configuration and holds the configuration of the running server.
 package config
 
+// AddrConfig is the address the server listens on.
 type AddrConfig struct {
 	Port int    `yaml:"port"`
 	Host string `yaml:"host"`
 }
 
+// LogConfig holds the logging settings.
 type LogConfig struct {
 	LogLevel string `yaml:"log_level"`
 }
 
+// AuthConfig holds the settings for cross-origin requests.
 type AuthConfig struct {
 	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
+// AuthServerConfig holds the identity server endpoints and credentials CDS uses, and the scopes each
+// operation requires.
 type AuthServerConfig struct {
 	Host                      string              `yaml:"host"`
 	Port                      string              `yaml:"port"`
@@ -42,7 +48,7 @@ type AuthServerConfig struct {
 	ClaimEndpoint             string              `yaml:"claim_endpoint"`
 	ClientID                  string              `yaml:"client_id"`
 	ClientSecret              string              `yaml:"client_secret"`
-	IntrospectionClientId     string              `yaml:"introspection_client_id"`
+	IntrospectionClientID     string              `yaml:"introspection_client_id"`
 	IntrospectionClientSecret string              `yaml:"introspection_client_secret"`
 	AdminUsername             string              `yaml:"admin_username"`
 	AdminPassword             string              `yaml:"admin_password"`
@@ -144,13 +150,14 @@ const (
 	ApplicationIdentifierTypeAppID    = "app_id"
 )
 
+// Config is the server configuration read from the deployment file.
 type Config struct {
 	Addr         AddrConfig         `yaml:"addr"`
 	ServerURL    string             `yaml:"server_url"`
 	Log          LogConfig          `yaml:"log"`
 	Auth         AuthConfig         `yaml:"auth"`
 	AuthServer   AuthServerConfig   `yaml:"auth_server"`
-	IdP          IdPConfig          `yaml:"idp"`
+	IDP          IDPConfig          `yaml:"idp"`
 	DataSource   DataSourceConfig   `yaml:"datasource"`
 	TLS          TLSConfig          `yaml:"tls"`
 	Cleanup      CleanupConfig      `yaml:"cleanup"`
@@ -164,8 +171,8 @@ type Config struct {
 	IdentityResolution IdentityResolutionConfig `yaml:"identity_resolution"`
 }
 
-// IdPConfig selects the identity provider of the deployment.
-type IdPConfig struct {
+// IDPConfig selects the identity provider of the deployment.
+type IDPConfig struct {
 	// Type is "wso2is", the default when it is empty.
 	Type string `yaml:"type"`
 	// ServiceCredentials governs the credentials CDS calls the identity
@@ -220,7 +227,7 @@ type IdentityResolutionConfig struct {
 	//
 	// Off by default, including for a deployment.yaml written before the key existed. An
 	// upgrade therefore keeps matching exactly as it did, and an operator turns tolerant
-	// matching on when the organisation is ready for it rather than finding that an
+	// matching on when the organization is ready for it rather than finding that an
 	// upgrade changed which profiles get unified.
 	//
 	// While off, new fuzzy rules are refused, the options endpoint stops offering the
@@ -245,6 +252,7 @@ func (c Config) UsesAppIDIdentifier() bool {
 	return c.ApplicationIdentifierType == ApplicationIdentifierTypeAppID
 }
 
+// TLSConfig holds the certificates of the server and whether mutual TLS is on.
 type TLSConfig struct {
 	MTLSEnabled             bool   `yaml:"mtls_enabled"`
 	CertDir                 string `yaml:"cert_dir"`
@@ -254,10 +262,12 @@ type TLSConfig struct {
 	TrustStore              string `yaml:"trust_store"`
 }
 
+// CleanupConfig holds the settings of the background cleanup jobs.
 type CleanupConfig struct {
 	Cookie CookieCleanupConfig `yaml:"cookie"`
 }
 
+// CookieCleanupConfig controls the job that deletes inactive cookies. Interval is in seconds.
 type CookieCleanupConfig struct {
 	Enabled   bool `yaml:"enabled"`
 	Interval  int  `yaml:"interval"` // in seconds

@@ -39,6 +39,8 @@ import (
 	urService "github.com/wso2/identity-customer-data-service/internal/unification_rules/service"
 )
 
+// ResolveProfileAsync looks for profiles that match the profile under the organization's active unification
+// rules, and merges them or raises review tasks. It logs failures rather than returning them.
 func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel.Profile) {
 	logger := log.GetLogger()
 

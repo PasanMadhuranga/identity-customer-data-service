@@ -272,7 +272,7 @@ func TestIsValidType(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, isValidType(tc.value, tc.valueType, tc.multiValued, nil))
+			assert.Equal(t, tc.want, isValidType(tc.value, tc.valueType, tc.multiValued))
 		})
 	}
 }

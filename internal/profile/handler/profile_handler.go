@@ -1087,6 +1087,8 @@ func (ph *ProfileHandler) PatchCurrentUserProfile(w http.ResponseWriter, r *http
 	}
 }
 
+// SyncProfile handles a user change sent by the identity server with the admin credentials, and applies it to
+// the profile of that user.
 func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.Request) {
 	ctx := request.Context()
 

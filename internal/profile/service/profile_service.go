@@ -350,7 +350,7 @@ func validateAttributeValueAgainstSchema(attr model.ProfileSchemaAttribute, val,
 		}
 	}
 
-	if !isValidType(val, attr.ValueType, attr.MultiValued, nil) {
+	if !isValidType(val, attr.ValueType, attr.MultiValued) {
 		return errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.UpdateProfile.Code,
 			Message:     errors2.UpdateProfile.Message,
@@ -669,7 +669,7 @@ func hasExistingValue(v interface{}) bool {
 	return true
 }
 
-func isValidType(value interface{}, expected string, multiValued bool, subAttrs []model.ProfileSchemaAttribute) bool {
+func isValidType(value interface{}, expected string, multiValued bool) bool {
 	log.GetLogger().Info("Validating value type", log.String("expected", expected), log.Any("value", value))
 	switch expected {
 	case constants.StringDataType:

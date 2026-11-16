@@ -29,6 +29,7 @@ import (
 
 const maxMetaphoneLen = constants.MaxMetaphoneLen
 
+// DoubleMetaphone returns the primary and alternate Double Metaphone codes of s, from its letters only.
 func DoubleMetaphone(s string) (primary, alternate string) {
 	// Normalize: uppercase, strip non-alpha
 	var letters []byte

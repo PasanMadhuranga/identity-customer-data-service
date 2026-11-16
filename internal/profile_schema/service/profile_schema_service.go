@@ -496,6 +496,8 @@ func (s *ProfileSchemaService) GetProfileSchemaAttributesByScope(ctx context.Con
 	return schemaAttributes, nil
 }
 
+// UpdateProfileSchemaAttributeByID applies the updates to a schema attribute the organization owns. Sub
+// organizations cannot update attributes.
 func (s *ProfileSchemaService) UpdateProfileSchemaAttributeByID(ctx context.Context,
 	orgID string, attributeID string, updates map[string]interface{}, scope string) error {
 	if err := suborg.RejectWrite(ctx, orgID); err != nil {

@@ -99,6 +99,7 @@ func (s *IdentityResolutionService) GetPendingReviewTasksByProfile(
 	}, nil
 }
 
+// ResolveReviewTask approves or rejects a review task of the organization, recording who resolved it and why.
 func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID string, taskID string,
 	approved bool, resolvedBy string, notes string) error {
 	logger := log.GetLogger()

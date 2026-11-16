@@ -17,14 +17,14 @@ import (
 )
 
 // createAttr is a helper to quickly generate a schema attribute.
-func createAttr(org, name, mut string) model.ProfileSchemaAttribute {
+func createAttr(org, name string) model.ProfileSchemaAttribute {
 	return model.ProfileSchemaAttribute{
 		OrgID:                 org,
 		AttributeID:           uuid.New().String(),
 		AttributeName:         name,
 		ValueType:             constants.StringDataType,
 		MergeStrategy:         "combine",
-		Mutability:            mut,
+		Mutability:            constants.MutabilityReadWrite,
 		ApplicationIdentifier: "",
 	}
 }
@@ -45,12 +45,10 @@ func Test_ProfileSchemaService(t *testing.T) {
 				createAttr(
 					SuperTenantOrg.ID,
 					"identity_attributes.email",
-					constants.MutabilityReadWrite,
 				),
 				createAttr(
 					SuperTenantOrg.ID,
 					"identity_attributes.phone",
-					constants.MutabilityReadWrite,
 				),
 			}
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -114,7 +112,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"invalidscope.email",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -130,7 +127,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.email",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -146,7 +142,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"application_data.email",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -276,7 +271,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment.card.type.extra",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -297,7 +291,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment.card.type",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -319,7 +312,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			subAttr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -412,7 +404,7 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 		t.Run("Add_MaxDepthHierarchy_ShouldSucceed", func(t *testing.T) {
 			// 1️ Level 4 leaf
-			l4 := createAttr(SuperTenantOrg.ID, "traits.orders.payment.card.type", constants.MutabilityReadWrite)
+			l4 := createAttr(SuperTenantOrg.ID, "traits.orders.payment.card.type")
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
 				[]model.ProfileSchemaAttribute{l4},
@@ -491,12 +483,10 @@ func Test_ProfileSchemaService(t *testing.T) {
 			createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.email",
-				constants.MutabilityReadWrite,
 			),
 			createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.phone",
-				constants.MutabilityReadWrite,
 			),
 		}
 		_, _ = svc.AddProfileSchemaAttributesForScope(
@@ -553,7 +543,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.phone_number",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
@@ -588,7 +577,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.temp_field",
-				constants.MutabilityReadWrite,
 			)
 			attr.AttributeID = attrID
 
@@ -624,7 +612,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.to_delete",
-				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),

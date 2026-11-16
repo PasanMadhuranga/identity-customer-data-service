@@ -135,6 +135,7 @@ Actions → **CDS Release Builder** → Run workflow.
 | `branch` | `main` | Releasing a maintenance version from a release branch. |
 | `commit_version_bump` | `true` | Set `false` to release without moving the branch. |
 | `prerelease` | `true` | Marks the GitHub release as a pre-release. Untick for a release. |
+| `change_list` | `true` | Lists the merged pull requests on the release page. Untick for a first release, which has no previous one to list changes from. |
 
 `version`, `bump_type` and `use_existing_version` are mutually exclusive, in that order of precedence.
 

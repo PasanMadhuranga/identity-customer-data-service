@@ -66,6 +66,11 @@ on:
         required: false
         default: true
         type: boolean
+      change_list:
+        description: 'List the merged pull requests on the release page. Untick for a first release.'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -239,6 +244,7 @@ jobs:
       # release action append it, is what lets the change list sit between the
       # installation instructions and the licence instead of at the end.
       - name: 📝 Generate the change list
+        if: ${{ inputs.change_list }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -255,6 +261,8 @@ jobs:
       # contains cannot drift from what it contains.
       - name: 📝 Write the release notes
         run: |
+          # target/changelog.md is absent when the change list is left out, and the
+          # script then writes the page without one.
           distribution/release-notes.sh target/dist "${{ steps.version.outputs.version }}" \
             --changelog target/changelog.md > target/release-notes.md
           cat target/release-notes.md >> "$GITHUB_STEP_SUMMARY"

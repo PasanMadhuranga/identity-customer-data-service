@@ -155,7 +155,7 @@ installer resolves the right pack for it:
 \`\`\`
 
 Both paths end at the same installation. See
-[CDS on-premises](https://github.com/$REPO/blob/$VERSION/docs/on-prem/index.md).
+the [installation guide](https://github.com/$REPO/blob/$VERSION/docs/guides/on-prem-installation.md).
 
 The Identity Server's side of the integration — the CDS extension bundles and
 the CDS Console — is delivered with the Identity Server rather than with this
@@ -167,6 +167,51 @@ if [ -n "$CHANGELOG" ] && [ -s "$CHANGELOG" ]; then
   echo
   cat "$CHANGELOG"
 fi
+
+# --- Documentation, contributing, reporting ------------------------------ #
+cat <<MORE
+
+## Documentation
+
+The documentation for this version is in the [docs](https://github.com/$REPO/tree/$VERSION/docs)
+folder of the repository, and the API is described in
+[\`api/customer-data-service.yaml\`](https://github.com/$REPO/blob/$VERSION/api/customer-data-service.yaml).
+
+## Contribute to WSO2 Customer Data Service
+
+### Mailing Lists
+
+Join our mailing lists and correspond with the developers directly. We also
+encourage you to take part in discussions related to the product in the
+architecture mailing list. If you have any questions regarding the product you
+can use our StackOverflow forum to raise them as well.
+
+- IAM Developer List: iam-dev@wso2.org
+- User Forum: [StackOverflow](https://stackoverflow.com/)
+
+### Discord Channels
+
+Join us via [discord](https://discord.gg/wso2) for even better communication.
+You can talk to our developers directly regarding any issues, or concerns about
+the product. We encourage you to start discussions or join any ongoing
+discussions with the team, via our discord channels.
+
+- General discussions: [General Channel](https://discord.com/channels/955510916064092180/955512880562864128)
+- Help: [Help Channel](https://discord.com/channels/955510916064092180/1027230220727636008)
+- New releases: [Product Updates Channel](https://discord.com/channels/955510916064092180/1052557302454046780)
+
+## Reporting Issues
+
+We encourage you to report issues, improvements, and feature requests regarding
+WSO2 Customer Data Service through our public
+[GitHub Issues](https://github.com/$REPO/issues).
+
+**Important**: Please be advised that security issues must be reported to
+security@wso2.com, not as GitHub issues, in order to reach the proper audience.
+We strongly advise following the
+[WSO2 Security Vulnerability Reporting Guidelines](https://security.docs.wso2.com/en/latest/security-reporting/vulnerability-reporting-guidelines/)
+when reporting security issues.
+MORE
 
 # --- License --------------------------------------------------------------- #
 cat <<'LICENCE'

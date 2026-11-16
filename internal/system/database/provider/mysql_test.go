@@ -94,7 +94,7 @@ func Test_mysqlTLS(t *testing.T) {
 			t.Errorf("mysqlTLS(%q) = %q, %v; expected %q", sslMode, got, err, want)
 		}
 	}
-	if _, err := mysqlTLS("prefer"); err == nil {
+	if _, err := mysqlTLS(unsupportedSSLMode); err == nil {
 		t.Error("expected an error for an sslmode MySQL cannot honor")
 	}
 }
@@ -127,7 +127,7 @@ func Test_ValidateDataSource_mysql(t *testing.T) {
 	}
 
 	ds = mysqlDataSource()
-	ds.SSLMode = "prefer"
+	ds.SSLMode = unsupportedSSLMode
 	if err := ValidateDataSource(ds); err == nil {
 		t.Error("expected an unsupported sslmode to be refused")
 	}

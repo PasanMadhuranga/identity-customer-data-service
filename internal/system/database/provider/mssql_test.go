@@ -92,7 +92,7 @@ func Test_mssqlTLS(t *testing.T) {
 			t.Errorf("mssqlTLS(%q) = %q, %q, %v; expected %v", sslMode, encrypt, trust, err, want)
 		}
 	}
-	if _, _, err := mssqlTLS("prefer"); err == nil {
+	if _, _, err := mssqlTLS(unsupportedSSLMode); err == nil {
 		t.Error("expected an error for an sslmode SQL Server cannot honor")
 	}
 }
@@ -123,7 +123,7 @@ func Test_ValidateDataSource_mssql(t *testing.T) {
 	}
 
 	ds = mssqlDataSource()
-	ds.SSLMode = "prefer"
+	ds.SSLMode = unsupportedSSLMode
 	if err := ValidateDataSource(ds); err == nil {
 		t.Error("expected an unsupported sslmode to be refused")
 	}

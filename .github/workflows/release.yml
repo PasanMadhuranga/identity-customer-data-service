@@ -27,7 +27,7 @@
 # One revision produces every supported platform pack, so a release and the
 # updates later published from it carry executables built from the same code.
 
-name: 🚀 CDS Release Builder
+name: CDS Release Builder
 
 on:
   workflow_dispatch:

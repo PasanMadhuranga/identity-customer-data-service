@@ -125,7 +125,7 @@ Between releases, every build off `main` reports the same version. That is expec
 
 ## Inputs
 
-Actions → **🚀 CDS Release Builder** → Run workflow.
+Actions → **CDS Release Builder** → Run workflow.
 
 | Input | Default | Use it when |
 |---|---|---|

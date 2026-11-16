@@ -22,7 +22,7 @@ name: Update CI Pipeline Tag
 
 on:
   workflow_run:
-    workflows: ["🚀 CDS Release Builder"]
+    workflows: ["CDS Release Builder"]
     types: [completed]
 
   workflow_dispatch:

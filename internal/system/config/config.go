@@ -262,7 +262,8 @@ type Config struct {
 	Cleanup      CleanupConfig      `yaml:"cleanup"`
 	MessageQueue MessageQueueConfig `yaml:"message_queue"`
 	Shutdown     ShutdownConfig     `yaml:"shutdown"`
-	// ApplicationIdentifierType selects how applications are identified: "client_id" (default) or "app_id".
+	// ApplicationIdentifierType selects how applications are identified: "app_id", as the shipped
+	// configuration sets it, or "client_id", which is also what an unset value means.
 	ApplicationIdentifierType string `yaml:"application_identifier_type"`
 	// OrganizationManagement enables the organization tree, sub organization paths, and sharing.
 	OrganizationManagement OrganizationManagementConfig `yaml:"organization_management"`

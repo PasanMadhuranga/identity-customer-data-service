@@ -60,6 +60,7 @@ defaults already match a default Identity Server on the same host:
 | `server_url` | `https://localhost:8900` | the Identity Server reaches CDS by another name |
 | `tls.cert_dir` | `repository/resources/security` | the TLS material is mounted elsewhere |
 | `datasource` | the inbuilt database | in production — PostgreSQL |
+| `application_identifier_type` | `app_id` | the Console identifies applications by client ID; the two have to match |
 
 Credentials are not written into it; see [Secrets](#secrets).
 

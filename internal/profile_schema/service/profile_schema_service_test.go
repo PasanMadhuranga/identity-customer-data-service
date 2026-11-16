@@ -33,7 +33,7 @@ func sharedAttribute(id, owner, name, appID string) model.ProfileSchemaAttribute
 }
 
 func attributeIDs(attrs []model.ProfileSchemaAttribute) []string {
-	ids := []string{}
+	ids := make([]string, 0, len(attrs))
 	for _, attr := range attrs {
 		ids = append(ids, attr.AttributeID)
 	}

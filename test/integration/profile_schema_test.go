@@ -17,13 +17,13 @@ import (
 )
 
 // createAttr is a helper to quickly generate a schema attribute.
-func createAttr(org, name, merge, mut string) model.ProfileSchemaAttribute {
+func createAttr(org, name, mut string) model.ProfileSchemaAttribute {
 	return model.ProfileSchemaAttribute{
 		OrgID:                 org,
 		AttributeID:           uuid.New().String(),
 		AttributeName:         name,
 		ValueType:             constants.StringDataType,
-		MergeStrategy:         merge,
+		MergeStrategy:         "combine",
 		Mutability:            mut,
 		ApplicationIdentifier: "",
 	}
@@ -45,13 +45,11 @@ func Test_ProfileSchemaService(t *testing.T) {
 				createAttr(
 					SuperTenantOrg.ID,
 					"identity_attributes.email",
-					"combine",
 					constants.MutabilityReadWrite,
 				),
 				createAttr(
 					SuperTenantOrg.ID,
 					"identity_attributes.phone",
-					"combine",
 					constants.MutabilityReadWrite,
 				),
 			}
@@ -116,7 +114,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"invalidscope.email",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -133,7 +130,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.email",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -150,7 +146,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"application_data.email",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -281,7 +276,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment.card.type.extra",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -303,7 +297,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment.card.type",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -326,7 +319,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			subAttr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.orders.payment",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -420,7 +412,7 @@ func Test_ProfileSchemaService(t *testing.T) {
 
 		t.Run("Add_MaxDepthHierarchy_ShouldSucceed", func(t *testing.T) {
 			// 1️ Level 4 leaf
-			l4 := createAttr(SuperTenantOrg.ID, "traits.orders.payment.card.type", "combine", constants.MutabilityReadWrite)
+			l4 := createAttr(SuperTenantOrg.ID, "traits.orders.payment.card.type", constants.MutabilityReadWrite)
 			_, err := svc.AddProfileSchemaAttributesForScope(
 				context.Background(),
 				[]model.ProfileSchemaAttribute{l4},
@@ -499,13 +491,11 @@ func Test_ProfileSchemaService(t *testing.T) {
 			createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.email",
-				"combine",
 				constants.MutabilityReadWrite,
 			),
 			createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.phone",
-				"combine",
 				constants.MutabilityReadWrite,
 			),
 		}
@@ -563,7 +553,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.phone_number",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(
@@ -599,7 +588,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"identity_attributes.temp_field",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			attr.AttributeID = attrID
@@ -636,7 +624,6 @@ func Test_ProfileSchemaService(t *testing.T) {
 			attr := createAttr(
 				SuperTenantOrg.ID,
 				"traits.to_delete",
-				"combine",
 				constants.MutabilityReadWrite,
 			)
 			_, err := svc.AddProfileSchemaAttributesForScope(

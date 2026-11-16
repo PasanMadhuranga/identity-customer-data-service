@@ -31,14 +31,13 @@ import (
 	"strings"
 
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
-	customerrors "github.com/wso2/identity-customer-data-service/internal/system/errors" // Alias for the custom errors
-	error2 "github.com/wso2/identity-customer-data-service/internal/system/errors"       // Importing custom error types
+	error2 "github.com/wso2/identity-customer-data-service/internal/system/errors" // Importing custom error types
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
 // HandleError sends an HTTP error response based on the provided error
 func HandleError(w http.ResponseWriter, err error) {
-	var clientError *customerrors.ClientError
+	var clientError *error2.ClientError
 	w.Header().Set("Content-Type", "application/json")
 	if ok := errors.As(err, &clientError); ok {
 		w.WriteHeader(clientError.StatusCode)
@@ -54,7 +53,7 @@ func HandleError(w http.ResponseWriter, err error) {
 		return
 	}
 
-	var serverError *customerrors.ServerError
+	var serverError *error2.ServerError
 	if ok := errors.As(err, &serverError); ok {
 		logger := log.GetLogger()
 		logger.Error(err.Error())

@@ -306,7 +306,7 @@ func requiredScopesFromDeploymentConfig(t *testing.T) map[string][]string {
 	t.Helper()
 
 	path := filepath.Join(utils.GetTestHome(), "config", "repository", "conf", "deployment.yaml")
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(filepath.Clean(path))
 	require.NoError(t, err)
 
 	var deployment struct {

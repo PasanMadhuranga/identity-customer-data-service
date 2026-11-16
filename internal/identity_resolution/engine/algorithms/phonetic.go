@@ -174,7 +174,7 @@ func DoubleMetaphone(s string) (primary, alternate string) {
 			} else if stringAt(current+1, 3, "CIA") {
 				addBoth("X")
 				current += 3
-			} else if stringAt(current, 2, "CC") && !(current == 1 && charAt(0) == 'M') {
+			} else if stringAt(current, 2, "CC") && (current != 1 || charAt(0) != 'M') {
 				if stringAt(current+2, 1, "I", "E", "H") && !stringAt(current+2, 2, "HU") {
 					if (current == 1 && charAt(0) == 'A') || stringAt(current-1, 5, "UCCEE", "UCCES") {
 						addBoth("KS")
@@ -546,7 +546,7 @@ func DoubleMetaphone(s string) (primary, alternate string) {
 			}
 
 		case 'X':
-			if !(current == last && (stringAt(current-3, 3, "IAU", "EAU") || stringAt(current-2, 2, "AU", "OU"))) {
+			if current != last || (!stringAt(current-3, 3, "IAU", "EAU") && !stringAt(current-2, 2, "AU", "OU")) {
 				addBoth("KS")
 			}
 			if stringAt(current+1, 1, "C", "X") {

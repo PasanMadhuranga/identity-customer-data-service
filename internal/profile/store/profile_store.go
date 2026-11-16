@@ -2326,7 +2326,8 @@ func FindOldestReferenceProfileIDByAttributeValues(ctx context.Context, orgID, p
 	if err != nil {
 		return "", fmt.Errorf("build attribute profile lookup: %w", err)
 	}
-	args := []interface{}{orgID, excludedProfileID, incomingUserID}
+	args := make([]interface{}, 0, 3+len(matchArgs))
+	args = append(args, orgID, excludedProfileID, incomingUserID)
 	args = append(args, matchArgs...)
 	rows, err := dbClient.ExecuteQueryContext(ctx, query, args...)
 	if err != nil {

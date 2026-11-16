@@ -32,7 +32,7 @@ import (
 
 // CreateTablesFromFile runs the SQL statements of the file at path against db.
 func CreateTablesFromFile(db *sql.DB, path string) error {
-	schemaBytes, err := os.ReadFile(path)
+	schemaBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return fmt.Errorf("failed to read schema file: %w", err)
 	}

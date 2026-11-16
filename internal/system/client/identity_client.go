@@ -120,7 +120,7 @@ func newOutboundHTTPClient(tlsCfg config.TLSConfig) (*http.Client, error) {
 
 	if trustFile != "" {
 		trustPath := filepath.Join(certDir, trustFile)
-		trustPEM, err := os.ReadFile(trustPath)
+		trustPEM, err := os.ReadFile(filepath.Clean(trustPath))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read trust_store at %s: %w", trustPath, err)
 		}

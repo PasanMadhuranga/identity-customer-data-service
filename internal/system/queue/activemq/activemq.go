@@ -170,7 +170,7 @@ func (mc *managedConn) dial() error {
 					certDir = abs
 				}
 			}
-			trustPEM, readErr := os.ReadFile(filepath.Join(certDir, mc.tlsCfg.TrustStore))
+			trustPEM, readErr := os.ReadFile(filepath.Clean(filepath.Join(certDir, mc.tlsCfg.TrustStore)))
 			if readErr != nil {
 				return fmt.Errorf("activemq: failed to read trust_store: %w", readErr)
 			}

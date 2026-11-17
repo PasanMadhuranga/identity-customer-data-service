@@ -72,9 +72,9 @@ func ToAPIResponse(rule UnificationRule) UnificationRuleAPIResponse {
 }
 
 // UnificationRuleUpdateRequest is the request body for updating a unification rule. Only the fields that are
-// set are changed.
+// set are changed. rule_name and property_name are not here, so a request that sends either is rejected: a
+// merge records the rule name as its reason, and a rename would leave those records naming no rule.
 type UnificationRuleUpdateRequest struct {
-	RuleName          *string `json:"rule_name" bson:"rule_name"`
 	Priority          *int    `json:"priority" bson:"priority"`
 	IsActive          *bool   `json:"is_active" bson:"is_active"`
 	AttributeType     *string `json:"attribute_type" bson:"attribute_type"`

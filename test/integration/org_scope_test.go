@@ -106,7 +106,7 @@ func Test_OrgScope_API(t *testing.T) {
 
 		t.Run("Patch_other_org_rule_returns_not_found", func(t *testing.T) {
 			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodPatch, rulePath,
-				`{"rule_name":"Renamed","priority":77,"is_active":false}`, nil)
+				`{"priority":77,"is_active":false}`, nil)
 			assert.Equal(t, http.StatusNotFound, status, string(body))
 		})
 

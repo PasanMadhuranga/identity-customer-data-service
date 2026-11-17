@@ -360,10 +360,6 @@ func (urh *UnificationRulesHandler) PatchUnificationRule(w http.ResponseWriter, 
 
 	updatedRule := *oldRule
 
-	if ruleUpdateRequest.RuleName != nil {
-		updatedRule.RuleName = *ruleUpdateRequest.RuleName
-	}
-
 	if ruleUpdateRequest.Priority != nil {
 		updatedRule.Priority = *ruleUpdateRequest.Priority
 	}

@@ -245,10 +245,9 @@ func PatchUnificationRule(ctx context.Context, ruleID, orgID string, updatedRule
 	defer func() { _ = dbClient.Close() }()
 
 	query := scripts.UpdateUnificationRule
-	_, err = dbClient.ExecuteQueryContext(ctx, query, updatedRule.RuleName, updatedRule.Priority,
-		updatedRule.IsActive, updatedRule.AttributeType, updatedRule.UnificationMethod,
-		updatedRule.MatchStrength, updatedRule.MismatchStrength, time.Now().UTC(), ruleID,
-		orgID)
+	_, err = dbClient.ExecuteQueryContext(ctx, query, updatedRule.Priority, updatedRule.IsActive,
+		updatedRule.AttributeType, updatedRule.UnificationMethod, updatedRule.MatchStrength,
+		updatedRule.MismatchStrength, time.Now().UTC(), ruleID, orgID)
 
 	if err != nil {
 		errorMsg := fmt.Sprintf("Error occurred while updating unification rule for rule_id: %s", ruleID)

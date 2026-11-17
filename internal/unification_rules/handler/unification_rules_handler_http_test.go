@@ -320,16 +320,18 @@ func TestPatchUnificationRule(t *testing.T) {
 
 	t.Run("changes only the fields that are sent", func(t *testing.T) {
 		recorder := env.call(t, env.h.PatchUnificationRule, http.MethodPatch, env.auth.ValidToken,
-			`{"rule_name":"Town","priority":5}`, ids)
+			`{"priority":5}`, ids)
 
 		require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
 		patched := decodeRule(t, recorder)
-		assert.Equal(t, "Town", patched.RuleName)
+		assert.Equal(t, "City", patched.RuleName)
 		assert.Equal(t, 5, patched.Priority)
 		assert.Equal(t, "traits.city", patched.PropertyName)
 	})
 	refusals := map[string]string{
 		"an unknown field":          `{"color":"red"}`,
+		"a new rule name":           `{"rule_name":"Town"}`,
+		"a new property":            `{"property_name":"traits.phone"}`,
 		"malformed JSON":            `{"priority":`,
 		"an invalid attribute type": `{"attribute_type":"NOPE"}`,
 		"an invalid method":         `{"unification_method":"magic"}`,

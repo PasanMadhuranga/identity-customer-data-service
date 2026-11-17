@@ -216,11 +216,12 @@ var InsertUnificationRule = newQuery("CDS-UNR-04",
 			attribute_type, unification_method, match_strength, mismatch_strength, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`)
 
-// UpdateUnificationRule replaces the editable fields of a unification rule.
+// UpdateUnificationRule replaces the editable fields of a unification rule. The rule name is not editable,
+// because merges record it as the reason that two profiles were combined.
 var UpdateUnificationRule = newQuery("CDS-UNR-05",
-	`UPDATE unification_rules SET rule_name = $1, priority = $2, is_active = $3, attribute_type = $4,
-		 unification_method = $5, match_strength = $6, mismatch_strength = $7, updated_at = $8
-		 WHERE rule_id = $9 AND org_id = $10;`)
+	`UPDATE unification_rules SET priority = $1, is_active = $2, attribute_type = $3,
+		 unification_method = $4, match_strength = $5, mismatch_strength = $6, updated_at = $7
+		 WHERE rule_id = $8 AND org_id = $9;`)
 
 // InsertProfile stores a new profile. A profile whose ID already exists is left unchanged.
 var InsertProfile = newQuery("CDS-PRF-01",

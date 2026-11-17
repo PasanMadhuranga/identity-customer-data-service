@@ -89,12 +89,10 @@ func (client *DBClient) ExecuteQuery(query model.DBQuery, args ...interface{}) (
 // context covers the whole call.
 func (client *DBClient) ExecuteQueryContext(ctx context.Context, query model.DBQuery, args ...interface{}) (
 	[]map[string]interface{}, error) {
-	isSQLite := client.dbType == database.TypeSQLite
-	if isSQLite {
-		args = database.NormalizeSQLiteArgs(args)
+	sqlText, args, err := database.BindStatement(client.dbType, query.GetQuery(client.dbType), args)
+	if err != nil {
+		return nil, fmt.Errorf("query %s failed: %w", query.ID, err)
 	}
-
-	sqlText := query.GetQuery(client.dbType)
 
 	rows, err := client.db.QueryContext(ctx, sqlText, args...)
 	if err != nil {
@@ -108,7 +106,7 @@ func (client *DBClient) ExecuteQueryContext(ctx context.Context, query model.DBQ
 	}
 
 	var declaredTypes []string
-	if isSQLite {
+	if normalizesResults(client.dbType) {
 		columnTypes, err := rows.ColumnTypes()
 		if err != nil {
 			return nil, err
@@ -134,8 +132,8 @@ func (client *DBClient) ExecuteQueryContext(ctx context.Context, query model.DBQ
 		result := map[string]interface{}{}
 		for i, col := range columns {
 			value := row[i]
-			if isSQLite {
-				value = normalizeSQLiteValue(value, declaredTypes[i])
+			if declaredTypes != nil {
+				value = normalizeValue(client.dbType, value, declaredTypes[i], col)
 			}
 			// Normalize column names to lowercase for consistency.
 			result[strings.ToLower(col)] = value

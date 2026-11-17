@@ -34,6 +34,11 @@ type Tx struct {
 	dbType   string
 }
 
+// DBType returns the dialect of the connection the transaction belongs to.
+func (tx *Tx) DBType() string {
+	return tx.dbType
+}
+
 // NewTx wraps a transaction with the dialect of the connection it belongs to.
 func NewTx(tx *sql.Tx, dbType string) *Tx {
 	return &Tx{
@@ -56,11 +61,12 @@ func (t *Tx) Rollback() error {
 // context. The transaction carries no context of its own, so each statement
 // takes the one its caller is working under.
 func (t *Tx) ExecContext(ctx context.Context, query DBQuery, args ...interface{}) (sql.Result, error) {
-	if t.dbType == database.TypeSQLite {
-		args = database.NormalizeSQLiteArgs(args)
+	sqlText, args, err := database.BindStatement(t.dbType, query.GetQuery(t.dbType), args)
+	if err != nil {
+		return nil, fmt.Errorf("query %s failed: %w", query.ID, err)
 	}
 
-	result, err := t.internal.ExecContext(ctx, query.GetQuery(t.dbType), args...)
+	result, err := t.internal.ExecContext(ctx, sqlText, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query %s failed: %w", query.ID, err)
 	}
@@ -70,11 +76,12 @@ func (t *Tx) ExecContext(ctx context.Context, query DBQuery, args ...interface{}
 // QueryContext runs a statement that returns rows, under the caller's context.
 // The caller must close the rows.
 func (t *Tx) QueryContext(ctx context.Context, query DBQuery, args ...interface{}) (*sql.Rows, error) {
-	if t.dbType == database.TypeSQLite {
-		args = database.NormalizeSQLiteArgs(args)
+	sqlText, args, err := database.BindStatement(t.dbType, query.GetQuery(t.dbType), args)
+	if err != nil {
+		return nil, fmt.Errorf("query %s failed: %w", query.ID, err)
 	}
 
-	rows, err := t.internal.QueryContext(ctx, query.GetQuery(t.dbType), args...)
+	rows, err := t.internal.QueryContext(ctx, sqlText, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query %s failed: %w", query.ID, err)
 	}

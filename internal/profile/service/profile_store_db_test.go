@@ -52,6 +52,73 @@ func TestProfileIDsByFilterAndRestriction(t *testing.T) {
 		"a condition the builder cannot read is left out")
 }
 
+func TestProfileIDsMatchEveryFilterOperator(t *testing.T) {
+	env := newProfileEnv(t)
+	env.seedSchemaForApp(t, "app-1")
+	alice := env.create(t, profileModel.ProfileRequest{
+		UserID:          "alice-1",
+		Traits:          map[string]interface{}{"city": "Colombo"},
+		ApplicationData: map[string]interface{}{"app-1": map[string]interface{}{"theme": "dark"}},
+	})
+	bob := env.create(t, profileModel.ProfileRequest{
+		UserID:          "bob-2",
+		Traits:          map[string]interface{}{"city": "Kandy"},
+		ApplicationData: map[string]interface{}{"app-1": map[string]interface{}{"theme": "light"}},
+	})
+	carol := env.create(t, profileModel.ProfileRequest{
+		UserID:          "carol-3",
+		Traits:          map[string]interface{}{"city": "Colombo"},
+		ApplicationData: map[string]interface{}{"app-1": map[string]interface{}{"theme": "dark"}},
+	})
+
+	ids := func(filters ...string) []string {
+		got, err := profileStore.GetProfileIDsWithFilters(env.ctx, env.orgID, filters, nil)
+		require.NoError(t, err)
+		return got
+	}
+	colombo := []string{alice.ProfileID, carol.ProfileID}
+
+	assert.ElementsMatch(t, colombo, ids("traits.city eq Colombo"), "trait equality")
+	assert.ElementsMatch(t, colombo, ids("traits.city co olo"), "trait contains")
+	assert.ElementsMatch(t, colombo, ids("traits.city co COLOM"), "a trait search ignores case")
+	assert.ElementsMatch(t, []string{bob.ProfileID}, ids("traits.city sw Kan"), "trait starts with")
+	assert.ElementsMatch(t, []string{bob.ProfileID}, ids("traits.city ew ndy"), "trait ends with")
+	assert.Empty(t, ids("traits.city eq colombo"), "equality is exact")
+
+	assert.ElementsMatch(t, []string{alice.ProfileID}, ids("user_id eq alice-1"))
+	assert.ElementsMatch(t, []string{alice.ProfileID}, ids("user_id co ice"), "user id contains")
+	assert.ElementsMatch(t, []string{bob.ProfileID}, ids("user_id sw bob"), "user id starts with")
+	assert.ElementsMatch(t, []string{carol.ProfileID}, ids("user_id ew -3"), "user id ends with")
+
+	assert.ElementsMatch(t, []string{alice.ProfileID}, ids("profile_id sw "+alice.ProfileID[:8]),
+		"profile id starts with")
+	assert.ElementsMatch(t, []string{bob.ProfileID}, ids("profile_id ew "+bob.ProfileID[len(bob.ProfileID)-8:]),
+		"profile id ends with")
+	assert.ElementsMatch(t, []string{carol.ProfileID}, ids("profile_id co "+carol.ProfileID[8:16]),
+		"profile id contains")
+
+	dark := []string{alice.ProfileID, carol.ProfileID}
+	assert.ElementsMatch(t, dark, ids("application_data.app-1.theme eq dark"), "application data equality")
+	assert.ElementsMatch(t, dark, ids("application_data.app-1.theme co ar"), "application data contains")
+	assert.ElementsMatch(t, []string{bob.ProfileID}, ids("application_data.app-1.theme sw li"),
+		"application data starts with")
+	assert.ElementsMatch(t, []string{bob.ProfileID}, ids("application_data.app-1.theme ew ht"),
+		"application data ends with")
+	assert.ElementsMatch(t, dark, ids("application_data.theme eq dark"),
+		"application data of any application")
+
+	assert.ElementsMatch(t, []string{alice.ProfileID}, ids("traits.city eq Colombo", "user_id sw alice"),
+		"filters combine")
+	assert.ElementsMatch(t, []string{alice.ProfileID},
+		ids("traits.city eq Colombo", "application_data.app-1.theme eq dark", "user_id co lic"),
+		"filters over different fields combine")
+
+	restricted, err := profileStore.GetProfileIDsWithFilters(env.ctx, env.orgID,
+		[]string{"traits.city eq Colombo"}, []string{carol.ProfileID, bob.ProfileID})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{carol.ProfileID}, restricted, "the filters apply within the restriction")
+}
+
 func TestProfileIDsOfAnotherOrganizationAreNotListed(t *testing.T) {
 	env := newProfileEnv(t)
 	env.createWithCity(t, "Colombo")

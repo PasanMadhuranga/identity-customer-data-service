@@ -63,16 +63,9 @@ func Test_getDBConfig_postgres(t *testing.T) {
 		}
 	})
 
-	t.Run("an unrecognized type keeps using its own driver name", func(t *testing.T) {
-		dbConfig, err := getDBConfig(postgresDataSource("pgx"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if dbConfig.dsn != expectedDSN {
-			t.Errorf("expected %q, got %q", expectedDSN, dbConfig.dsn)
-		}
-		if dbConfig.driverName != "pgx" {
-			t.Errorf("expected the configured driver name, got %q", dbConfig.driverName)
+	t.Run("an unrecognized type is refused", func(t *testing.T) {
+		if _, err := getDBConfig(postgresDataSource("pgx")); err == nil {
+			t.Fatal("expected an error")
 		}
 	})
 }
@@ -301,9 +294,9 @@ func Test_getPostgresDB_reusesOnePool(t *testing.T) {
 	}
 }
 
-// Test_applyPostgresPoolSettings_boundsThePool checks that the resolved limits
+// Test_applyPoolSettings_boundsThePool checks that the resolved limits
 // reach the pool.
-func Test_applyPostgresPoolSettings_boundsThePool(t *testing.T) {
+func Test_applyPoolSettings_boundsThePool(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cds.db")
 	db, err := sql.Open(database.DriverSQLite, path+"?"+database.DefaultSQLiteOptions)
 	if err != nil {
@@ -315,7 +308,7 @@ func Test_applyPostgresPoolSettings_boundsThePool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	applyPostgresPoolSettings(db, settings)
+	applyPoolSettings(db, settings)
 
 	if got := db.Stats().MaxOpenConnections; got != database.DefaultPostgresMaxOpenConns {
 		t.Errorf("expected the pool to be bounded at %d, got %d",

@@ -59,20 +59,36 @@ func Test_newQuery(t *testing.T) {
 		}
 	})
 
-	t.Run("an unrecognized dialect falls back to the base statement", func(t *testing.T) {
+	t.Run("a dialect without an override falls back to the base statement", func(t *testing.T) {
 		query := newQuery("CDS-TST-04", selectOne, `SELECT 2`)
-		if statement := query.GetQuery("mysql"); statement != selectOne {
+		if statement := query.GetQuery(database.TypeMySQL); statement != selectOne {
 			t.Fatalf("expected the PostgreSQL statement, got %q", statement)
 		}
 	})
 }
 
 func Test_LikeOperator(t *testing.T) {
-	if operator := LikeOperator(database.TypeSQLite); operator != "LIKE" {
-		t.Errorf("expected LIKE for the inbuilt database, got %q", operator)
+	expected := map[string]string{
+		database.TypePostgres: "ILIKE",
+		database.TypeSQLite:   "LIKE",
+		database.TypeMySQL:    "LIKE",
+		database.TypeMSSQL:    "LIKE",
 	}
-	if operator := LikeOperator(database.TypePostgres); operator != "ILIKE" {
-		t.Errorf("expected ILIKE for PostgreSQL, got %q", operator)
+	for dbType, want := range expected {
+		operator, err := LikeOperator(dbType)
+		if err != nil {
+			t.Fatalf("LikeOperator(%q) failed: %v", dbType, err)
+		}
+		if operator != want {
+			t.Errorf("LikeOperator(%q) = %q, expected %q", dbType, operator, want)
+		}
+	}
+
+	if _, err := LikeOperator("oracle"); err == nil {
+		t.Error("expected an error for an unsupported datasource")
+	}
+	if _, err := LikeOperator(""); err == nil {
+		t.Error("expected an error for an empty datasource")
 	}
 }
 
@@ -141,13 +157,46 @@ func Test_JSONEqCondition(t *testing.T) {
 		}
 	})
 
+	t.Run("mysql reads the value as text and compares it", func(t *testing.T) {
+		condition, arg, err := JSONEqCondition(database.TypeMySQL, "p.traits", []string{"email"}, "a@b.com", 3)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if expected := `JSON_UNQUOTE(JSON_EXTRACT(p.traits, '$."email"')) = $3`; condition != expected {
+			t.Errorf("expected %q, got %q", expected, condition)
+		}
+		if arg != "a@b.com" {
+			t.Errorf("expected the bare value, got %#v", arg)
+		}
+	})
+
+	t.Run("mssql reads the value as text and compares it", func(t *testing.T) {
+		condition, arg, err := JSONEqCondition(database.TypeMSSQL, "a.application_data",
+			[]string{"app_specific_data", "ui.mode"}, "dark", 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if expected := `JSON_VALUE(a.application_data, '$."app_specific_data"."ui.mode"') = $2`; condition != expected {
+			t.Errorf("expected %q, got %q", expected, condition)
+		}
+		if arg != "dark" {
+			t.Errorf("expected the bare value, got %#v", arg)
+		}
+	})
+
 	t.Run("an invalid key is rejected", func(t *testing.T) {
-		for _, dbType := range []string{database.TypeSQLite, database.TypePostgres} {
+		for _, dbType := range supportedDatasources {
 			if _, _, err := JSONEqCondition(
 				dbType, "p.traits", []string{`e"; DROP TABLE profiles; --`}, "x", 1,
 			); err == nil {
 				t.Errorf("expected an error for %s", dbType)
 			}
+		}
+	})
+
+	t.Run("an unsupported datasource is rejected", func(t *testing.T) {
+		if _, _, err := JSONEqCondition("oracle", "p.traits", []string{"email"}, "x", 1); err == nil {
+			t.Error("expected an error")
 		}
 	})
 
@@ -183,36 +232,117 @@ func Test_JSONLikeCondition(t *testing.T) {
 		}
 	})
 
+	t.Run("mysql", func(t *testing.T) {
+		condition, err := JSONLikeCondition(database.TypeMySQL, "a.application_data",
+			[]string{"app_specific_data", "email"}, 4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := `JSON_UNQUOTE(JSON_EXTRACT(a.application_data, '$."app_specific_data"."email"')) LIKE $4`
+		if condition != expected {
+			t.Errorf("expected %q, got %q", expected, condition)
+		}
+	})
+
+	t.Run("mssql", func(t *testing.T) {
+		condition, err := JSONLikeCondition(database.TypeMSSQL, "p.traits", []string{"email"}, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := `JSON_VALUE(p.traits, '$."email"') LIKE $2`
+		if condition != expected {
+			t.Errorf("expected %q, got %q", expected, condition)
+		}
+	})
+
 	t.Run("an invalid key is rejected", func(t *testing.T) {
-		if _, err := JSONLikeCondition(database.TypeSQLite, "p.traits", []string{"a'b"}, 1); err == nil {
+		for _, dbType := range supportedDatasources {
+			if _, err := JSONLikeCondition(dbType, "p.traits", []string{"a'b"}, 1); err == nil {
+				t.Errorf("expected an error for %s", dbType)
+			}
+		}
+	})
+
+	t.Run("an unsupported datasource is rejected", func(t *testing.T) {
+		if _, err := JSONLikeCondition("oracle", "p.traits", []string{"email"}, 1); err == nil {
 			t.Error("expected an error")
 		}
 	})
 }
 
+var supportedDatasources = []string{
+	database.TypePostgres, database.TypeSQLite, database.TypeMySQL, database.TypeMSSQL,
+}
+
 func Test_KeysetCondition(t *testing.T) {
-	if actual := KeysetCondition(database.TypeSQLite, "<", 2, 3); actual !=
-		`(p.created_at, p.profile_id) < ($2, $3)` {
-		t.Errorf("unexpected SQLite condition: %q", actual)
+	cases := []struct {
+		dbType, operator, expected string
+	}{
+		{database.TypeSQLite, "<", `(p.created_at, p.profile_id) < ($2, $3)`},
+		{database.TypePostgres, ">", `(p.created_at, p.profile_id) > ($2::timestamptz, $3::text)`},
+		{database.TypeMySQL, "<", `(p.created_at, p.profile_id) < ($2, $3)`},
+		{database.TypeMySQL, ">=", `(p.created_at, p.profile_id) >= ($2, $3)`},
+		{database.TypeMSSQL, "<", `(p.created_at < $2 OR (p.created_at = $2 AND p.profile_id < $3))`},
+		{database.TypeMSSQL, ">", `(p.created_at > $2 OR (p.created_at = $2 AND p.profile_id > $3))`},
+		{database.TypeMSSQL, "<=", `(p.created_at < $2 OR (p.created_at = $2 AND p.profile_id <= $3))`},
+		{database.TypeMSSQL, ">=", `(p.created_at > $2 OR (p.created_at = $2 AND p.profile_id >= $3))`},
 	}
-	if actual := KeysetCondition(database.TypePostgres, ">", 2, 3); actual !=
-		`(p.created_at, p.profile_id) > ($2::timestamptz, $3::text)` {
-		t.Errorf("unexpected PostgreSQL condition: %q", actual)
+	for _, c := range cases {
+		actual, err := KeysetCondition(c.dbType, c.operator, 2, 3)
+		if err != nil {
+			t.Fatalf("KeysetCondition(%q, %q) failed: %v", c.dbType, c.operator, err)
+		}
+		if actual != c.expected {
+			t.Errorf("KeysetCondition(%q, %q): expected %q, got %q", c.dbType, c.operator, c.expected, actual)
+		}
 	}
+
+	t.Run("an operator that is not a comparison is rejected", func(t *testing.T) {
+		for _, dbType := range supportedDatasources {
+			if _, err := KeysetCondition(dbType, "= 1 OR 1 =", 2, 3); err == nil {
+				t.Errorf("expected an error for %s", dbType)
+			}
+		}
+	})
+
+	t.Run("an unsupported datasource is rejected", func(t *testing.T) {
+		if _, err := KeysetCondition("oracle", "<", 2, 3); err == nil {
+			t.Error("expected an error")
+		}
+	})
 }
 
 func Test_EncodeStringArray(t *testing.T) {
-	t.Run("sqlite stores a JSON array", func(t *testing.T) {
-		if encoded := EncodeStringArray(database.TypeSQLite, []string{"a", "b"}); encoded != `["a","b"]` {
-			t.Errorf("expected a JSON array, got %#v", encoded)
+	t.Run("the datasources without an array type store a JSON array", func(t *testing.T) {
+		for _, dbType := range []string{database.TypeSQLite, database.TypeMySQL, database.TypeMSSQL} {
+			encoded, err := EncodeStringArray(dbType, []string{"a", "b"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if encoded != `["a","b"]` {
+				t.Errorf("%s: expected a JSON array, got %#v", dbType, encoded)
+			}
+			encoded, err = EncodeStringArray(dbType, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if encoded != `[]` {
+				t.Errorf("%s: expected an empty JSON array, got %#v", dbType, encoded)
+			}
 		}
-		if encoded := EncodeStringArray(database.TypeSQLite, nil); encoded != `[]` {
-			t.Errorf("expected an empty JSON array, got %#v", encoded)
+	})
+
+	t.Run("an unsupported datasource is rejected", func(t *testing.T) {
+		if _, err := EncodeStringArray("oracle", []string{"a"}); err == nil {
+			t.Error("expected an error")
 		}
 	})
 
 	t.Run("postgres uses the array type", func(t *testing.T) {
-		encoded := EncodeStringArray(database.TypePostgres, []string{"a", "b"})
+		encoded, err := EncodeStringArray(database.TypePostgres, []string{"a", "b"})
+		if err != nil {
+			t.Fatal(err)
+		}
 		valuer, ok := encoded.(driver.Valuer)
 		if !ok {
 			t.Fatalf("expected a driver.Valuer, got %#v", encoded)
@@ -260,11 +390,17 @@ func Test_DecodeStringArray(t *testing.T) {
 func Test_EncodeDecodeStringArrayRoundTrip(t *testing.T) {
 	values := []string{"crm", "marketing-tool", "a,b"}
 
-	encoded, ok := EncodeStringArray(database.TypeSQLite, values).(string)
-	if !ok {
-		t.Fatal("expected the SQLite encoding to be text")
-	}
-	if decoded := DecodeStringArray(encoded); !reflect.DeepEqual(decoded, values) {
-		t.Fatalf("expected %#v, got %#v", values, decoded)
+	for _, dbType := range []string{database.TypeSQLite, database.TypeMySQL, database.TypeMSSQL} {
+		raw, err := EncodeStringArray(dbType, values)
+		if err != nil {
+			t.Fatal(err)
+		}
+		encoded, ok := raw.(string)
+		if !ok {
+			t.Fatalf("%s: expected the encoding to be text", dbType)
+		}
+		if decoded := DecodeStringArray(encoded); !reflect.DeepEqual(decoded, values) {
+			t.Fatalf("%s: expected %#v, got %#v", dbType, values, decoded)
+		}
 	}
 }

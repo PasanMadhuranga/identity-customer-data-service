@@ -54,6 +54,16 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 	defer func() { _ = dbClient.Close() }()
 	dbType := dbClient.DBType()
 	query := scripts.InsertConsentCategory
+	destinations, err := scripts.EncodeStringArray(dbType, category.Destinations)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to encode destinations for consent category: %s", category.CategoryIdentifier)
+		logger.Debug(errorMsg, log.Error(err))
+		return errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.AddConsentCategory.Code,
+			Message:     errors2.AddConsentCategory.Message,
+			Description: errorMsg,
+		}, err)
+	}
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
 		errorMsg := fmt.Sprintf(
@@ -69,7 +79,7 @@ func AddConsentCategory(ctx context.Context, orgID string, category model.Consen
 		return serverError
 	}
 	_, err = tx.ExecContext(ctx, query, category.CategoryName, category.CategoryIdentifier, orgID, category.Purpose,
-		scripts.EncodeStringArray(dbType, category.Destinations), category.IsMandatory)
+		destinations, category.IsMandatory)
 	if err != nil {
 		errRollback := tx.Rollback()
 		if errRollback != nil {
@@ -328,8 +338,18 @@ func UpdateConsentCategory(ctx context.Context, orgID string, category model.Con
 
 	dbType := dbClient.DBType()
 	query := scripts.UpdateConsentCategory
+	destinations, err := scripts.EncodeStringArray(dbType, category.Destinations)
+	if err != nil {
+		_ = tx.Rollback()
+		logger.Debug("Failed to encode destinations for consent category", log.Error(err))
+		return errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.UpdateConsentCategory.Code,
+			Message:     errors2.UpdateConsentCategory.Message,
+			Description: "Failed to encode destinations for the consent category.",
+		}, err)
+	}
 	_, err = tx.ExecContext(ctx, query, category.CategoryName, category.Purpose,
-		scripts.EncodeStringArray(dbType, category.Destinations),
+		destinations,
 		category.CategoryIdentifier, orgID)
 	if err != nil {
 		_ = tx.Rollback()
@@ -446,6 +466,16 @@ func SeedDefaultIdentityDataCategory(ctx context.Context, orgID string) error {
 
 	dbType := dbClient.DBType()
 	upsertQuery := scripts.UpsertDefaultIdentityDataCategory
+	destinations, err := scripts.EncodeStringArray(dbType, []string{})
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to encode destinations for the identity data category of org: %s", orgID)
+		logger.Debug(errorMsg, log.Error(err))
+		return errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.AddConsentCategory.Code,
+			Message:     errors2.AddConsentCategory.Message,
+			Description: errorMsg,
+		}, err)
+	}
 	_, err = dbClient.ExecuteQueryContext(
 		ctx,
 		upsertQuery,
@@ -453,7 +483,7 @@ func SeedDefaultIdentityDataCategory(ctx context.Context, orgID string) error {
 		uuid.New().String(),
 		orgID,
 		constants.DefaultIdentityDataCategoryPurpose,
-		scripts.EncodeStringArray(dbType, []string{}),
+		destinations,
 	)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to upsert identity data category for org: %s", orgID)

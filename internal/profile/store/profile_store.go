@@ -1087,7 +1087,14 @@ func GetAllProfilesWithFilter(ctx context.Context,
 	// datasource, not to select a statement.
 	dbType := dbClient.DBType()
 	baseSQL := scripts.GetAllProfilesWithFilterBase.GetQuery(dbType)
-	likeOperator := scripts.LikeOperator(dbType)
+	likeOperator, err := scripts.LikeOperator(dbType)
+	if err != nil {
+		return nil, false, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.FilterProfile.Code,
+			Message:     errors2.FilterProfile.Message,
+			Description: fmt.Sprintf("Failed to prepare the filtered query: %s", err),
+		}, err)
+	}
 
 	var conditions []string
 	var args []interface{}
@@ -1275,11 +1282,19 @@ func GetAllProfilesWithFilter(ctx context.Context,
 	// Add cursor predicates as parameterized conditions
 	// Params: $argID = cursorTime, $(argID+1)=cursorProfileId
 	if cursor != nil {
-		if direction == model.CursorNext {
-			conditions = append(conditions, scripts.KeysetCondition(dbType, "<", argID, argID+1))
-		} else { // prev
-			conditions = append(conditions, scripts.KeysetCondition(dbType, ">", argID, argID+1))
+		operator := "<"
+		if direction != model.CursorNext {
+			operator = ">"
 		}
+		keysetCondition, err := scripts.KeysetCondition(dbType, operator, argID, argID+1)
+		if err != nil {
+			return nil, false, errors2.NewServerError(errors2.ErrorMessage{
+				Code:        errors2.FilterProfile.Code,
+				Message:     errors2.FilterProfile.Message,
+				Description: fmt.Sprintf("Failed to prepare the cursor condition: %s", err),
+			}, err)
+		}
+		conditions = append(conditions, keysetCondition)
 		args = append(args, cursorTime, cursorProfileID)
 		argID += 2
 	}
@@ -1382,7 +1397,45 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 	}
 	defer func() { _ = dbClient.Close() }()
 
-	baseSQL := scripts.GetProfileIDsWithFiltersBase.GetQuery(dbClient.DBType())
+	finalSQL, args, err := buildProfileIDsQuery(dbClient.DBType(), orgID, filters, restrictTo)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetProfileIDsWithFiltersBase.WithSQL(finalSQL), args...)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to execute GetProfileIDsWithFilters query: %s", err)
+		logger.Debug(errorMsg, log.Error(err))
+		return nil, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.FilterProfile.Code,
+			Message:     errors2.FilterProfile.Message,
+			Description: errorMsg,
+		}, err)
+	}
+
+	ids := make([]string, 0, len(results))
+	for _, row := range results {
+		if id, ok := row["profile_id"].(string); ok {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
+func buildProfileIDsQuery(dbType, orgID string, filters, restrictTo []string) (string, []interface{}, error) {
+	filterError := func(description string, cause error) error {
+		return errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.FilterProfile.Code,
+			Message:     errors2.FilterProfile.Message,
+			Description: description,
+		}, cause)
+	}
+
+	baseSQL := scripts.GetProfileIDsWithFiltersBase.GetQuery(dbType)
+	likeOperator, err := scripts.LikeOperator(dbType)
+	if err != nil {
+		return "", nil, filterError(fmt.Sprintf("Failed to prepare the filter query: %s", err), err)
+	}
 
 	var conditions []string
 	var args []interface{}
@@ -1417,60 +1470,33 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 			jsonCol := "p." + scope
 			switch operator {
 			case "eq":
-				valBytes, err := json.Marshal(value)
+				condition, arg, err := scripts.JSONEqCondition(dbType, jsonCol, []string{key}, value, argID)
 				if err != nil {
-					continue
+					return "", nil, filterError(fmt.Sprintf("Invalid filter value for key: %s", key), err)
 				}
-				jsonObj := fmt.Sprintf(`{"%s": %s}`, key, string(valBytes))
-				conditions = append(conditions, fmt.Sprintf("%s @> $%d::jsonb", jsonCol, argID))
-				args = append(args, jsonObj)
-			case "co":
-				conditions = append(conditions, fmt.Sprintf("%s ->> '%s' ILIKE $%d", jsonCol, key, argID))
-				args = append(args, "%"+value+"%")
-			case "sw":
-				conditions = append(conditions, fmt.Sprintf("%s ->> '%s' ILIKE $%d", jsonCol, key, argID))
-				args = append(args, value+"%")
-			case "ew":
-				conditions = append(conditions, fmt.Sprintf("%s ->> '%s' ILIKE $%d", jsonCol, key, argID))
-				args = append(args, "%"+value)
+				conditions = append(conditions, condition)
+				args = append(args, arg)
+			case "co", "sw", "ew":
+				condition, err := scripts.JSONLikeCondition(dbType, jsonCol, []string{key}, argID)
+				if err != nil {
+					return "", nil, filterError(fmt.Sprintf("Invalid filter key: %s", key), err)
+				}
+				conditions = append(conditions, condition)
+				args = append(args, likePattern(operator, value))
 			default:
 				continue
 			}
 			argID++
 
-		case fieldUserID:
+		case fieldUserID, fieldProfileID:
+			column := "p." + scope
 			switch operator {
 			case "eq":
-				conditions = append(conditions, fmt.Sprintf("p.user_id = $%d", argID))
+				conditions = append(conditions, fmt.Sprintf("%s = $%d", column, argID))
 				args = append(args, value)
-			case "co":
-				conditions = append(conditions, fmt.Sprintf("p.user_id ILIKE $%d", argID))
-				args = append(args, "%"+value+"%")
-			case "sw":
-				conditions = append(conditions, fmt.Sprintf("p.user_id ILIKE $%d", argID))
-				args = append(args, value+"%")
-			case "ew":
-				conditions = append(conditions, fmt.Sprintf("p.user_id ILIKE $%d", argID))
-				args = append(args, "%"+value)
-			default:
-				continue
-			}
-			argID++
-
-		case fieldProfileID:
-			switch operator {
-			case "eq":
-				conditions = append(conditions, fmt.Sprintf("p.profile_id = $%d", argID))
-				args = append(args, value)
-			case "co":
-				conditions = append(conditions, fmt.Sprintf("p.profile_id ILIKE $%d", argID))
-				args = append(args, "%"+value+"%")
-			case "sw":
-				conditions = append(conditions, fmt.Sprintf("p.profile_id ILIKE $%d", argID))
-				args = append(args, value+"%")
-			case "ew":
-				conditions = append(conditions, fmt.Sprintf("p.profile_id ILIKE $%d", argID))
-				args = append(args, "%"+value)
+			case "co", "sw", "ew":
+				conditions = append(conditions, fmt.Sprintf("%s %s $%d", column, likeOperator, argID))
+				args = append(args, likePattern(operator, value))
 			default:
 				continue
 			}
@@ -1502,51 +1528,25 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 				}
 			}
 
+			appDataCol := appAlias + ".application_data"
+			appDataPath := []string{"app_specific_data", appKey}
+
 			switch operator {
 			case "eq":
-				valBytes, err := json.Marshal(value)
+				condition, arg, err := scripts.JSONEqCondition(dbType, appDataCol, appDataPath, value, argID)
 				if err != nil {
-					continue
+					return "", nil, filterError(fmt.Sprintf("Invalid filter value for key: %s", appKey), err)
 				}
-				jsonObj := fmt.Sprintf(`{"app_specific_data": {"%s": %s}}`, appKey, string(valBytes))
-				conditions = append(conditions, fmt.Sprintf("%s.application_data @> $%d::jsonb", appAlias, argID))
-				args = append(args, jsonObj)
+				conditions = append(conditions, condition)
+				args = append(args, arg)
 				argID++
-			case "co":
-				conditions = append(
-					conditions,
-					fmt.Sprintf(
-						"%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d",
-						appAlias,
-						appKey,
-						argID,
-					),
-				)
-				args = append(args, "%"+value+"%")
-				argID++
-			case "sw":
-				conditions = append(
-					conditions,
-					fmt.Sprintf(
-						"%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d",
-						appAlias,
-						appKey,
-						argID,
-					),
-				)
-				args = append(args, value+"%")
-				argID++
-			case "ew":
-				conditions = append(
-					conditions,
-					fmt.Sprintf(
-						"%s.application_data -> 'app_specific_data' ->> '%s' ILIKE $%d",
-						appAlias,
-						appKey,
-						argID,
-					),
-				)
-				args = append(args, "%"+value)
+			case "co", "sw", "ew":
+				condition, err := scripts.JSONLikeCondition(dbType, appDataCol, appDataPath, argID)
+				if err != nil {
+					return "", nil, filterError(fmt.Sprintf("Invalid filter key: %s", appKey), err)
+				}
+				conditions = append(conditions, condition)
+				args = append(args, likePattern(operator, value))
 				argID++
 			default:
 				continue
@@ -1569,24 +1569,20 @@ func GetProfileIDsWithFilters(ctx context.Context, orgID string, filters []strin
 	whereClause := "WHERE " + strings.Join(conditions, " AND ")
 	finalSQL := fmt.Sprintf("%s\n%s", baseSQL, whereClause)
 
-	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetProfileIDsWithFiltersBase.WithSQL(finalSQL), args...)
-	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to execute GetProfileIDsWithFilters query: %s", err)
-		logger.Debug(errorMsg, log.Error(err))
-		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.FilterProfile.Code,
-			Message:     errors2.FilterProfile.Message,
-			Description: errorMsg,
-		}, err)
-	}
+	return finalSQL, args, nil
+}
 
-	ids := make([]string, 0, len(results))
-	for _, row := range results {
-		if id, ok := row[fieldProfileID].(string); ok {
-			ids = append(ids, id)
-		}
+// likePattern builds the pattern a "contains", "starts with" or "ends with" filter matches
+// against. The operator must be one of co, sw and ew.
+func likePattern(operator, value string) string {
+	switch operator {
+	case "sw":
+		return value + "%"
+	case "ew":
+		return "%" + value
+	default:
+		return "%" + value + "%"
 	}
-	return ids, nil
 }
 
 // sanitizeForAlias converts a string to a valid SQL alias by replacing special characters

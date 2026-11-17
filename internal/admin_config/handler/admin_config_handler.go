@@ -21,6 +21,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -65,15 +66,24 @@ func (h *AdminConfigHandler) GetAdminConfig(w http.ResponseWriter, r *http.Reque
 	}
 
 	resp := model.AdminConfigAPI{
-		CDSEnabled:                 config.CDSEnabled,
-		SystemApplications:         config.SystemApplications,
-		AutoMergeEnabled:           config.AutoMergeEnabled,
-		AutoMergeThreshold:         config.AutoMergeThreshold,
-		ManualReviewThreshold:      config.ManualReviewThreshold,
-		DeterministicMatchDecisive: config.DeterministicMatchDecisive,
-		CORSAllowedOrigins:         config.CORSAllowedOrigins,
+		CDSEnabled:                    config.CDSEnabled,
+		SystemApplications:            config.SystemApplications,
+		AutoMergeEnabled:              config.AutoMergeEnabled,
+		AutoMergeThreshold:            config.AutoMergeThreshold,
+		ManualReviewThreshold:         config.ManualReviewThreshold,
+		DeterministicMatchDecisive:    config.DeterministicMatchDecisive,
+		CORSAllowedOrigins:            config.CORSAllowedOrigins,
+		AnonymousProfileRetentionDays: effectiveRetentionDays(config.AnonymousProfileRetentionDays),
 	}
 	utils.RespondJSON(w, http.StatusOK, resp, constants.AdminConfigResource)
+}
+
+// effectiveRetentionDays returns the stored retention, or the 90 day default when none is set.
+func effectiveRetentionDays(stored int) int {
+	if stored > 0 {
+		return stored
+	}
+	return constants.DefaultAnonymousProfileRetentionDays
 }
 
 // UpdateAdminConfig handles PATCH /admin/configs
@@ -112,15 +122,16 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	}
 
 	configToUpdate := model.AdminConfig{
-		OrgID:                      org.ID,
-		InitialSchemaSyncDone:      existingConfig.InitialSchemaSyncDone,
-		CDSEnabled:                 existingConfig.CDSEnabled,
-		SystemApplications:         existingConfig.SystemApplications,
-		AutoMergeEnabled:           existingConfig.AutoMergeEnabled,
-		AutoMergeThreshold:         existingConfig.AutoMergeThreshold,
-		ManualReviewThreshold:      existingConfig.ManualReviewThreshold,
-		DeterministicMatchDecisive: existingConfig.DeterministicMatchDecisive,
-		CORSAllowedOrigins:         existingConfig.CORSAllowedOrigins,
+		OrgID:                         org.ID,
+		InitialSchemaSyncDone:         existingConfig.InitialSchemaSyncDone,
+		CDSEnabled:                    existingConfig.CDSEnabled,
+		SystemApplications:            existingConfig.SystemApplications,
+		AutoMergeEnabled:              existingConfig.AutoMergeEnabled,
+		AutoMergeThreshold:            existingConfig.AutoMergeThreshold,
+		ManualReviewThreshold:         existingConfig.ManualReviewThreshold,
+		DeterministicMatchDecisive:    existingConfig.DeterministicMatchDecisive,
+		CORSAllowedOrigins:            existingConfig.CORSAllowedOrigins,
+		AnonymousProfileRetentionDays: existingConfig.AnonymousProfileRetentionDays,
 	}
 
 	// Update only if provided in request
@@ -145,6 +156,19 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	if config.CORSAllowedOrigins != nil {
 		configToUpdate.CORSAllowedOrigins = config.CORSAllowedOrigins
 	}
+	if config.AnonymousProfileRetentionDays != nil {
+		configToUpdate.AnonymousProfileRetentionDays = *config.AnonymousProfileRetentionDays
+		if *config.AnonymousProfileRetentionDays == 0 {
+			// Zero is not a retention; the store reads an absent value as "not set".
+			utils.HandleError(w, errors.NewClientError(errors.ErrorMessage{
+				Code:    errors.UpdateConfigBadRequest.Code,
+				Message: errors.UpdateConfigBadRequest.Message,
+				Description: fmt.Sprintf("anonymous_profile_retention_days must be at least %d day.",
+					constants.MinAnonymousProfileRetentionDays),
+			}, http.StatusBadRequest))
+			return
+		}
+	}
 
 	err = adminConfigService.UpdateAdminConfig(ctx, &configToUpdate, org)
 	if err != nil {
@@ -153,13 +177,14 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	}
 
 	resp := model.AdminConfigAPI{
-		CDSEnabled:                 configToUpdate.CDSEnabled,
-		SystemApplications:         configToUpdate.SystemApplications,
-		AutoMergeEnabled:           configToUpdate.AutoMergeEnabled,
-		AutoMergeThreshold:         configToUpdate.AutoMergeThreshold,
-		ManualReviewThreshold:      configToUpdate.ManualReviewThreshold,
-		DeterministicMatchDecisive: configToUpdate.DeterministicMatchDecisive,
-		CORSAllowedOrigins:         configToUpdate.CORSAllowedOrigins,
+		CDSEnabled:                    configToUpdate.CDSEnabled,
+		SystemApplications:            configToUpdate.SystemApplications,
+		AutoMergeEnabled:              configToUpdate.AutoMergeEnabled,
+		AutoMergeThreshold:            configToUpdate.AutoMergeThreshold,
+		ManualReviewThreshold:         configToUpdate.ManualReviewThreshold,
+		DeterministicMatchDecisive:    configToUpdate.DeterministicMatchDecisive,
+		CORSAllowedOrigins:            configToUpdate.CORSAllowedOrigins,
+		AnonymousProfileRetentionDays: effectiveRetentionDays(configToUpdate.AnonymousProfileRetentionDays),
 	}
 	utils.RespondJSON(w, http.StatusOK, resp, constants.AdminConfigResource)
 }

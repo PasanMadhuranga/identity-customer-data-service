@@ -63,7 +63,7 @@ Unification worker detects two profiles with same userId
                 │  (SESSION_TERMINATE event)
                 ▼
             cookie deactivated (is_active = false)
-            cookie cleanup worker removes inactive records after 24h
+            cookie cleanup worker removes inactive records at its next run (every 24h by default)
 ```
 
 ---
@@ -75,4 +75,14 @@ The `profile_cookies` table maps a `cookie_id` (the value of the `cds_profile` b
 - Cookie is **created** when an anonymous profile is first issued
 - Cookie is **deactivated** on `SESSION_TERMINATE`
 - Inactive cookie records are **batch-deleted** by the cookie cleanup worker every 24 hours
+
+## Retention of anonymous profiles
+
+An anonymous profile that is not updated is deleted after a retention period, together with its cookies, application data, consents and blocking keys.
+
+- A profile counts as anonymous when it has no `user_id`, is not merged into another profile, and has no profile merged into it. Identified profiles and merged profiles are never deleted by this job.
+- The clock is the profile's `updated_at`. A visit that does not change the profile does not reset it.
+- The default is **90 days**, used until an organization sets its own. An organization can set its own value of 1 day or more with `anonymous_profile_retention_days` in its admin configuration. A sub organization follows its primary organization.
+- The job runs every 24 hours.
+- Deletion is permanent.
 

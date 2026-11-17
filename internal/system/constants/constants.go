@@ -21,6 +21,7 @@
 package constants
 
 import (
+	"math"
 	"regexp"
 	"time"
 )
@@ -294,6 +295,9 @@ const (
 	ConfigInitialSchemaSyncDone = "initial_schema_sync_done"
 	ConfigSystemApplications    = "system_applications"
 	ConfigCORSAllowedOrigins    = "cors_allowed_origins"
+	// ConfigAnonymousProfileRetentionDays is the days an anonymous profile may go without an update
+	// before it is deleted. Unset means the default applies.
+	ConfigAnonymousProfileRetentionDays = "anonymous_profile_retention_days"
 
 	// Identity resolution config keys
 	ConfigAutoMergeEnabled      = "auto_merge_enabled"
@@ -670,6 +674,15 @@ const (
 // DefaultCookieCleanupTime is the default interval of the cookie cleanup worker, in seconds.
 const (
 	DefaultCookieCleanupTime = 24 * 60 * 60 // 24 hours in seconds
+)
+
+// Retention of anonymous profiles.
+const (
+	DefaultAnonymousProfileRetentionDays    = 90
+	MinAnonymousProfileRetentionDays        = 1
+	MaxAnonymousProfileRetentionDays        = math.MaxInt32
+	DefaultAnonymousProfileCleanupInterval  = 24 * 60 * 60
+	DefaultAnonymousProfileCleanupBatchSize = 500
 )
 
 // DefaultShutdownGracePeriod bounds the whole shutdown sequence when

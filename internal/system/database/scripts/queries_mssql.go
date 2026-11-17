@@ -204,6 +204,13 @@ var mssqlStatements = map[string]string{
 	"CDS-PRF-18": `DELETE FROM review_tasks WHERE candidate_profile_id = $1;
 		DELETE FROM profiles WHERE profile_id = $1`,
 
+	"CDS-PRF-22": `SELECT TOP ($3) p.profile_id FROM profiles p WITH (UPDLOCK, ROWLOCK)
+		JOIN profile_reference r ON r.profile_id = p.profile_id
+		WHERE p.org_id = $1 AND p.updated_at < $2 AND (p.user_id IS NULL OR p.user_id = '')
+		  AND r.profile_status = 'REFERENCE_PROFILE'
+		  AND NOT EXISTS (SELECT 1 FROM profile_reference c WHERE c.reference_profile_id = p.profile_id)
+		ORDER BY p.updated_at`,
+
 	"CDS-PRF-19": `SELECT TOP (1) p.profile_id
 		FROM profiles p JOIN profile_reference r ON r.profile_id = p.profile_id
 		WHERE p.org_id = $1 AND r.org_id = $1

@@ -267,6 +267,22 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 		}, err)
 	}
 
+	// Zero means not set, so no row is stored and the default applies.
+	if config.AnonymousProfileRetentionDays > 0 {
+		_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigAnonymousProfileRetentionDays,
+			strconv.Itoa(config.AnonymousProfileRetentionDays))
+		if err != nil {
+			_ = tx.Rollback()
+			errorMsg := fmt.Sprintf("Failed to update anonymous_profile_retention_days for organization: %s", orgID)
+			logger.Debug(errorMsg, log.Error(err))
+			return errors2.NewServerError(errors2.ErrorMessage{
+				Code:        errors2.UpdateAdminConfig.Code,
+				Message:     errors2.UpdateAdminConfig.Message,
+				Description: errorMsg,
+			}, err)
+		}
+	}
+
 	return tx.Commit()
 }
 
@@ -312,6 +328,61 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string
 		}, err)
 	}
 	return tx.Commit()
+}
+
+// parseRetentionDays reads a stored retention. A value outside the allowed range is ignored.
+func parseRetentionDays(value string) (int, bool) {
+	days, err := strconv.Atoi(value)
+	if err != nil || days < constants.MinAnonymousProfileRetentionDays ||
+		days > constants.MaxAnonymousProfileRetentionDays {
+		return 0, false
+	}
+	return days, true
+}
+
+// ListAnonymousProfileRetentions returns the retention in days each organization has set. Organizations
+// with none, or an invalid value, are absent.
+func ListAnonymousProfileRetentions(ctx context.Context) (map[string]int, error) {
+	dbClient, err := provider.NewDBProvider().GetDBClient()
+	logger := log.GetLogger()
+	if err != nil {
+		errorMsg := "Failed to get db client for listing the anonymous profile retentions"
+		logger.Debug(errorMsg, log.Error(err))
+		return nil, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.GetAdminConfig.Code,
+			Message:     errors2.GetAdminConfig.Message,
+			Description: errorMsg,
+		}, err)
+	}
+	defer func() { _ = dbClient.Close() }()
+
+	results, err := dbClient.ExecuteQueryContext(ctx, scripts.ListOrgConfigurationValues,
+		constants.ConfigAnonymousProfileRetentionDays)
+	if err != nil {
+		errorMsg := "Failed to execute query for listing the anonymous profile retentions"
+		logger.Debug(errorMsg, log.Error(err))
+		return nil, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.GetAdminConfig.Code,
+			Message:     errors2.GetAdminConfig.Message,
+			Description: errorMsg,
+		}, err)
+	}
+
+	retentions := make(map[string]int, len(results))
+	for _, row := range results {
+		orgID, ok := row["org_id"].(string)
+		if !ok {
+			continue
+		}
+		value, ok := row["value"].(string)
+		if !ok {
+			continue
+		}
+		if days, valid := parseRetentionDays(value); valid {
+			retentions[orgID] = days
+		}
+	}
+	return retentions, nil
 }
 
 // scanAdminConfigRows turns the key/value rows held for an org into an AdminConfig.
@@ -377,6 +448,10 @@ func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {
 			}
 		case constants.ConfigDeterministicMatchDecisive:
 			config.DeterministicMatchDecisive = value == storedTrue
+		case constants.ConfigAnonymousProfileRetentionDays:
+			if days, ok := parseRetentionDays(value); ok {
+				config.AnonymousProfileRetentionDays = days
+			}
 		}
 	}
 

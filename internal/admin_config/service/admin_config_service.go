@@ -155,6 +155,7 @@ func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgID string) (m
 			config.AutoMergeThreshold = primaryConfig.AutoMergeThreshold
 			config.ManualReviewThreshold = primaryConfig.ManualReviewThreshold
 			config.DeterministicMatchDecisive = primaryConfig.DeterministicMatchDecisive
+			config.AnonymousProfileRetentionDays = primaryConfig.AnonymousProfileRetentionDays
 			// Its requests arrive under the path of the primary organization, so the CORS
 			// middleware answers them with the origins of the primary organization.
 			config.CORSAllowedOrigins = primaryConfig.CORSAllowedOrigins
@@ -248,6 +249,23 @@ func validateThresholds(autoMerge, manualReview float64) error {
 	return nil
 }
 
+// validateAnonymousProfileRetention accepts 0 (not set) or a value within the allowed range.
+func validateAnonymousProfileRetention(days int) error {
+	if days == 0 {
+		return nil
+	}
+	if days < constants.MinAnonymousProfileRetentionDays || days > constants.MaxAnonymousProfileRetentionDays {
+		return errors.NewClientError(errors.ErrorMessage{
+			Code:    errors.UpdateConfigBadRequest.Code,
+			Message: errors.UpdateConfigBadRequest.Message,
+			Description: fmt.Sprintf(
+				"anonymous_profile_retention_days (%d) must be between %d and %d.",
+				days, constants.MinAnonymousProfileRetentionDays, constants.MaxAnonymousProfileRetentionDays),
+		}, http.StatusBadRequest)
+	}
+	return nil
+}
+
 // UpdateAdminConfig validates and stores the organisation's configuration. It normalizes
 // updatedConfig in place, so the caller can report back exactly what was stored.
 func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
@@ -260,6 +278,9 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	logger := log.GetLogger()
 
 	if err := validateThresholds(updatedConfig.AutoMergeThreshold, updatedConfig.ManualReviewThreshold); err != nil {
+		return err
+	}
+	if err := validateAnonymousProfileRetention(updatedConfig.AnonymousProfileRetentionDays); err != nil {
 		return err
 	}
 	validatedOrigins, err := validateCORSOrigins(updatedConfig.CORSAllowedOrigins)

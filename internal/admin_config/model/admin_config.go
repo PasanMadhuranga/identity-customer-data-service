@@ -34,6 +34,8 @@ type AdminConfig struct {
 	// CORSAllowedOrigins are the browser origins of the organisation's own apps, allowed to
 	// call its endpoints in addition to the deployment-wide auth.cors_allowed_origins list.
 	CORSAllowedOrigins []string `json:"cors_allowed_origins" bson:"cors_allowed_origins"`
+	// AnonymousProfileRetentionDays is 0 when the organization has not set one.
+	AnonymousProfileRetentionDays int `json:"anonymous_profile_retention_days" bson:"anonymous_profile_retention_days"`
 }
 
 // AdminConfigAPI is the configuration of an organization in the API responses.
@@ -45,6 +47,8 @@ type AdminConfigAPI struct {
 	ManualReviewThreshold      float64  `json:"manual_review_threshold" bson:"manual_review_threshold"`
 	DeterministicMatchDecisive bool     `json:"deterministic_match_decisive" bson:"deterministic_match_decisive"`
 	CORSAllowedOrigins         []string `json:"cors_allowed_origins,omitempty" bson:"cors_allowed_origins,omitempty"`
+	// AnonymousProfileRetentionDays is the effective retention, the default when none is set.
+	AnonymousProfileRetentionDays int `json:"anonymous_profile_retention_days" bson:"anonymous_profile_retention_days"`
 }
 
 // AdminConfigUpdateAPI is the body of a configuration update. A nil field leaves the setting unchanged.
@@ -56,4 +60,6 @@ type AdminConfigUpdateAPI struct {
 	ManualReviewThreshold      *float64 `json:"manual_review_threshold,omitempty"`
 	DeterministicMatchDecisive *bool    `json:"deterministic_match_decisive,omitempty"`
 	CORSAllowedOrigins         []string `json:"cors_allowed_origins,omitempty"`
+	// AnonymousProfileRetentionDays must be at least 1 when given.
+	AnonymousProfileRetentionDays *int `json:"anonymous_profile_retention_days,omitempty"`
 }

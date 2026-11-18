@@ -26,9 +26,9 @@ less LICENSE.txt
 
 A pack is extracted onto a machine where nothing else has been installed, so
 it defaults to the inbuilt database and needs no database server to start.
-Switch `datasource` in `repository/conf/deployment.yaml` to PostgreSQL for a
-production deployment — see the [README](../../README.md#-database) for which
-to choose.
+Switch `datasource` in `repository/conf/deployment.yaml` to PostgreSQL, MySQL
+or SQL Server for a production deployment — see the
+[README](../../README.md#-database) for which to choose.
 
 ## Path B — Identity Server first
 
@@ -59,7 +59,7 @@ defaults already match a default Identity Server on the same host:
 | `addr.host`, `addr.port` | `127.0.0.1`, `8900` | CDD has to listen on another address |
 | `server_url` | `https://localhost:8900` | the Identity Server reaches CDD by another name |
 | `tls.cert_dir` | `repository/resources/security` | the TLS material is mounted elsewhere |
-| `datasource` | the inbuilt database | in production — PostgreSQL |
+| `datasource` | the inbuilt database | in production — PostgreSQL, MySQL or SQL Server |
 | `application_identifier_type` | `app_id` | the Console identifies applications by client ID; the two have to match |
 
 Credentials are not written into it; see [Secrets](#secrets).

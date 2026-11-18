@@ -61,15 +61,15 @@ func TestAddressInUseIsDetected(t *testing.T) {
 // The CLI looks for the certificates where the runtime does, or verify would
 // report on files the server never reads.
 func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
-	home := "/opt/cds"
+	home := "/opt/cdd"
 	cases := []struct {
 		name    string
 		certDir string
 		want    string
 	}{
-		{"unset", "", "/opt/cds/etc/certs/server.crt"},
+		{"unset", "", "/opt/cdd/etc/certs/server.crt"},
 		{"relative to the home, as a pack sets it", "repository/resources/security",
-			"/opt/cds/repository/resources/security/server.crt"},
+			"/opt/cdd/repository/resources/security/server.crt"},
 		{"absolute, as a container mounts it", "/etc/certs", "/etc/certs/server.crt"},
 	}
 	for _, c := range cases {
@@ -88,7 +88,7 @@ func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
 	}
 	config.TLS.CertDir = "repository/resources/security"
 	config.TLS.TrustStore = "trust_store.pem"
-	want := filepath.FromSlash("/opt/cds/repository/resources/security/trust_store.pem")
+	want := filepath.FromSlash("/opt/cdd/repository/resources/security/trust_store.pem")
 	if got := config.trustStore(home); got != want {
 		t.Errorf("trustStore = %q, want %q", got, want)
 	}

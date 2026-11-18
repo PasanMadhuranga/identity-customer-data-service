@@ -168,7 +168,7 @@ func Run(cdsHome string) {
 	mux := newCORSMiddleware(initMultiplexer())
 
 	logger := log.GetLogger()
-	logger.Info(fmt.Sprintf("WSO2 CDS starting securely on: https://%s", serverAddr))
+	logger.Info(fmt.Sprintf("CDD starting securely on: https://%s", serverAddr))
 
 	certDir := cdsConfig.TLS.CertDir
 	if certDir == "" {

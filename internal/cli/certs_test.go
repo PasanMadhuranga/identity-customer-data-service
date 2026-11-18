@@ -54,7 +54,7 @@ func TestUsingDefaultCertificate(t *testing.T) {
 
 	// A path with nothing at it, and a file that is not a certificate, are
 	// both "not the default" rather than errors: the caller is deciding
-	// whether to warn, not whether CDS can start.
+	// whether to warn, not whether CDD can start.
 	if usingDefaultCertificate(filepath.Join(dir, "absent.crt")) {
 		t.Error("a missing certificate was reported as the default")
 	}
@@ -67,9 +67,9 @@ func TestUsingDefaultCertificate(t *testing.T) {
 }
 
 // The default certificate is issued for localhost alone, which is why it only
-// serves while CDS and the Identity Server reach each other as localhost.
+// serves while CDD and the Identity Server reach each other as localhost.
 func TestCertificateCovers(t *testing.T) {
-	for host, want := range map[string]bool{"localhost": true, "cds.example.com": false} {
+	for host, want := range map[string]bool{"localhost": true, "cdd.example.com": false} {
 		covers, err := certificateCovers(defaultCertificate, host)
 		if err != nil {
 			t.Fatalf("certificateCovers: %v", err)
@@ -80,9 +80,9 @@ func TestCertificateCovers(t *testing.T) {
 	}
 
 	issued := filepath.Join(t.TempDir(), "issued.crt")
-	writeTestCertificate(t, issued, "cds.example.com")
-	if covers, _ := certificateCovers(issued, "cds.example.com"); !covers {
-		t.Error("a certificate issued for cds.example.com does not cover it")
+	writeTestCertificate(t, issued, "cdd.example.com")
+	if covers, _ := certificateCovers(issued, "cdd.example.com"); !covers {
+		t.Error("a certificate issued for cdd.example.com does not cover it")
 	}
 	if _, err := certificateCovers(filepath.Join(t.TempDir(), "absent.crt"), "localhost"); err == nil {
 		t.Error("a missing certificate was not reported")
@@ -98,7 +98,7 @@ func writeTestCertificate(t *testing.T, path, host string) {
 	}
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
-		Subject:      pkix.Name{CommonName: host, Organization: []string{"WSO2"}},
+		Subject:      pkix.Name{CommonName: host, Organization: []string{"CDD"}},
 		DNSNames:     []string{host},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().Add(time.Hour),

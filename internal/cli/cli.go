@@ -16,7 +16,7 @@
  * under the License.
  */
 
-// Package cli implements cds, the command installed packs ship.
+// Package cli implements cdd, the command installed packs ship.
 //
 // Extracting the pack is the installation, and configuring it is editing
 // repository/conf/deployment.yaml. The command does not reach into the
@@ -32,10 +32,10 @@ import (
 	"strings"
 )
 
-// command is one subcommand of cds.
+// command is one subcommand of cdd.
 type command struct {
 	name string
-	// summary is the one-line description shown by `cds help`.
+	// summary is the one-line description shown by `cdd help`.
 	summary string
 	// run receives the arguments that follow the subcommand name.
 	run func(args []string) error
@@ -47,9 +47,9 @@ var errUsage = errors.New("invalid arguments")
 
 func commands() []command {
 	return []command{
-		{name: "start", summary: "Run CDS in the foreground; Ctrl+C stops it", run: runStart},
-		{name: "verify", summary: "Check CDS, its certificate and the Identity Server it calls", run: runVerify},
-		{name: "version", summary: "Print the CDS version", run: runVersion},
+		{name: "start", summary: "Run CDD in the foreground; Ctrl+C stops it", run: runStart},
+		{name: "verify", summary: "Check CDD, its certificate and the Identity Server it calls", run: runVerify},
+		{name: "version", summary: "Print the CDD version", run: runVersion},
 	}
 }
 
@@ -83,10 +83,10 @@ func Main(args []string) int {
 
 func usage(out *os.File) {
 	var b strings.Builder
-	b.WriteString("Customer Data Service\n\nUsage:\n  cds <command> [options]\n\nCommands:\n")
+	b.WriteString("Customer Data Directory\n\nUsage:\n  cdd <command> [options]\n\nCommands:\n")
 	for _, cmd := range commands() {
 		fmt.Fprintf(&b, "  %-9s %s\n", cmd.name, cmd.summary)
 	}
-	b.WriteString("\nRun `cds <command> --help` for the options of one command.\n")
+	b.WriteString("\nRun `cdd <command> --help` for the options of one command.\n")
 	_, _ = fmt.Fprint(out, b.String())
 }

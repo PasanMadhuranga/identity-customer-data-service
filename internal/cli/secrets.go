@@ -31,8 +31,8 @@ import (
 // expand from.
 //
 // repository/conf/secrets.env is where an operator can keep them, one
-// KEY=VALUE per line, readable by the account that runs CDS and nobody else.
-// `cds start` reads it, and a variable already set in the environment wins,
+// KEY=VALUE per line, readable by the account that runs CDD and nobody else.
+// `cdd start` reads it, and a variable already set in the environment wins,
 // so a deployment with a secret manager supplies them from there instead and
 // needs no file at all.
 

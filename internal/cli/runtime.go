@@ -68,7 +68,7 @@ func readRuntimeConfig(cdsHome string) (*runtimeConfig, error) {
 		return nil, fmt.Errorf("could not parse %s: %w", configFile, err)
 	}
 	if cfg.Addr.Port == 0 {
-		return nil, fmt.Errorf("%s sets no addr.port, so the CDS endpoint is unknown", configFile)
+		return nil, fmt.Errorf("%s sets no addr.port, so the CDD endpoint is unknown", configFile)
 	}
 	if cfg.Addr.Host == "" {
 		cfg.Addr.Host = loopback
@@ -76,7 +76,7 @@ func readRuntimeConfig(cdsHome string) (*runtimeConfig, error) {
 	return &cfg, nil
 }
 
-// serverCertificate is the path of the certificate CDS presents, as the
+// serverCertificate is the path of the certificate CDD presents, as the
 // configuration names it.
 func (c *runtimeConfig) serverCertificate(cdsHome string) string {
 	name := c.TLS.ServerCert
@@ -86,7 +86,7 @@ func (c *runtimeConfig) serverCertificate(cdsHome string) string {
 	return filepath.Join(c.certDir(cdsHome), name)
 }
 
-// trustStore is the path of the Identity Server certificates CDS trusts, or ""
+// trustStore is the path of the Identity Server certificates CDD trusts, or ""
 // when the configuration names none and only the system roots apply.
 func (c *runtimeConfig) trustStore(cdsHome string) string {
 	if c.TLS.TrustStore == "" {
@@ -95,7 +95,7 @@ func (c *runtimeConfig) trustStore(cdsHome string) string {
 	return filepath.Join(c.certDir(cdsHome), c.TLS.TrustStore)
 }
 
-// certDir resolves tls.cert_dir as the runtime does: relative to the CDS home,
+// certDir resolves tls.cert_dir as the runtime does: relative to the CDD home,
 // and etc/certs under it when unset.
 func (c *runtimeConfig) certDir(cdsHome string) string {
 	dir := c.TLS.CertDir
@@ -120,7 +120,7 @@ func (c *runtimeConfig) localBase() string {
 	return "https://" + net.JoinHostPort(host, strconv.Itoa(c.Addr.Port))
 }
 
-// addressInUse reports whether something is already listening where CDS is
+// addressInUse reports whether something is already listening where CDD is
 // configured to listen.
 //
 // Checked before starting rather than left to the runtime, because the failure
@@ -140,7 +140,7 @@ func (c *runtimeConfig) addressInUse() bool {
 	return true
 }
 
-// localClient calls the CDS process over its own loopback address. CDS serves
+// localClient calls the CDD process over its own loopback address. CDD serves
 // HTTPS only, and packs are installed with a certificate issued for the
 // deployment's public name, which will not match 127.0.0.1. Verification is
 // therefore skipped for these local lifecycle probes only; nothing else in the
@@ -154,7 +154,7 @@ func localClient(timeout time.Duration) *http.Client {
 	}
 }
 
-// probe reports the HTTP status of one CDS endpoint, or an error if the
+// probe reports the HTTP status of one CDD endpoint, or an error if the
 // process could not be reached at all.
 func probe(base, endpoint string, timeout time.Duration) (int, string, error) {
 	resp, err := localClient(timeout).Get(base + endpoint)

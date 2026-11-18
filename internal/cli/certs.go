@@ -68,7 +68,7 @@ func usingDefaultCertificate(path string) bool {
 }
 
 // certificateCovers reports whether the certificate at path is valid for host,
-// which is what the Identity Server checks when it calls CDS at server_url.
+// which is what the Identity Server checks when it calls CDD at server_url.
 func certificateCovers(path, host string) (bool, error) {
 	certificate, err := readCertificate(path)
 	if err != nil {

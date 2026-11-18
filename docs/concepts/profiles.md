@@ -1,6 +1,6 @@
 # Profiles
 
-A **profile** is the central entity in CDS. It represents a single person's collected data — their identity attributes, behavioural traits, and per-application data — unified across all interactions.
+A **profile** is the central entity in CDD. It represents a single person's collected data — their identity attributes, behavioural traits, and per-application data — unified across all interactions.
 
 ---
 
@@ -9,7 +9,7 @@ A **profile** is the central entity in CDS. It represents a single person's coll
 | Field | Description |
 |---|---|
 | `profile_id` | System-generated UUID. Immutable. |
-| `user_id` | The user's ID from WSO2 Identity Server. Empty on anonymous profiles. Write-once once set. |
+| `user_id` | The user's ID from Identity Server. Empty on anonymous profiles. Write-once once set. |
 | `identity_attributes` | Attributes sourced from the identity system (e.g. email, phone, name). Keyed by attribute name. |
 | `traits` | Behavioural or preference data (e.g. preferred language, segment tags). |
 | `application_data` | Per-application data, keyed by application identifier. |

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Installs the default TLS material a pack ships with: WSO2 Identity Server
+# Installs the default TLS material a pack ships with: Identity Server
 # 7.3.0's own default key pair.
 #
-# CDS and the Identity Server call each other over TLS, so each has to trust
+# CDD and the Identity Server call each other over TLS, so each has to trust
 # the other's certificate. Every Identity Server 7.3.0 download carries the
 # same default key pair (alias wso2carbon in wso2carbon.p12) and already
 # trusts its certificate (client-truststore.p12). A pack that presents that
@@ -11,14 +11,14 @@
 # Identity Server 7.3.0 in both directions with no certificate set up on
 # either side.
 #
-# The certificate is issued for localhost only, so this holds while CDS and
+# The certificate is issued for localhost only, so this holds while CDD and
 # the Identity Server reach each other as localhost: one host, as in a first
 # installation. Anything else - containers, separate hosts - needs
 # certificates issued for the names they use, on both sides.
 #
 # This is a convenience for getting started, NOT a production credential.
 # The private key ships in every Identity Server download, so anyone can
-# present themselves as a CDS using it. The runtime recognises the
+# present themselves as a CDD using it. The runtime recognises the
 # certificate by its fingerprint and says that it is still in use.
 #
 # No private key is committed here: the key pair is read at build time from
@@ -93,7 +93,7 @@ fingerprint=$(openssl x509 -in "$DIR/server.crt" -noout -fingerprint -sha256 | c
 [ "$(openssl x509 -in "$DIR/server.crt" -noout -pubkey)" = "$(openssl pkey -in "$DIR/server.key" -pubout)" ] \
   || fail "the private key does not belong to the certificate"
 
-# CDS calls the Identity Server too, so it trusts the same certificate.
+# CDD calls the Identity Server too, so it trusts the same certificate.
 cp "$DIR/server.crt" "$DIR/trust_store.pem"
 
 # The key is readable by its owner alone, even inside the zip, so an extracted

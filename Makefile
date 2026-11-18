@@ -16,7 +16,7 @@ PLATFORMS ?= linux/amd64 linux/arm64
 # Product name as registered with the update service. It names the packed
 # binary (<PACK>/$(PRODUCT_NAME)), the pack directory, its zip and the product
 # identity in <PACK>/updates/product.txt.
-PRODUCT_NAME ?= cds
+PRODUCT_NAME ?= cdd
 
 # Variable constants.
 VERSION=$(shell cat $(VERSION_FILE))
@@ -138,7 +138,7 @@ _dist_one:
 	rm -rf $$stage; \
 	mkdir -p $$stage/updates \
 		$$stage/repository/database $$stage/repository/dbscripts $$stage/repository/resources/security; \
-	CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -o $$stage/$(PRODUCT_NAME) ./cmd/cds; \
+	CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -o $$stage/$(PRODUCT_NAME) ./cmd/cdd; \
 	cp -r $(REPOSITORY_DIR)/. $$stage/repository/; \
 	$(DISTRIBUTION_SRC)/pack-config.sh $$stage/repository/conf/deployment.yaml; \
 	cp dbscripts/*.sql $$stage/repository/dbscripts/; \

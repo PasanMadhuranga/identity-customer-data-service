@@ -51,7 +51,7 @@ func (c *checks) failf(format string, a ...any) {
 
 // runVerify checks the installation without changing anything.
 //
-// Every check goes over the network or reads CDS's own files, never the
+// Every check goes over the network or reads CDD's own files, never the
 // Identity Server's, so it answers the same whether the Identity Server runs
 // beside it, on another host or in a container.
 func runVerify(args []string) error {
@@ -71,10 +71,10 @@ func runVerify(args []string) error {
 
 	results := &checks{}
 
-	stepf("CDS runtime")
+	stepf("CDD runtime")
 	base := config.localBase()
 	if status, _, err := probe(base, "/cds/api/v1/ready", 10*time.Second); err != nil {
-		results.failf("CDS is not reachable at %s: %v", base, err)
+		results.failf("CDD is not reachable at %s: %v", base, err)
 	} else if status != http.StatusOK {
 		results.failf("GET /cds/api/v1/ready returned HTTP %d, so the datastore is not ready", status)
 	} else {
@@ -90,9 +90,9 @@ func runVerify(args []string) error {
 	return summarize(results)
 }
 
-// verifyCertificate checks the certificate CDS presents: that it is one issued
+// verifyCertificate checks the certificate CDD presents: that it is one issued
 // for this deployment rather than the pack's default, and that it is valid for
-// the host in server_url, which is the name the Identity Server calls CDS on.
+// the host in server_url, which is the name the Identity Server calls CDD on.
 func verifyCertificate(results *checks, cdsHome string, config *runtimeConfig) {
 	certificate := config.serverCertificate(cdsHome)
 	if !fileExists(certificate) {
@@ -100,7 +100,7 @@ func verifyCertificate(results *checks, cdsHome string, config *runtimeConfig) {
 		return
 	}
 	if usingDefaultCertificate(certificate) {
-		results.failf("CDS is presenting the default certificate the pack shipped with; " +
+		results.failf("CDD is presenting the default certificate the pack shipped with; " +
 			"its private key is in every Identity Server 7.3.0 download, so replace it " +
 			"with one issued for this deployment")
 	} else {
@@ -118,14 +118,14 @@ func verifyCertificate(results *checks, cdsHome string, config *runtimeConfig) {
 		results.failf("could not read %s: %v", certificate, err)
 	case !covers:
 		results.failf("the TLS certificate is not valid for %s, the host in server_url, "+
-			"so the Identity Server cannot verify CDS there", host)
+			"so the Identity Server cannot verify CDD there", host)
 	default:
 		results.passf("the TLS certificate is valid for %s, the host in server_url", host)
 	}
 }
 
-// verifyIdentityServer checks that CDS can reach the Identity Server it is
-// configured to call, and verify its certificate with the trust store CDS
+// verifyIdentityServer checks that CDD can reach the Identity Server it is
+// configured to call, and verify its certificate with the trust store CDD
 // itself uses.
 func verifyIdentityServer(results *checks, cdsHome string, config *runtimeConfig) {
 	if config.AuthServer.Host == "" || config.AuthServer.Port == 0 {
@@ -160,7 +160,7 @@ func verifyIdentityServer(results *checks, cdsHome string, config *runtimeConfig
 	var unverified *tls.CertificateVerificationError
 	switch {
 	case errors.As(err, &unverified):
-		results.failf("the Identity Server at %s presents a certificate CDS does not trust: %v", isBase,
+		results.failf("the Identity Server at %s presents a certificate CDD does not trust: %v", isBase,
 			unverified.Err)
 		return
 	case err != nil:

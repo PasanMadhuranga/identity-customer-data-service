@@ -24,10 +24,10 @@ import (
 	"strings"
 )
 
-// runStart runs the CDS runtime in the foreground until it is stopped with
+// runStart runs the CDD runtime in the foreground until it is stopped with
 // Ctrl+C or a signal.
 //
-// There is no background mode, and so no stop or status: running CDS as a
+// There is no background mode, and so no stop or status: running CDD as a
 // service is the job of whatever already runs services — a unit file, a
 // container runtime, a process supervisor — and each of those wants exactly
 // this: one process to watch, its logs on stdout, and a signal to end it.
@@ -50,7 +50,7 @@ func runStart(args []string) error {
 	// Refused here rather than left to the runtime, so the operator reads why
 	// rather than a bind error from deep in the server's startup.
 	if cfg.addressInUse() {
-		return fmt.Errorf("something is already listening on %s, so CDS cannot start there.\n"+
+		return fmt.Errorf("something is already listening on %s, so CDD cannot start there.\n"+
 			"Stop it, or change addr in %s", cfg.localBase(), configFile)
 	}
 
@@ -65,7 +65,7 @@ func runStart(args []string) error {
 		return err
 	}
 
-	stepf("Starting CDS at %s", cfg.localBase())
+	stepf("Starting CDD at %s", cfg.localBase())
 	infof("Press Ctrl+C to stop.")
 	fmt.Println()
 	runtimeRun(cdsHome)

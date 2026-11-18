@@ -30,9 +30,9 @@ import (
 // newFlagSet builds the flag set for one subcommand. Errors are returned
 // rather than exiting, so Main decides the exit code in one place.
 func newFlagSet(name string) *flag.FlagSet {
-	flags := flag.NewFlagSet("cds "+name, flag.ContinueOnError)
+	flags := flag.NewFlagSet("cdd "+name, flag.ContinueOnError)
 	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: cds %s [options]\n\nOptions:\n", name)
+		fmt.Fprintf(os.Stderr, "Usage: cdd %s [options]\n\nOptions:\n", name)
 		flags.PrintDefaults()
 	}
 	return flags

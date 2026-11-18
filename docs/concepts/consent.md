@@ -98,7 +98,7 @@ This is by design. If finer-grained control is needed, define more granular cate
 
 ## Mandatory consent — Identity Data
 
-Every org has a built-in consent category called **Identity Data** that is automatically created when CDS is enabled. It covers all `identityAttributes` scope fields defined in the org's profile schema. Its `category_identifier` is a server-generated UUID.
+Every org has a built-in consent category called **Identity Data** that is automatically created when CDD is enabled. It covers all `identityAttributes` scope fields defined in the org's profile schema. Its `category_identifier` is a server-generated UUID.
 
 ```json
 {

@@ -33,8 +33,8 @@ done
 [ -n "$VERSION" ] || VERSION="$(tr -d '[:space:]' < version.txt)"
 
 PACK_VERSION="${VERSION#v}"
-PRODUCT="cds"
-REPO="${CDS_REPO:-wso2/identity-customer-data-service}"
+PRODUCT="cdd"
+REPO="${CDD_REPO:-wso2/identity-customer-data-service}"
 
 [ -d "$DIST_DIR" ] || { echo "release-notes: $DIST_DIR not found" >&2; exit 1; }
 
@@ -69,12 +69,12 @@ cat <<INTRO
 [![Release](https://img.shields.io/github/v/release/$REPO?color=blue)](https://github.com/$REPO/releases/latest)
 [![Last commit](https://img.shields.io/github/last-commit/$REPO.svg)](https://github.com/$REPO/commits/main)
 
-The WSO2 Customer Data Service builds unified customer profiles from the
+The Customer Data Directory builds unified customer profiles from the
 identity and behavioural data an organisation already holds, and serves them
 to the applications that personalise on them.
 
-CDS runs as its own process beside a WSO2 Identity Server. The two are
-separate installations with separate lifecycles: CDS is installed and updated
+CDD runs as its own process beside an Identity Server. The two are
+separate installations with separate lifecycles: CDD is installed and updated
 on its own, and the Identity Server carries its own side of the integration.
 
 INTRO
@@ -89,7 +89,7 @@ found=0
 for zip in "$DIST_DIR"/$PRODUCT-*-"$PACK_VERSION".zip; do
   [ -e "$zip" ] || continue
   name="$(basename "$zip")"
-  # cds-<os>-<arch>-<version>.zip
+  # cdd-<os>-<arch>-<version>.zip
   platform="$(echo "$name" | sed -E "s/^$PRODUCT-([a-z0-9]+)-([a-z0-9]+)-.*/\1\/\2/")"
   printf '| %s | [%s](https://github.com/%s/releases/download/%s/%s) | `%s` |\n' \
     "$platform" "$name" "$REPO" "$VERSION" "$name" "$(digest_of "$zip")"
@@ -126,7 +126,7 @@ echo
 cat <<NOTES
 ## Installing
 
-Starting from CDS — extraction is the installation, there is nothing to run
+Starting from CDD — extraction is the installation, there is nothing to run
 first:
 
 \`\`\`bash
@@ -135,14 +135,14 @@ cd /opt/$PRODUCT-linux-amd64-$PACK_VERSION
 ./start.sh
 \`\`\`
 
-Then switch CDS on in the Identity Server's \`deployment.toml\` and restart it:
+Then switch CDD on in the Identity Server's \`deployment.toml\` and restart it:
 
 \`\`\`toml
 [customer_data_service]
 enable = true
 server_url = "https://localhost:8900"
 admin_username = "admin"
-admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDS>"
+admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDD>"
 \`\`\`
 
 \`./$PRODUCT verify\` checks the result.
@@ -151,14 +151,14 @@ Starting from an Identity Server that is already installed, the bootstrap
 installer resolves the right pack for it:
 
 \`\`\`bash
-./install_cds.sh --is-home /opt/wso2is
+./install_cdd.sh --is-home /opt/identity-server
 \`\`\`
 
 Both paths end at the same installation. See
 the [installation guide](https://github.com/$REPO/blob/$VERSION/docs/guides/on-prem-installation.md).
 
-The Identity Server's side of the integration — the CDS extension bundles and
-the CDS Console — is delivered with the Identity Server rather than with this
+The Identity Server's side of the integration — the CDD extension bundles and
+the CDD Console — is delivered with the Identity Server rather than with this
 release, and is updated through its own stream.
 NOTES
 
@@ -176,41 +176,6 @@ cat <<MORE
 The documentation for this version is in the [docs](https://github.com/$REPO/tree/$VERSION/docs)
 folder of the repository, and the API is described in
 [\`api/customer-data-service.yaml\`](https://github.com/$REPO/blob/$VERSION/api/customer-data-service.yaml).
-
-## Contribute to WSO2 Customer Data Service
-
-### Mailing Lists
-
-Join our mailing lists and correspond with the developers directly. We also
-encourage you to take part in discussions related to the product in the
-architecture mailing list. If you have any questions regarding the product you
-can use our StackOverflow forum to raise them as well.
-
-- IAM Developer List: iam-dev@wso2.org
-- User Forum: [StackOverflow](https://stackoverflow.com/)
-
-### Discord Channels
-
-Join us via [discord](https://discord.gg/wso2) for even better communication.
-You can talk to our developers directly regarding any issues, or concerns about
-the product. We encourage you to start discussions or join any ongoing
-discussions with the team, via our discord channels.
-
-- General discussions: [General Channel](https://discord.com/channels/955510916064092180/955512880562864128)
-- Help: [Help Channel](https://discord.com/channels/955510916064092180/1027230220727636008)
-- New releases: [Product Updates Channel](https://discord.com/channels/955510916064092180/1052557302454046780)
-
-## Reporting Issues
-
-We encourage you to report issues, improvements, and feature requests regarding
-WSO2 Customer Data Service through our public
-[GitHub Issues](https://github.com/$REPO/issues).
-
-**Important**: Please be advised that security issues must be reported to
-security@wso2.com, not as GitHub issues, in order to reach the proper audience.
-We strongly advise following the
-[WSO2 Security Vulnerability Reporting Guidelines](https://security.docs.wso2.com/en/latest/security-reporting/vulnerability-reporting-guidelines/)
-when reporting security issues.
 MORE
 
 # --- License --------------------------------------------------------------- #

@@ -2,7 +2,7 @@
 #
 # Drives the real bootstrap installer against packs that were just built.
 #
-# install_cds.sh is the first thing a customer on the Identity-Server-first
+# install_cdd.sh is the first thing a customer on the Identity-Server-first
 # path runs, and until this existed nothing exercised it: a change that broke
 # release resolution, the checksum check or the extraction would have been
 # found by them rather than by us. So this stands a release up locally — the
@@ -11,14 +11,14 @@
 #
 #   verify-install.sh <dist-dir>
 #
-# Linux only, because that is what CDS is released for and what the installer
+# Linux only, because that is what CDD is released for and what the installer
 # accepts. Needs: curl, unzip, python3.
 
 set -euo pipefail
 
 DIST_DIR="${1:?usage: verify-install.sh <dist-dir>}"
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PRODUCT="cds"
+PRODUCT="cdd"
 
 # The release this fixture pretends to be. The Identity Server version is the
 # one the metadata will declare support for, so the positive branch of release
@@ -26,7 +26,7 @@ PRODUCT="cds"
 IS_VERSION="${VERIFY_IS_VERSION:-7.4.0}"
 
 if [ "$(uname -s)" != "Linux" ]; then
-  echo "verify-install: skipped, CDS is released for Linux only (this is $(uname -s))" >&2
+  echo "verify-install: skipped, CDD is released for Linux only (this is $(uname -s))" >&2
   exit 0
 fi
 
@@ -119,7 +119,7 @@ mkdir -p "$IS_HOME/repository/conf" "$IS_HOME/bin" "$IS_HOME/updates"
 printf '[server]\nhostname = "localhost"\n' > "$IS_HOME/repository/conf/deployment.toml"
 printf '#!/bin/sh\n' > "$IS_HOME/bin/wso2server.sh"
 chmod +x "$IS_HOME/bin/wso2server.sh"
-printf 'WSO2 Identity Server v%s\n' "$IS_VERSION" > "$IS_HOME/bin/version.txt"
+printf 'Identity Server v%s\n' "$IS_VERSION" > "$IS_HOME/bin/version.txt"
 printf 'wso2is-%s' "$IS_VERSION" > "$IS_HOME/updates/product.txt"
 IS_SNAPSHOT="$(cd "$IS_HOME" && find . -type f -exec shasum {} \; | sort)"
 
@@ -129,14 +129,14 @@ IS_SNAPSHOT="$(cd "$IS_HOME" && find . -type f -exec shasum {} \; | sort)"
 # Nothing is stubbed past this point. The installer resolves the release from
 # the metadata, verifies the checksum and extracts the pack.
 # --------------------------------------------------------------------------- #
-CDS_HOME="$WORK/cds"
+CDD_HOME="$WORK/cdd"
 echo "verify-install: installing $PACK against Identity Server $IS_VERSION"
 
-CDS_API="http://127.0.0.1:$PORT" \
-CDS_DOWNLOAD_BASE="http://127.0.0.1:$PORT" \
-  "$SELF_DIR/install_cds.sh" \
+CDD_API="http://127.0.0.1:$PORT" \
+CDD_DOWNLOAD_BASE="http://127.0.0.1:$PORT" \
+  "$SELF_DIR/install_cdd.sh" \
     --is-home "$IS_HOME" \
-    --cds-home "$CDS_HOME" \
+    --cdd-home "$CDD_HOME" \
     --accept-license \
   > "$WORK/install.log" 2>&1 || {
     echo "verify-install: the installer failed" >&2
@@ -161,10 +161,10 @@ check "the release was resolved from its declared Identity Server support" \
   "grep -q 'declares support for Identity Server $IS_VERSION' '$WORK/install.log'"
 check "the download was checked against its published checksum" \
   "grep -q 'checksum verified' '$WORK/install.log'"
-check "CDS_HOME holds the pack" "[ -x '$CDS_HOME/$PRODUCT' ]"
+check "CDD_HOME holds the pack" "[ -x '$CDD_HOME/$PRODUCT' ]"
 check "the installed executable reports the built version" \
-  "[ \"\$('$CDS_HOME/$PRODUCT' version)\" = '$PACK_VERSION' ]"
-check "the installer said how to switch CDS on in the Identity Server" \
+  "[ \"\$('$CDD_HOME/$PRODUCT' version)\" = '$PACK_VERSION' ]"
+check "the installer said how to switch CDD on in the Identity Server" \
   "grep -q 'customer_data_service' '$WORK/install.log'"
 check "nothing in the Identity Server was changed" \
   "[ \"\$(cd '$IS_HOME' && find . -type f -exec shasum {} \\; | sort)\" = \"\$IS_SNAPSHOT\" ]"

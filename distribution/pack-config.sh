@@ -13,7 +13,7 @@
 #
 # The same goes for the TLS material: a container mounts it at /etc/certs,
 # while a pack carries it in repository/resources/security, so the packed copy
-# points there. The runtime resolves a relative cert_dir against the CDS home.
+# points there. The runtime resolves a relative cert_dir against the CDD home.
 #
 #   pack-config.sh <deployment.yaml>
 

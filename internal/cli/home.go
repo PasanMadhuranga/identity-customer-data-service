@@ -25,7 +25,7 @@ import (
 	"strings"
 )
 
-// Paths inside an installed pack. The executable and start.sh sit at CDS_HOME,
+// Paths inside an installed pack. The executable and start.sh sit at CDD_HOME,
 // with repository/ and updates/ beside them.
 const (
 	confDir     = "repository/conf"
@@ -34,32 +34,32 @@ const (
 	versionFile = "version.txt"
 )
 
-// home resolves CDS_HOME.
+// home resolves CDD_HOME.
 //
 // The executable's own location is the primary source, because a pack is
 // relocatable and an operator who extracted it anywhere should not have to
-// export anything to use it. CDS_HOME overrides that for deployments which run
+// export anything to use it. CDD_HOME overrides that for deployments which run
 // the binary from outside the pack.
 func home() (string, error) {
-	if env := strings.TrimSpace(os.Getenv("CDS_HOME")); env != "" {
+	if env := strings.TrimSpace(os.Getenv("CDD_HOME")); env != "" {
 		abs, err := filepath.Abs(env)
 		if err != nil {
-			return "", fmt.Errorf("CDS_HOME %q is not a usable path: %w", env, err)
+			return "", fmt.Errorf("CDD_HOME %q is not a usable path: %w", env, err)
 		}
 		return abs, nil
 	}
 
 	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("could not locate the cds executable, so CDS_HOME is unknown: %w", err)
+		return "", fmt.Errorf("could not locate the cdd executable, so CDD_HOME is unknown: %w", err)
 	}
-	// Resolve symlinks so that a cds on PATH, linked into the pack, still
+	// Resolve symlinks so that a cdd on PATH, linked into the pack, still
 	// resolves to the pack rather than to the link's directory.
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = resolved
 	}
 
-	// <CDS_HOME>/cds -> <CDS_HOME>
+	// <CDD_HOME>/cdd -> <CDD_HOME>
 	dir := filepath.Dir(exe)
 	if _, err := os.Stat(filepath.Join(dir, configFile)); err != nil {
 		cwd, wdErr := os.Getwd()
@@ -68,13 +68,13 @@ func home() (string, error) {
 				return cwd, nil
 			}
 		}
-		return "", fmt.Errorf("%s does not look like a CDS installation: %s is missing.\n"+
-			"Run cds from the root of an extracted pack, or set CDS_HOME", dir, configFile)
+		return "", fmt.Errorf("%s does not look like a CDD installation: %s is missing.\n"+
+			"Run cdd from the root of an extracted pack, or set CDD_HOME", dir, configFile)
 	}
 	return dir, nil
 }
 
-// path joins one pack-relative path onto CDS_HOME.
+// path joins one pack-relative path onto CDD_HOME.
 func path(cdsHome, rel string) string { return filepath.Join(cdsHome, filepath.FromSlash(rel)) }
 
 // productVersion reads version.txt from the pack, without its leading "v".

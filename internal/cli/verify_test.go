@@ -69,7 +69,7 @@ func TestLoadSecretsWithoutAFile(t *testing.T) {
 	}
 }
 
-// verify trusts the Identity Server only through the trust store CDS itself
+// verify trusts the Identity Server only through the trust store CDD itself
 // uses, so a certificate missing from it is reported, and found once added.
 func TestVerifyIdentityServerUsesTheTrustStore(t *testing.T) {
 	is := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

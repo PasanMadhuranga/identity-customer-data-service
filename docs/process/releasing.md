@@ -1,4 +1,4 @@
-# Releasing CDS — Release Process and Versioning
+# Releasing CDD — Release Process and Versioning
 
 `version.txt` holds the **last released** version. Nothing moves it on a PR merge — the release builder owns it, and a release is the only thing that changes it. The version number therefore describes what was released, not how many PRs were merged.
 
@@ -8,12 +8,12 @@
 
 One source revision produces every supported platform pack, so a release — and
 the updates later published from it — carry executables built from the same
-code. CDS is released for Linux only:
+code. CDD is released for Linux only:
 
 ```
-cds-linux-amd64-<version>.zip   + .sha256 + .md5
-cds-linux-arm64-<version>.zip   + .sha256 + .md5
-cds-<version>-release-metadata.yaml
+cdd-linux-amd64-<version>.zip   + .sha256 + .md5
+cdd-linux-arm64-<version>.zip   + .sha256 + .md5
+cdd-<version>-release-metadata.yaml
 ```
 
 The pack directory, its zip and its update-service product identity are all
@@ -35,7 +35,7 @@ release publishes:
 | | |
 |---|---|
 | `distribution/check-pack.sh` | every pack carries the files an installation needs, and a product identity naming itself |
-| `distribution/verify-install.sh` | the Identity-Server-first path really installs: a release is served locally and the real `install_cds.sh` is driven against it, through resolution, checksum and extraction, and leaves the Identity Server untouched |
+| `distribution/verify-install.sh` | the Identity-Server-first path really installs: a release is served locally and the real `install_cdd.sh` is driven against it, through resolution, checksum and extraction, and leaves the Identity Server untouched |
 | `distribution/artifact-summary.sh` | writes the artifacts and their SHA-256 digests into the run summary |
 | `distribution/release-notes.sh` | builds the release body — downloads, digests, compatibility and both install paths |
 
@@ -47,7 +47,7 @@ The release metadata names the product, the platform artifacts with their
 checksums, and the compatibility the pack itself declares in
 `repository/conf/compatibility.yaml`. It is what the
 [bootstrap installer](../guides/on-prem-installation.md#path-b--identity-server-first)
-reads to resolve a CDS release for an installed Identity Server version
+reads to resolve a CDD release for an installed Identity Server version
 without downloading a pack first.
 
 ### The release body
@@ -86,15 +86,15 @@ tool setup scripts are not built from this source.
 Onboarding a release to WSO2 Updates, and the packs offered on wso2.com, are
 made from the release by a WSO2-internal process, outside this repository.
 
-A CDS service fix is published as one update entry per platform product, all
+A CDD service fix is published as one update entry per platform product, all
 carrying the executable built from the same revision. The fix is not complete
 until every platform entry is published, because a customer on the other
 platform would otherwise not have it.
 
-The CDS extension bundles and the CDS Console are **not** published this way.
-They are deployed into the Identity Server, not into CDS, and are delivered
-through the WSO2 Identity Server's own update stream. A logical fix that
-changes both the CDS service and an Identity Server-resident artifact is two
+The CDD extension bundles and the CDD Console are **not** published this way.
+They are deployed into the Identity Server, not into CDD, and are delivered
+through the Identity Server's own update stream. A logical fix that
+changes both the CDD service and an Identity Server-resident artifact is two
 updates, under their two product identities.
 
 ---
@@ -125,7 +125,7 @@ Between releases, every build off `main` reports the same version. That is expec
 
 ## Inputs
 
-Actions → **CDS Release Builder** → Run workflow.
+Actions → **CDD Release Builder** → Run workflow.
 
 | Input | Default | Use it when |
 |---|---|---|

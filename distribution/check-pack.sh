@@ -13,11 +13,11 @@ set -euo pipefail
 DIST_DIR="${1:?usage: check-pack.sh <dist-dir>}"
 [ -d "$DIST_DIR" ] || { echo "check-pack: $DIST_DIR not found" >&2; exit 1; }
 
-# Paths every pack must contain, relative to the pack root. cds is the
+# Paths every pack must contain, relative to the pack root. cdd is the
 # product; the rest is what it reads on first start, plus the identity the
 # update service resolves the pack by.
 REQUIRED="
-cds
+cdd
 start.sh
 repository/conf/deployment.yaml
 repository/conf/compatibility.yaml

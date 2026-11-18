@@ -16,7 +16,7 @@
  * under the License.
  */
 
-// Command cds is the executable an installed CDS pack ships at its root.
+// Command cdd is the executable an installed CDD pack ships at its root.
 //
 // It runs the runtime in the foreground and verifies the installation. The
 // container image runs cmd/server instead, where only the runtime is wanted.

@@ -30,7 +30,6 @@ import (
 
 // nextSend returns the headers of the next SEND frame the broker receives.
 func (b *fakeBroker) nextSend(t *testing.T) map[string]string {
-
 	t.Helper()
 
 	select {
@@ -44,7 +43,6 @@ func (b *fakeBroker) nextSend(t *testing.T) map[string]string {
 
 // closeQueue closes a queue at the end of a test.
 func closeQueue(t *testing.T, close func(context.Context) error) {
-
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -58,7 +56,6 @@ func closeQueue(t *testing.T, close func(context.Context) error) {
 // asks the broker to store it. ActiveMQ keeps a STOMP message without the
 // persistent header only in memory, so a broker restart discards it.
 func Test_ProfileQueue_Enqueue_sendsAPersistentMessage(t *testing.T) {
-
 	broker := startFakeBroker(t, true)
 
 	q, err := NewProfileQueue(broker.addr(), "", "", "/queue/profiles", config.TLSConfig{})
@@ -83,7 +80,6 @@ func Test_ProfileQueue_Enqueue_sendsAPersistentMessage(t *testing.T) {
 // Test_SchemaSyncQueue_Enqueue_sendsAPersistentMessage is the same check for
 // the schema sync queue.
 func Test_SchemaSyncQueue_Enqueue_sendsAPersistentMessage(t *testing.T) {
-
 	broker := startFakeBroker(t, true)
 
 	q, err := NewSchemaSyncQueue(broker.addr(), "", "", "/queue/schema", config.TLSConfig{})

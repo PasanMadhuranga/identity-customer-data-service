@@ -36,7 +36,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
-
 	if err := log.Init("ERROR"); err != nil {
 		panic(err)
 	}
@@ -59,7 +58,6 @@ type fakeBroker struct {
 // startFakeBroker listens on a local port. When answerReceipt is false the
 // broker never answers the receipt of a DISCONNECT, so go-stomp waits for it.
 func startFakeBroker(t *testing.T, answerReceipt bool) *fakeBroker {
-
 	t.Helper()
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -96,7 +94,6 @@ func startFakeBroker(t *testing.T, answerReceipt bool) *fakeBroker {
 
 // connections reports how many connections the broker has accepted.
 func (b *fakeBroker) connections() int {
-
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return len(b.accepted)
@@ -104,13 +101,11 @@ func (b *fakeBroker) connections() int {
 
 // addr returns the address in the form the queue takes.
 func (b *fakeBroker) addr() string {
-
 	return "tcp://" + b.listener.Addr().String()
 }
 
 // serve answers the CONNECT and then reads until the client goes away.
 func (b *fakeBroker) serve(conn net.Conn, answerReceipt bool) {
-
 	defer func() { b.readEnded <- struct{}{} }()
 
 	reader := bufio.NewReader(conn)
@@ -141,7 +136,6 @@ func (b *fakeBroker) serve(conn net.Conn, answerReceipt bool) {
 
 // readFrame reads one STOMP frame, which ends at a null byte.
 func readFrame(reader *bufio.Reader) (string, error) {
-
 	frame, err := reader.ReadString(0)
 	if err != nil {
 		return "", err
@@ -151,7 +145,6 @@ func readFrame(reader *bufio.Reader) (string, error) {
 
 // parseFrame returns the command and the headers of one frame.
 func parseFrame(frame string) (string, map[string]string) {
-
 	lines := strings.Split(strings.TrimLeft(frame, "\n"), "\n")
 	headers := map[string]string{}
 	for _, line := range lines[1:] {
@@ -170,7 +163,6 @@ func parseFrame(frame string) (string, map[string]string) {
 // not hold the process. go-stomp allows 30 seconds for a disconnect receipt,
 // which is longer than the whole shutdown deadline.
 func Test_Close_endsTheConnectionAtTheDeadline(t *testing.T) {
-
 	broker := startFakeBroker(t, false)
 
 	baseline := settledGoroutines()
@@ -212,7 +204,6 @@ func Test_Close_endsTheConnectionAtTheDeadline(t *testing.T) {
 
 // Test_Close_returnsWhenTheBrokerAnswers is the control for the test above.
 func Test_Close_returnsWhenTheBrokerAnswers(t *testing.T) {
-
 	broker := startFakeBroker(t, true)
 
 	baseline := settledGoroutines()
@@ -236,7 +227,6 @@ func Test_Close_returnsWhenTheBrokerAnswers(t *testing.T) {
 // Test_Close_isSafeWhenCalledMoreThanOnce checks the queue contract. The later
 // calls report the first result rather than a stale "already closed".
 func Test_Close_isSafeWhenCalledMoreThanOnce(t *testing.T) {
-
 	broker := startFakeBroker(t, true)
 
 	q, err := NewProfileQueue(broker.addr(), "", "", "queue/profiles", config.TLSConfig{})
@@ -257,7 +247,6 @@ func Test_Close_isSafeWhenCalledMoreThanOnce(t *testing.T) {
 // settledGoroutines returns the goroutine count once it stops falling, so that
 // a goroutine which is on its way out is not counted as a leak.
 func settledGoroutines() int {
-
 	previous := runtime.NumGoroutine()
 	for i := 0; i < 50; i++ {
 		time.Sleep(20 * time.Millisecond)
@@ -274,7 +263,6 @@ func settledGoroutines() int {
 // that is waiting out its backoff and a close. The reconnect must not install a
 // connection after the close has returned, because nothing would close it.
 func Test_Close_endsAReconnectThatIsWaiting(t *testing.T) {
-
 	broker := startFakeBroker(t, true)
 
 	q, err := NewProfileQueue(broker.addr(), "", "", "queue/profiles", config.TLSConfig{})
@@ -317,7 +305,6 @@ func Test_Close_endsAReconnectThatIsWaiting(t *testing.T) {
 // where the close happens while a dial is already in flight. The connection the
 // dial opened is closed instead of installed.
 func Test_dial_doesNotInstallAConnectionAfterTheClose(t *testing.T) {
-
 	broker := startFakeBroker(t, true)
 
 	q, err := NewProfileQueue(broker.addr(), "", "", "queue/profiles", config.TLSConfig{})

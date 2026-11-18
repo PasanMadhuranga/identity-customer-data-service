@@ -64,7 +64,7 @@ func Test_ProfileQueue_Enqueue_sendsAPersistentMessage(t *testing.T) {
 	}
 	defer closeQueue(t, q.Close)
 
-	if err := q.Enqueue(profileModel.Profile{ProfileId: "p-1"}); err != nil {
+	if err := q.Enqueue(profileModel.Profile{ProfileID: "p-1"}); err != nil {
 		t.Fatalf("failed to enqueue the profile: %v", err)
 	}
 

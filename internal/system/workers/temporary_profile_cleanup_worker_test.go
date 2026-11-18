@@ -271,7 +271,9 @@ func TestCleanupSkipsAnOrganizationWhoseRetentionOutlastsEveryProfile(t *testing
 		backlog:   map[string]int{"forever": 5, "acme": 1},
 	}
 
-	total := runTemporaryProfileCleanup(context.Background(), source, lastRunAt(daysAgo(31), "forever", "acme"), testNow)
+	lastRun := lastRunAt(daysAgo(31), "forever", "acme")
+
+	total := runTemporaryProfileCleanup(context.Background(), source, lastRun, testNow)
 
 	assert.Equal(t, 1, total)
 	require.Len(t, source.calls, 1, "an organization with an unreachable cutoff is not queried")

@@ -66,24 +66,27 @@ func (h *AdminConfigHandler) GetAdminConfig(w http.ResponseWriter, r *http.Reque
 	}
 
 	resp := model.AdminConfigAPI{
-		CDSEnabled:                    config.CDSEnabled,
-		SystemApplications:            config.SystemApplications,
-		AutoMergeEnabled:              config.AutoMergeEnabled,
-		AutoMergeThreshold:            config.AutoMergeThreshold,
-		ManualReviewThreshold:         config.ManualReviewThreshold,
-		DeterministicMatchDecisive:    config.DeterministicMatchDecisive,
-		CORSAllowedOrigins:            config.CORSAllowedOrigins,
-		AnonymousProfileRetentionDays: effectiveRetentionDays(config.AnonymousProfileRetentionDays),
+		CDSEnabled:                 config.CDSEnabled,
+		SystemApplications:         config.SystemApplications,
+		AutoMergeEnabled:           config.AutoMergeEnabled,
+		AutoMergeThreshold:         config.AutoMergeThreshold,
+		ManualReviewThreshold:      config.ManualReviewThreshold,
+		DeterministicMatchDecisive: config.DeterministicMatchDecisive,
+		CORSAllowedOrigins:         config.CORSAllowedOrigins,
+		TemporaryProfileRetentionDays: effectiveSetting(config.TemporaryProfileRetentionDays,
+			constants.DefaultTemporaryProfileRetentionDays),
+		TemporaryProfileCleanupIntervalDays: effectiveSetting(config.TemporaryProfileCleanupIntervalDays,
+			constants.DefaultTemporaryProfileCleanupIntervalDays),
 	}
 	utils.RespondJSON(w, http.StatusOK, resp, constants.AdminConfigResource)
 }
 
-// effectiveRetentionDays returns the stored retention, or the 90 day default when none is set.
-func effectiveRetentionDays(stored int) int {
+// effectiveSetting returns the stored setting, or its default when none is set.
+func effectiveSetting(stored, defaultValue int) int {
 	if stored > 0 {
 		return stored
 	}
-	return constants.DefaultAnonymousProfileRetentionDays
+	return defaultValue
 }
 
 // UpdateAdminConfig handles PATCH /admin/configs
@@ -131,7 +134,9 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 		ManualReviewThreshold:         existingConfig.ManualReviewThreshold,
 		DeterministicMatchDecisive:    existingConfig.DeterministicMatchDecisive,
 		CORSAllowedOrigins:            existingConfig.CORSAllowedOrigins,
-		AnonymousProfileRetentionDays: existingConfig.AnonymousProfileRetentionDays,
+		TemporaryProfileRetentionDays: existingConfig.TemporaryProfileRetentionDays,
+
+		TemporaryProfileCleanupIntervalDays: existingConfig.TemporaryProfileCleanupIntervalDays,
 	}
 
 	// Update only if provided in request
@@ -156,18 +161,30 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	if config.CORSAllowedOrigins != nil {
 		configToUpdate.CORSAllowedOrigins = config.CORSAllowedOrigins
 	}
-	if config.AnonymousProfileRetentionDays != nil {
-		configToUpdate.AnonymousProfileRetentionDays = *config.AnonymousProfileRetentionDays
-		if *config.AnonymousProfileRetentionDays == 0 {
-			// Zero is not a retention; the store reads an absent value as "not set".
+	// Zero is not a value of these settings; the store reads an absent value as "not set".
+	for _, setting := range []struct {
+		name    string
+		given   *int
+		target  *int
+		minimum int
+	}{
+		{"temporary_profile_retention_days", config.TemporaryProfileRetentionDays,
+			&configToUpdate.TemporaryProfileRetentionDays, constants.MinTemporaryProfileRetentionDays},
+		{"temporary_profile_cleanup_interval_days", config.TemporaryProfileCleanupIntervalDays,
+			&configToUpdate.TemporaryProfileCleanupIntervalDays, constants.MinTemporaryProfileCleanupIntervalDays},
+	} {
+		if setting.given == nil {
+			continue
+		}
+		if *setting.given == 0 {
 			utils.HandleError(w, errors.NewClientError(errors.ErrorMessage{
-				Code:    errors.UpdateConfigBadRequest.Code,
-				Message: errors.UpdateConfigBadRequest.Message,
-				Description: fmt.Sprintf("anonymous_profile_retention_days must be at least %d day.",
-					constants.MinAnonymousProfileRetentionDays),
+				Code:        errors.UpdateConfigBadRequest.Code,
+				Message:     errors.UpdateConfigBadRequest.Message,
+				Description: fmt.Sprintf("%s must be at least %d.", setting.name, setting.minimum),
 			}, http.StatusBadRequest))
 			return
 		}
+		*setting.target = *setting.given
 	}
 
 	err = adminConfigService.UpdateAdminConfig(ctx, &configToUpdate, org)
@@ -177,14 +194,17 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	}
 
 	resp := model.AdminConfigAPI{
-		CDSEnabled:                    configToUpdate.CDSEnabled,
-		SystemApplications:            configToUpdate.SystemApplications,
-		AutoMergeEnabled:              configToUpdate.AutoMergeEnabled,
-		AutoMergeThreshold:            configToUpdate.AutoMergeThreshold,
-		ManualReviewThreshold:         configToUpdate.ManualReviewThreshold,
-		DeterministicMatchDecisive:    configToUpdate.DeterministicMatchDecisive,
-		CORSAllowedOrigins:            configToUpdate.CORSAllowedOrigins,
-		AnonymousProfileRetentionDays: effectiveRetentionDays(configToUpdate.AnonymousProfileRetentionDays),
+		CDSEnabled:                 configToUpdate.CDSEnabled,
+		SystemApplications:         configToUpdate.SystemApplications,
+		AutoMergeEnabled:           configToUpdate.AutoMergeEnabled,
+		AutoMergeThreshold:         configToUpdate.AutoMergeThreshold,
+		ManualReviewThreshold:      configToUpdate.ManualReviewThreshold,
+		DeterministicMatchDecisive: configToUpdate.DeterministicMatchDecisive,
+		CORSAllowedOrigins:         configToUpdate.CORSAllowedOrigins,
+		TemporaryProfileRetentionDays: effectiveSetting(configToUpdate.TemporaryProfileRetentionDays,
+			constants.DefaultTemporaryProfileRetentionDays),
+		TemporaryProfileCleanupIntervalDays: effectiveSetting(configToUpdate.TemporaryProfileCleanupIntervalDays,
+			constants.DefaultTemporaryProfileCleanupIntervalDays),
 	}
 	utils.RespondJSON(w, http.StatusOK, resp, constants.AdminConfigResource)
 }

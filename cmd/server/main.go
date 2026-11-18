@@ -159,8 +159,8 @@ func main() {
 		workers.StartCookieCleanupWorker(cdsConfig.Cleanup.Cookie)
 	}
 
-	// Initialize the anonymous profile cleanup worker
-	workers.StartAnonymousProfileCleanupWorker()
+	// Initialize the temporary profile cleanup worker
+	workers.StartTemporaryProfileCleanupWorker()
 
 	serverAddr := fmt.Sprintf("%s:%d", cdsConfig.Addr.Host, cdsConfig.Addr.Port)
 	mux := newCORSMiddleware(initMultiplexer())
@@ -236,7 +236,7 @@ func main() {
 		{name: "profile", stop: workers.StopProfileWorker},
 		{name: "schema sync", stop: workers.StopSchemaSyncWorker},
 		{name: "cookie cleanup", stop: workers.StopCookieCleanupWorker},
-		{name: "anonymous profile cleanup", stop: workers.StopAnonymousProfileCleanupWorker},
+		{name: "temporary profile cleanup", stop: workers.StopTemporaryProfileCleanupWorker},
 	}
 
 	if err := shutdown(ctx, logger, server.Shutdown, workerList, provider.CloseDB); err != nil {

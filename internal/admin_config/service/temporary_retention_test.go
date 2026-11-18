@@ -24,20 +24,32 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/wso2/identity-customer-data-service/internal/admin_config/model"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 
-func TestValidateAnonymousProfileRetention(t *testing.T) {
-	for _, days := range []int{0, 1, 90, 365, 366, math.MaxInt32} {
-		if err := validateAnonymousProfileRetention(days); err != nil {
-			t.Errorf("validateAnonymousProfileRetention(%d) = %v, want nil", days, err)
+func TestValidateTemporaryProfileCleanup(t *testing.T) {
+	valid := []model.AdminConfig{
+		{},
+		{TemporaryProfileRetentionDays: 1, TemporaryProfileCleanupIntervalDays: 1},
+		{TemporaryProfileRetentionDays: 366},
+		{TemporaryProfileRetentionDays: math.MaxInt32, TemporaryProfileCleanupIntervalDays: math.MaxInt32},
+	}
+	for _, config := range valid {
+		if err := validateTemporaryProfileCleanup(&config); err != nil {
+			t.Errorf("validateTemporaryProfileCleanup(%+v) = %v, want nil", config, err)
 		}
 	}
-	for _, days := range []int{-1, math.MinInt32} {
-		err := validateAnonymousProfileRetention(days)
+	invalid := []model.AdminConfig{
+		{TemporaryProfileRetentionDays: -1},
+		{TemporaryProfileRetentionDays: math.MinInt32},
+		{TemporaryProfileCleanupIntervalDays: -1},
+	}
+	for _, config := range invalid {
+		err := validateTemporaryProfileCleanup(&config)
 		var clientError *errors2.ClientError
 		if !errors.As(err, &clientError) || clientError.StatusCode != http.StatusBadRequest {
-			t.Errorf("validateAnonymousProfileRetention(%d) = %v, want a 400 client error", days, err)
+			t.Errorf("validateTemporaryProfileCleanup(%+v) = %v, want a 400 client error", config, err)
 		}
 	}
 }

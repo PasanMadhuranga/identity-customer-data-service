@@ -37,7 +37,7 @@ import (
 
 const retention = 90 * 24 * time.Hour
 
-type anonymousEnv struct {
+type temporaryEnv struct {
 	ctx    context.Context
 	orgID  string
 	cutoff time.Time
@@ -45,7 +45,7 @@ type anonymousEnv struct {
 	recent time.Time
 }
 
-func newAnonymousEnv(t *testing.T, handle string) *anonymousEnv {
+func newTemporaryEnv(t *testing.T, handle string) *temporaryEnv {
 	t.Helper()
 	require.NoError(t, log.Init("ERROR"))
 	setup.EnableOrganizationManagement()
@@ -57,7 +57,7 @@ func newAnonymousEnv(t *testing.T, handle string) *anonymousEnv {
 		testDB.Terminate()
 	})
 	now := time.Now().UTC()
-	return &anonymousEnv{
+	return &temporaryEnv{
 		ctx:    context.Background(),
 		orgID:  setup.TestOrg(t, handle).ID,
 		cutoff: now.Add(-retention),
@@ -67,7 +67,7 @@ func newAnonymousEnv(t *testing.T, handle string) *anonymousEnv {
 }
 
 // add stores a profile with an active cookie. The status decides what kind of profile it is.
-func (e *anonymousEnv) add(t *testing.T, orgID, id, userID string, updatedAt time.Time, status model.ProfileStatus) {
+func (e *temporaryEnv) add(t *testing.T, orgID, id, userID string, updatedAt time.Time, status model.ProfileStatus) {
 	t.Helper()
 	require.NoError(t, InsertProfile(e.ctx, orgID, model.Profile{
 		ProfileID:     id,
@@ -82,21 +82,21 @@ func (e *anonymousEnv) add(t *testing.T, orgID, id, userID string, updatedAt tim
 	}))
 }
 
-func (e *anonymousEnv) exists(t *testing.T, orgID, id string) bool {
+func (e *temporaryEnv) exists(t *testing.T, orgID, id string) bool {
 	t.Helper()
 	profile, err := GetProfile(e.ctx, id, orgID)
 	require.NoError(t, err)
 	return profile != nil
 }
 
-func (e *anonymousEnv) cookieExists(t *testing.T, id string) bool {
+func (e *temporaryEnv) cookieExists(t *testing.T, id string) bool {
 	t.Helper()
 	cookie, err := GetProfileCookieByProfileID(e.ctx, id)
 	require.NoError(t, err)
 	return cookie != nil
 }
 
-func (e *anonymousEnv) count(t *testing.T, table string) int {
+func (e *temporaryEnv) count(t *testing.T, table string) int {
 	t.Helper()
 	client, err := provider.NewDBProvider().GetDBClient()
 	require.NoError(t, err)
@@ -107,7 +107,7 @@ func (e *anonymousEnv) count(t *testing.T, table string) int {
 	return int(rows[0]["n"].(int64))
 }
 
-func (e *anonymousEnv) exec(t *testing.T, statement string, args ...interface{}) {
+func (e *temporaryEnv) exec(t *testing.T, statement string, args ...interface{}) {
 	t.Helper()
 	client, err := provider.NewDBProvider().GetDBClient()
 	require.NoError(t, err)
@@ -120,16 +120,16 @@ var (
 	master = model.ProfileStatus{IsReferenceProfile: true, ListProfile: true}
 )
 
-func TestExpiredAnonymousProfilesAreDeletedWithTheirCookies(t *testing.T) {
-	env := newAnonymousEnv(t, "acme-anon-1")
+func TestExpiredTemporaryProfilesAreDeletedWithTheirCookies(t *testing.T) {
+	env := newTemporaryEnv(t, "acme-anon-1")
 	env.add(t, env.orgID, "anon-old", "", env.old, master)
 	env.add(t, env.orgID, "anon-recent", "", env.recent, master)
 
-	deleted, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 100)
+	deleted, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 100)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, deleted)
-	assert.False(t, env.exists(t, env.orgID, "anon-old"), "the expired anonymous profile is deleted")
+	assert.False(t, env.exists(t, env.orgID, "anon-old"), "the expired temporary profile is deleted")
 	assert.False(t, env.cookieExists(t, "anon-old"), "its cookie goes with it, active or not")
 	assert.True(t, env.exists(t, env.orgID, "anon-recent"), "a recent profile stays")
 	assert.True(t, env.cookieExists(t, "anon-recent"))
@@ -137,7 +137,7 @@ func TestExpiredAnonymousProfilesAreDeletedWithTheirCookies(t *testing.T) {
 }
 
 func TestIdentifiedAndMergedProfilesAreNeverDeleted(t *testing.T) {
-	env := newAnonymousEnv(t, "acme-anon-2")
+	env := newTemporaryEnv(t, "acme-anon-2")
 	env.add(t, env.orgID, "identified", "user-1", env.old, master)
 	env.add(t, env.orgID, "parent", "user-2", env.old, master)
 	env.add(t, env.orgID, "child", "", env.old, model.ProfileStatus{ReferenceProfileID: "parent"})
@@ -145,23 +145,23 @@ func TestIdentifiedAndMergedProfilesAreNeverDeleted(t *testing.T) {
 	env.add(t, env.orgID, "anon-child", "", env.old, model.ProfileStatus{ReferenceProfileID: "anon-master"})
 	env.add(t, env.orgID, "waiting", "", env.old, model.ProfileStatus{IsWaitingOnUser: true})
 
-	deleted, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 100)
+	deleted, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 100)
 
 	require.NoError(t, err)
 	assert.Zero(t, deleted)
 	for _, id := range []string{"identified", "parent", "child", "anon-master", "anon-child", "waiting"} {
-		assert.True(t, env.exists(t, env.orgID, id), "%s is not an anonymous profile and must stay", id)
+		assert.True(t, env.exists(t, env.orgID, id), "%s is not a temporary profile and must stay", id)
 		assert.True(t, env.cookieExists(t, id), "the cookie of %s must stay", id)
 	}
 }
 
-func TestAnonymousProfilesOfOtherOrganizationsAreKept(t *testing.T) {
-	env := newAnonymousEnv(t, "acme-anon-3")
+func TestTemporaryProfilesOfOtherOrganizationsAreKept(t *testing.T) {
+	env := newTemporaryEnv(t, "acme-anon-3")
 	other := setup.TestOrg(t, "globex-anon-3").ID
 	env.add(t, env.orgID, "mine", "", env.old, master)
 	env.add(t, other, "theirs", "", env.old, master)
 
-	deleted, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 100)
+	deleted, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 100)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, deleted)
@@ -169,7 +169,7 @@ func TestAnonymousProfilesOfOtherOrganizationsAreKept(t *testing.T) {
 }
 
 func TestRejectionsOfDeletedProfilesAreRemoved(t *testing.T) {
-	env := newAnonymousEnv(t, "acme-anon-4")
+	env := newTemporaryEnv(t, "acme-anon-4")
 	env.add(t, env.orgID, "anon-a", "", env.old, master)
 	env.add(t, env.orgID, "keep-b", "user-b", env.old, master)
 	env.add(t, env.orgID, "keep-c", "user-c", env.old, master)
@@ -177,7 +177,7 @@ func TestRejectionsOfDeletedProfilesAreRemoved(t *testing.T) {
 	env.exec(t, insert, "r1", env.orgID, "anon-a", "keep-b")
 	env.exec(t, insert, "r2", env.orgID, "keep-b", "keep-c")
 
-	deleted, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 100)
+	deleted, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 100)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, deleted)
@@ -185,30 +185,30 @@ func TestRejectionsOfDeletedProfilesAreRemoved(t *testing.T) {
 }
 
 func TestDeletionWorksInBatches(t *testing.T) {
-	env := newAnonymousEnv(t, "acme-anon-5")
+	env := newTemporaryEnv(t, "acme-anon-5")
 	for i := 0; i < 5; i++ {
 		env.add(t, env.orgID, fmt.Sprintf("anon-%d", i), "", env.old.Add(time.Duration(i)*time.Minute), master)
 	}
 
-	first, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 2)
+	first, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, first, "one batch deletes at most the batch size")
 
-	second, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 2)
+	second, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, second)
 
-	third, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 2)
+	third, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 2)
 	require.NoError(t, err)
 	assert.Equal(t, 1, third)
 
-	none, err := DeleteExpiredAnonymousProfiles(env.ctx, env.orgID, env.cutoff, 2)
+	none, err := DeleteExpiredTemporaryProfiles(env.ctx, env.orgID, env.cutoff, 2)
 	require.NoError(t, err)
 	assert.Zero(t, none)
 }
 
 func TestProfileOrgIDsListEveryOrganizationWithProfiles(t *testing.T) {
-	env := newAnonymousEnv(t, "acme-anon-6")
+	env := newTemporaryEnv(t, "acme-anon-6")
 	other := setup.TestOrg(t, "globex-anon-6").ID
 	env.add(t, env.orgID, "p1", "", env.recent, master)
 	env.add(t, env.orgID, "p2", "", env.recent, master)

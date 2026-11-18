@@ -27,12 +27,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	adminConfigModel "github.com/wso2/identity-customer-data-service/internal/admin_config/model"
+	adminConfigStore "github.com/wso2/identity-customer-data-service/internal/admin_config/store"
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	"github.com/wso2/identity-customer-data-service/test/setup"
 )
 
-func Test_AnonymousProfileCleanup(t *testing.T) {
+func Test_TemporaryProfileCleanup(t *testing.T) {
 	ctx := context.Background()
 	org := setup.TestOrg(t, fmt.Sprintf("anon-cleanup-%d", time.Now().UnixNano()))
 	now := time.Now().UTC()
@@ -90,18 +92,18 @@ func Test_AnonymousProfileCleanup(t *testing.T) {
 	exec(`INSERT INTO review_tasks (id, org_id, incoming_profile_id, candidate_profile_id, match_score, status)
 		VALUES ($1, $2, $3, $4, $5, $6)`, "task-1", org.ID, "identified-old", "anon-old-2", 0.9, "PENDING")
 
-	deleted, err := profileStore.DeleteExpiredAnonymousProfiles(ctx, org.ID, cutoff, 1)
+	deleted, err := profileStore.DeleteExpiredTemporaryProfiles(ctx, org.ID, cutoff, 1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, deleted, "one batch deletes at most the batch size")
-	deleted, err = profileStore.DeleteExpiredAnonymousProfiles(ctx, org.ID, cutoff, 100)
+	deleted, err = profileStore.DeleteExpiredTemporaryProfiles(ctx, org.ID, cutoff, 100)
 	require.NoError(t, err)
-	assert.Equal(t, 1, deleted, "the second expired anonymous profile goes in the next batch")
-	deleted, err = profileStore.DeleteExpiredAnonymousProfiles(ctx, org.ID, cutoff, 100)
+	assert.Equal(t, 1, deleted, "the second expired temporary profile goes in the next batch")
+	deleted, err = profileStore.DeleteExpiredTemporaryProfiles(ctx, org.ID, cutoff, 100)
 	require.NoError(t, err)
 	assert.Zero(t, deleted, "nothing else qualifies")
 
 	for _, id := range []string{"anon-old-1", "anon-old-2"} {
-		assert.False(t, exists(id), "%s is expired and anonymous", id)
+		assert.False(t, exists(id), "%s is expired and temporary", id)
 		assert.False(t, cookieExists(id), "the cookie of %s goes with it", id)
 		assert.Zero(t, count(`SELECT COUNT(*) FROM profile_reference WHERE profile_id = $1`, id),
 			"the reference row of %s goes with it", id)
@@ -114,4 +116,37 @@ func Test_AnonymousProfileCleanup(t *testing.T) {
 		"the rejection that names a deleted profile goes")
 	assert.Zero(t, count(`SELECT COUNT(*) FROM review_tasks WHERE org_id = $1`, org.ID),
 		"the review task that names a deleted profile as candidate goes")
+}
+
+func Test_TemporaryProfileCleanupSettingsAreStoredAndListed(t *testing.T) {
+	ctx := context.Background()
+	suffix := time.Now().UnixNano()
+	full := setup.TestOrg(t, fmt.Sprintf("anon-settings-full-%d", suffix))
+	partial := setup.TestOrg(t, fmt.Sprintf("anon-settings-partial-%d", suffix))
+	unset := setup.TestOrg(t, fmt.Sprintf("anon-settings-unset-%d", suffix))
+
+	require.NoError(t, adminConfigStore.UpdateAdminConfig(ctx, adminConfigModel.AdminConfig{
+		OrgID: full.ID, CDSEnabled: true, TemporaryProfileRetentionDays: 30,
+		TemporaryProfileCleanupIntervalDays: 6,
+	}, full.ID))
+	require.NoError(t, adminConfigStore.UpdateAdminConfig(ctx, adminConfigModel.AdminConfig{
+		OrgID: partial.ID, CDSEnabled: true, TemporaryProfileRetentionDays: 400,
+	}, partial.ID))
+	require.NoError(t, adminConfigStore.UpdateAdminConfig(ctx, adminConfigModel.AdminConfig{
+		OrgID: unset.ID, CDSEnabled: true,
+	}, unset.ID))
+
+	settings, err := adminConfigStore.ListTemporaryProfileCleanupSettings(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, adminConfigModel.TemporaryProfileCleanupSettings{RetentionDays: 30, IntervalDays: 6},
+		settings[full.ID])
+	assert.Equal(t, adminConfigModel.TemporaryProfileCleanupSettings{RetentionDays: 400}, settings[partial.ID],
+		"a setting that was not stored is 0")
+	assert.Equal(t, adminConfigModel.TemporaryProfileCleanupSettings{}, settings[unset.ID],
+		"an organization that stored none has none")
+
+	stored, err := adminConfigStore.GetAdminConfig(ctx, full.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 6, stored.TemporaryProfileCleanupIntervalDays)
 }

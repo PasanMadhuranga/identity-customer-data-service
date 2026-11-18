@@ -34,9 +34,9 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
-// Test_AnonymousVisitWithoutAUsableCookie checks what a site visit does when the browser's profile
+// Test_TemporaryVisitWithoutAUsableCookie checks what a site visit does when the browser's profile
 // cookie cannot identify a profile: the cookie names nothing, or its cookie is inactive.
-func Test_AnonymousVisitWithoutAUsableCookie(t *testing.T) {
+func Test_TemporaryVisitWithoutAUsableCookie(t *testing.T) {
 	ctx := context.Background()
 	f := setUpOrgScopeFixture(t)
 	profiles := profileService.GetProfilesService()
@@ -65,7 +65,7 @@ func Test_AnonymousVisitWithoutAUsableCookie(t *testing.T) {
 		assert.Equal(t, existing.AnonymousTracker, response.AnonymousTracker)
 	})
 
-	t.Run("Invalid_cookie_creates_a_new_anonymous_profile", func(t *testing.T) {
+	t.Run("Invalid_cookie_creates_a_new_temporary_profile", func(t *testing.T) {
 		invalid := uuid.New().String()
 
 		status, response := visit(invalid)
@@ -79,7 +79,7 @@ func Test_AnonymousVisitWithoutAUsableCookie(t *testing.T) {
 		assert.Nil(t, cookie, "the invalid cookie is not stored")
 	})
 
-	t.Run("Inactive_cookie_creates_a_new_anonymous_profile", func(t *testing.T) {
+	t.Run("Inactive_cookie_creates_a_new_temporary_profile", func(t *testing.T) {
 		status, stale := visit("")
 		require.Equal(t, http.StatusCreated, status)
 		require.NoError(t, profiles.UpdateCookieStatusByCookieID(ctx, stale.AnonymousTracker, false))

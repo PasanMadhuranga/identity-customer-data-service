@@ -33,20 +33,17 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
-// maxAnonymousDeleteBatch caps the profiles one batch removes, which also bounds the bind arguments.
-const maxAnonymousDeleteBatch = 1000
-
 // ListProfileOrgIDs returns the ID of every organization that has a profile.
 func ListProfileOrgIDs(ctx context.Context) ([]string, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
-		return nil, anonymousCleanupError("failed to get the database client to list the organizations", err)
+		return nil, temporaryCleanupError("failed to get the database client to list the organizations", err)
 	}
 	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.ListProfileOrgIDs)
 	if err != nil {
-		return nil, anonymousCleanupError("failed to list the organizations that have profiles", err)
+		return nil, temporaryCleanupError("failed to list the organizations that have profiles", err)
 	}
 	orgIDs := make([]string, 0, len(results))
 	for _, row := range results {
@@ -57,31 +54,31 @@ func ListProfileOrgIDs(ctx context.Context) ([]string, error) {
 	return orgIDs, nil
 }
 
-// DeleteExpiredAnonymousProfiles deletes up to batchSize anonymous profiles of the organization not
+// DeleteExpiredTemporaryProfiles deletes up to batchSize temporary profiles of the organization not
 // updated since cutoff, and returns how many.
-func DeleteExpiredAnonymousProfiles(ctx context.Context, orgID string, cutoff time.Time, batchSize int) (int, error) {
+func DeleteExpiredTemporaryProfiles(ctx context.Context, orgID string, cutoff time.Time, batchSize int) (int, error) {
 	if batchSize <= 0 {
-		batchSize = constants.DefaultAnonymousProfileCleanupBatchSize
+		batchSize = constants.TemporaryProfileCleanupBatchSize
 	}
-	if batchSize > maxAnonymousDeleteBatch {
-		batchSize = maxAnonymousDeleteBatch
+	if batchSize > constants.MaxTemporaryProfileCleanupBatchSize {
+		batchSize = constants.MaxTemporaryProfileCleanupBatchSize
 	}
 
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	if err != nil {
-		return 0, anonymousCleanupError("failed to get the database client to delete anonymous profiles", err)
+		return 0, temporaryCleanupError("failed to get the database client to delete temporary profiles", err)
 	}
 	defer func() { _ = dbClient.Close() }()
 
 	tx, err := dbClient.BeginTxContext(ctx)
 	if err != nil {
-		return 0, anonymousCleanupError("failed to begin the transaction that deletes anonymous profiles", err)
+		return 0, temporaryCleanupError("failed to begin the transaction that deletes temporary profiles", err)
 	}
 
-	expired, err := tx.QueryContext(ctx, scripts.ListExpiredAnonymousProfiles, orgID, cutoff.UTC(), batchSize)
+	expired, err := tx.QueryContext(ctx, scripts.ListExpiredTemporaryProfiles, orgID, cutoff.UTC(), batchSize)
 	if err != nil {
 		_ = tx.Rollback()
-		return 0, anonymousCleanupError("failed to list expired anonymous profiles", err)
+		return 0, temporaryCleanupError("failed to list expired temporary profiles", err)
 	}
 	profileIDs := make([]interface{}, 0, batchSize)
 	for expired.Next() {
@@ -89,19 +86,19 @@ func DeleteExpiredAnonymousProfiles(ctx context.Context, orgID string, cutoff ti
 		if err := expired.Scan(&profileID); err != nil {
 			_ = expired.Close()
 			_ = tx.Rollback()
-			return 0, anonymousCleanupError("failed to read the expired anonymous profiles", err)
+			return 0, temporaryCleanupError("failed to read the expired temporary profiles", err)
 		}
 		profileIDs = append(profileIDs, profileID)
 	}
 	if err := expired.Err(); err != nil {
 		_ = expired.Close()
 		_ = tx.Rollback()
-		return 0, anonymousCleanupError("failed to read the expired anonymous profiles", err)
+		return 0, temporaryCleanupError("failed to read the expired temporary profiles", err)
 	}
 	// Close the rows before the next statement.
 	if err := expired.Close(); err != nil {
 		_ = tx.Rollback()
-		return 0, anonymousCleanupError("failed to read the expired anonymous profiles", err)
+		return 0, temporaryCleanupError("failed to read the expired temporary profiles", err)
 	}
 
 	if len(profileIDs) == 0 {
@@ -123,14 +120,14 @@ func DeleteExpiredAnonymousProfiles(ctx context.Context, orgID string, cutoff ti
 	for _, step := range steps {
 		if _, err := tx.ExecContext(ctx, step.statement, args...); err != nil {
 			_ = tx.Rollback()
-			return 0, anonymousCleanupError("failed to delete "+step.failure+" of anonymous profiles", err)
+			return 0, temporaryCleanupError("failed to delete "+step.failure+" of temporary profiles", err)
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return 0, anonymousCleanupError("failed to commit the deletion of anonymous profiles", err)
+		return 0, temporaryCleanupError("failed to commit the deletion of temporary profiles", err)
 	}
 
-	log.GetLogger().Debug(fmt.Sprintf("Deleted %d anonymous profiles of organization %s not updated since %s",
+	log.GetLogger().Debug(fmt.Sprintf("Deleted %d temporary profiles of organization %s not updated since %s",
 		len(profileIDs), orgID, cutoff.UTC().Format(time.RFC3339)))
 	return len(profileIDs), nil
 }
@@ -144,7 +141,7 @@ func bindList(first, count int) string {
 	return strings.Join(placeholders, ", ")
 }
 
-func anonymousCleanupError(description string, err error) error {
+func temporaryCleanupError(description string, err error) error {
 	log.GetLogger().Debug(description, log.Error(err))
 	return errors2.NewServerError(errors2.ErrorMessage{
 		Code:        errors2.DeleteProfile.Code,

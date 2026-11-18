@@ -155,7 +155,8 @@ func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgID string) (m
 			config.AutoMergeThreshold = primaryConfig.AutoMergeThreshold
 			config.ManualReviewThreshold = primaryConfig.ManualReviewThreshold
 			config.DeterministicMatchDecisive = primaryConfig.DeterministicMatchDecisive
-			config.AnonymousProfileRetentionDays = primaryConfig.AnonymousProfileRetentionDays
+			config.TemporaryProfileRetentionDays = primaryConfig.TemporaryProfileRetentionDays
+			config.TemporaryProfileCleanupIntervalDays = primaryConfig.TemporaryProfileCleanupIntervalDays
 			// Its requests arrive under the path of the primary organization, so the CORS
 			// middleware answers them with the origins of the primary organization.
 			config.CORSAllowedOrigins = primaryConfig.CORSAllowedOrigins
@@ -249,21 +250,30 @@ func validateThresholds(autoMerge, manualReview float64) error {
 	return nil
 }
 
-// validateAnonymousProfileRetention accepts 0 (not set) or a value within the allowed range.
-func validateAnonymousProfileRetention(days int) error {
-	if days == 0 {
+// validateCleanupSetting accepts 0 (not set) or a value of the named setting within its range.
+func validateCleanupSetting(name string, value, minimum, maximum int) error {
+	if value == 0 {
 		return nil
 	}
-	if days < constants.MinAnonymousProfileRetentionDays || days > constants.MaxAnonymousProfileRetentionDays {
+	if value < minimum || value > maximum {
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:    errors.UpdateConfigBadRequest.Code,
-			Message: errors.UpdateConfigBadRequest.Message,
-			Description: fmt.Sprintf(
-				"anonymous_profile_retention_days (%d) must be between %d and %d.",
-				days, constants.MinAnonymousProfileRetentionDays, constants.MaxAnonymousProfileRetentionDays),
+			Code:        errors.UpdateConfigBadRequest.Code,
+			Message:     errors.UpdateConfigBadRequest.Message,
+			Description: fmt.Sprintf("%s (%d) must be between %d and %d.", name, value, minimum, maximum),
 		}, http.StatusBadRequest)
 	}
 	return nil
+}
+
+// validateTemporaryProfileCleanup checks the cleanup settings of temporary profiles.
+func validateTemporaryProfileCleanup(config *model.AdminConfig) error {
+	if err := validateCleanupSetting("temporary_profile_retention_days", config.TemporaryProfileRetentionDays,
+		constants.MinTemporaryProfileRetentionDays, constants.MaxTemporaryProfileRetentionDays); err != nil {
+		return err
+	}
+	return validateCleanupSetting("temporary_profile_cleanup_interval_days",
+		config.TemporaryProfileCleanupIntervalDays, constants.MinTemporaryProfileCleanupIntervalDays,
+		constants.MaxTemporaryProfileCleanupIntervalDays)
 }
 
 // UpdateAdminConfig validates and stores the organisation's configuration. It normalizes
@@ -280,7 +290,7 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	if err := validateThresholds(updatedConfig.AutoMergeThreshold, updatedConfig.ManualReviewThreshold); err != nil {
 		return err
 	}
-	if err := validateAnonymousProfileRetention(updatedConfig.AnonymousProfileRetentionDays); err != nil {
+	if err := validateTemporaryProfileCleanup(updatedConfig); err != nil {
 		return err
 	}
 	validatedOrigins, err := validateCORSOrigins(updatedConfig.CORSAllowedOrigins)

@@ -384,9 +384,9 @@ var DeleteProfileByProfileID = newQuery("CDS-PRF-11",
 var DeleteProfile = newQuery("CDS-PRF-18",
 	`DELETE FROM profiles WHERE profile_id = $1`)
 
-// ListExpiredAnonymousProfiles locks and returns up to $3 anonymous profiles of org $1 not updated
+// ListExpiredTemporaryProfiles locks and returns up to $3 temporary profiles of org $1 not updated
 // since $2.
-var ListExpiredAnonymousProfiles = newQuery("CDS-PRF-22",
+var ListExpiredTemporaryProfiles = newQuery("CDS-PRF-22",
 	`SELECT p.profile_id FROM profiles p
 	JOIN profile_reference r ON r.profile_id = p.profile_id
 	WHERE p.org_id = $1 AND p.updated_at < $2 AND (p.user_id IS NULL OR p.user_id = '')
@@ -663,9 +663,10 @@ var UpdateOrgConfiguration = newQuery("CDS-CFG-02",
 var GetOrgConfiguration = newQuery("CDS-CFG-03",
 	`SELECT value FROM cds_config WHERE org_id = $1 AND config = $2`)
 
-// ListOrgConfigurationValues returns the value of one config entry for every org that stores it.
+// ListOrgConfigurationValues returns the value of the config entries $1 and $2 of every org that
+// stores them.
 var ListOrgConfigurationValues = newQuery("CDS-CFG-05",
-	`SELECT org_id, value FROM cds_config WHERE config = $1`)
+	`SELECT org_id, config, value FROM cds_config WHERE config IN ($1, $2)`)
 
 // UpdateInitialSchemaSyncDoneConfig records whether the initial schema sync of an org is done.
 var UpdateInitialSchemaSyncDoneConfig = newQuery("CDS-CFG-04",

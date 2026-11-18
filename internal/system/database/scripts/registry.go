@@ -86,7 +86,7 @@ func AllQueries() map[string]model.DBQuery {
 		"UpdateCookieStatusByCookieID":                UpdateCookieStatusByCookieID,
 		"DeleteCookieByID":                            DeleteCookieByID,
 		"DeleteCookieByProfileID":                     DeleteCookieByProfileID,
-		"ListExpiredAnonymousProfiles":                ListExpiredAnonymousProfiles,
+		"ListExpiredTemporaryProfiles":                ListExpiredTemporaryProfiles,
 		"DeleteProfilesByIDs":                         DeleteProfilesByIDs,
 		"DeleteReviewTasksByCandidateProfileIDs":      DeleteReviewTasksByCandidateProfileIDs,
 		"DeleteProfileReferencesByProfileIDs":         DeleteProfileReferencesByProfileIDs,

@@ -268,12 +268,16 @@ func UpdateAdminConfig(ctx context.Context, config model.AdminConfig, orgID stri
 	}
 
 	// Zero means not set, so no row is stored and the default applies.
-	if config.AnonymousProfileRetentionDays > 0 {
-		_, err = tx.ExecContext(ctx, query, orgID, constants.ConfigAnonymousProfileRetentionDays,
-			strconv.Itoa(config.AnonymousProfileRetentionDays))
-		if err != nil {
+	for key, value := range map[string]int{
+		constants.ConfigTemporaryProfileRetentionDays:       config.TemporaryProfileRetentionDays,
+		constants.ConfigTemporaryProfileCleanupIntervalDays: config.TemporaryProfileCleanupIntervalDays,
+	} {
+		if value <= 0 {
+			continue
+		}
+		if _, err = tx.ExecContext(ctx, query, orgID, key, strconv.Itoa(value)); err != nil {
 			_ = tx.Rollback()
-			errorMsg := fmt.Sprintf("Failed to update anonymous_profile_retention_days for organization: %s", orgID)
+			errorMsg := fmt.Sprintf("Failed to update %s for organization: %s", key, orgID)
 			logger.Debug(errorMsg, log.Error(err))
 			return errors2.NewServerError(errors2.ErrorMessage{
 				Code:        errors2.UpdateAdminConfig.Code,
@@ -330,23 +334,47 @@ func UpdateInitialSchemaSyncConfig(ctx context.Context, state bool, orgID string
 	return tx.Commit()
 }
 
-// parseRetentionDays reads a stored retention. A value outside the allowed range is ignored.
-func parseRetentionDays(value string) (int, bool) {
-	days, err := strconv.Atoi(value)
-	if err != nil || days < constants.MinAnonymousProfileRetentionDays ||
-		days > constants.MaxAnonymousProfileRetentionDays {
-		return 0, false
-	}
-	return days, true
+// cleanupSettingRanges is the range of each temporary profile cleanup setting.
+var cleanupSettingRanges = map[string][2]int{
+	constants.ConfigTemporaryProfileRetentionDays: {
+		constants.MinTemporaryProfileRetentionDays, constants.MaxTemporaryProfileRetentionDays},
+	constants.ConfigTemporaryProfileCleanupIntervalDays: {
+		constants.MinTemporaryProfileCleanupIntervalDays, constants.MaxTemporaryProfileCleanupIntervalDays},
 }
 
-// ListAnonymousProfileRetentions returns the retention in days each organization has set. Organizations
-// with none, or an invalid value, are absent.
-func ListAnonymousProfileRetentions(ctx context.Context) (map[string]int, error) {
+// parseCleanupSetting reads a stored temporary profile cleanup setting. A value outside the allowed
+// range is ignored.
+func parseCleanupSetting(key, value string) (int, bool) {
+	limits, known := cleanupSettingRanges[key]
+	number, err := strconv.Atoi(value)
+	if !known || err != nil || number < limits[0] || number > limits[1] {
+		return 0, false
+	}
+	return number, true
+}
+
+// applyCleanupSetting stores a setting that is in range in the field of settings that it belongs to.
+func applyCleanupSetting(settings *model.TemporaryProfileCleanupSettings, key, value string) {
+	number, ok := parseCleanupSetting(key, value)
+	if !ok {
+		return
+	}
+	switch key {
+	case constants.ConfigTemporaryProfileRetentionDays:
+		settings.RetentionDays = number
+	case constants.ConfigTemporaryProfileCleanupIntervalDays:
+		settings.IntervalDays = number
+	}
+}
+
+// ListTemporaryProfileCleanupSettings returns the cleanup settings each organization has set. A setting
+// that is not stored, or is out of range, is 0.
+func ListTemporaryProfileCleanupSettings(ctx context.Context) (map[string]model.TemporaryProfileCleanupSettings,
+	error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := "Failed to get db client for listing the anonymous profile retentions"
+		errorMsg := "Failed to get db client for listing the temporary profile cleanup settings"
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAdminConfig.Code,
@@ -357,9 +385,9 @@ func ListAnonymousProfileRetentions(ctx context.Context) (map[string]int, error)
 	defer func() { _ = dbClient.Close() }()
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.ListOrgConfigurationValues,
-		constants.ConfigAnonymousProfileRetentionDays)
+		constants.ConfigTemporaryProfileRetentionDays, constants.ConfigTemporaryProfileCleanupIntervalDays)
 	if err != nil {
-		errorMsg := "Failed to execute query for listing the anonymous profile retentions"
+		errorMsg := "Failed to execute query for listing the temporary profile cleanup settings"
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.GetAdminConfig.Code,
@@ -368,9 +396,13 @@ func ListAnonymousProfileRetentions(ctx context.Context) (map[string]int, error)
 		}, err)
 	}
 
-	retentions := make(map[string]int, len(results))
+	settings := make(map[string]model.TemporaryProfileCleanupSettings, len(results))
 	for _, row := range results {
 		orgID, ok := row["org_id"].(string)
+		if !ok {
+			continue
+		}
+		key, ok := row["config"].(string)
 		if !ok {
 			continue
 		}
@@ -378,11 +410,11 @@ func ListAnonymousProfileRetentions(ctx context.Context) (map[string]int, error)
 		if !ok {
 			continue
 		}
-		if days, valid := parseRetentionDays(value); valid {
-			retentions[orgID] = days
-		}
+		orgSettings := settings[orgID]
+		applyCleanupSetting(&orgSettings, key, value)
+		settings[orgID] = orgSettings
 	}
-	return retentions, nil
+	return settings, nil
 }
 
 // scanAdminConfigRows turns the key/value rows held for an org into an AdminConfig.
@@ -448,9 +480,13 @@ func scanAdminConfigRows(results []map[string]interface{}) *model.AdminConfig {
 			}
 		case constants.ConfigDeterministicMatchDecisive:
 			config.DeterministicMatchDecisive = value == storedTrue
-		case constants.ConfigAnonymousProfileRetentionDays:
-			if days, ok := parseRetentionDays(value); ok {
-				config.AnonymousProfileRetentionDays = days
+		case constants.ConfigTemporaryProfileRetentionDays:
+			if days, ok := parseCleanupSetting(configKey, value); ok {
+				config.TemporaryProfileRetentionDays = days
+			}
+		case constants.ConfigTemporaryProfileCleanupIntervalDays:
+			if days, ok := parseCleanupSetting(configKey, value); ok {
+				config.TemporaryProfileCleanupIntervalDays = days
 			}
 		}
 	}

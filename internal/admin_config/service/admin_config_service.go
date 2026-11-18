@@ -155,6 +155,8 @@ func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgID string) (m
 			config.AutoMergeThreshold = primaryConfig.AutoMergeThreshold
 			config.ManualReviewThreshold = primaryConfig.ManualReviewThreshold
 			config.DeterministicMatchDecisive = primaryConfig.DeterministicMatchDecisive
+			config.TemporaryProfileRetentionDays = primaryConfig.TemporaryProfileRetentionDays
+			config.TemporaryProfileCleanupIntervalDays = primaryConfig.TemporaryProfileCleanupIntervalDays
 			// Its requests arrive under the path of the primary organization, so the CORS
 			// middleware answers them with the origins of the primary organization.
 			config.CORSAllowedOrigins = primaryConfig.CORSAllowedOrigins
@@ -248,6 +250,32 @@ func validateThresholds(autoMerge, manualReview float64) error {
 	return nil
 }
 
+// validateCleanupSetting accepts 0 (not set) or a value of the named setting within its range.
+func validateCleanupSetting(name string, value, minimum, maximum int) error {
+	if value == 0 {
+		return nil
+	}
+	if value < minimum || value > maximum {
+		return errors.NewClientError(errors.ErrorMessage{
+			Code:        errors.UpdateConfigBadRequest.Code,
+			Message:     errors.UpdateConfigBadRequest.Message,
+			Description: fmt.Sprintf("%s (%d) must be between %d and %d.", name, value, minimum, maximum),
+		}, http.StatusBadRequest)
+	}
+	return nil
+}
+
+// validateTemporaryProfileCleanup checks the cleanup settings of temporary profiles.
+func validateTemporaryProfileCleanup(config *model.AdminConfig) error {
+	if err := validateCleanupSetting("temporary_profile_retention_days", config.TemporaryProfileRetentionDays,
+		constants.MinTemporaryProfileRetentionDays, constants.MaxTemporaryProfileRetentionDays); err != nil {
+		return err
+	}
+	return validateCleanupSetting("temporary_profile_cleanup_interval_days",
+		config.TemporaryProfileCleanupIntervalDays, constants.MinTemporaryProfileCleanupIntervalDays,
+		constants.MaxTemporaryProfileCleanupIntervalDays)
+}
+
 // UpdateAdminConfig validates and stores the organisation's configuration. It normalizes
 // updatedConfig in place, so the caller can report back exactly what was stored.
 func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
@@ -260,6 +288,9 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	logger := log.GetLogger()
 
 	if err := validateThresholds(updatedConfig.AutoMergeThreshold, updatedConfig.ManualReviewThreshold); err != nil {
+		return err
+	}
+	if err := validateTemporaryProfileCleanup(updatedConfig); err != nil {
 		return err
 	}
 	validatedOrigins, err := validateCORSOrigins(updatedConfig.CORSAllowedOrigins)

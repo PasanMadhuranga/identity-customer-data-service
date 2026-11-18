@@ -147,6 +147,28 @@ func GetOrganizationsByPrimaryOrg(ctx context.Context, primaryOrgID string) ([]m
 	return orgs, nil
 }
 
+// ListPrimaryOrgIDs maps each organization ID to its primary organization (a primary maps to itself).
+func ListPrimaryOrgIDs(ctx context.Context) (map[string]string, error) {
+	dbClient, err := provider.NewDBProvider().GetDBClient()
+	if err != nil {
+		return nil, serverError("Failed to get a database client to read organizations.", err)
+	}
+	defer func() { _ = dbClient.Close() }()
+
+	results, err := dbClient.ExecuteQueryContext(ctx, scripts.ListOrganizationPrimaries)
+	if err != nil {
+		return nil, serverError("Failed to read the primary organizations.", err)
+	}
+	primaries := make(map[string]string, len(results))
+	for _, row := range results {
+		orgID, primaryID := rows.String(row, "org_id"), rows.String(row, "primary_org_id")
+		if orgID != "" && primaryID != "" {
+			primaries[orgID] = primaryID
+		}
+	}
+	return primaries, nil
+}
+
 // idBatchSize is the maximum number of IDs in one IN list.
 const idBatchSize = 1000
 

@@ -63,7 +63,7 @@ Unification worker detects two profiles with same userId
                 │  (SESSION_TERMINATE event)
                 ▼
             cookie deactivated (is_active = false)
-            cookie cleanup worker removes inactive records after 24h
+            cookie cleanup worker removes inactive records at its next run (every 24h by default)
 ```
 
 ---
@@ -75,4 +75,21 @@ The `profile_cookies` table maps a `cookie_id` (the value of the `cds_profile` b
 - Cookie is **created** when an anonymous profile is first issued
 - Cookie is **deactivated** on `SESSION_TERMINATE`
 - Inactive cookie records are **batch-deleted** by the cookie cleanup worker every 24 hours
+
+## Retention of temporary profiles
+
+A temporary profile that is not updated is deleted after a retention period, together with its cookies, application data, consents and blocking keys.
+
+- A profile counts as temporary when it has no `user_id`, is not merged into another profile, and has no profile merged into it. Identified profiles and merged profiles are never deleted by this job.
+- The clock is the profile's `updated_at`. A visit that does not change the profile does not reset it.
+- An organization sets these in its admin configuration. A sub organization follows its primary organization.
+
+  | Setting | Meaning | Default | Allowed |
+  |---|---|---|---|
+  | `temporary_profile_retention_days` | Days without an update before a profile is deleted | 90 | 1 or more |
+  | `temporary_profile_cleanup_interval_days` | Days between two cleanups | 30 | 1 or more |
+
+- The server checks every hour and cleans an organization when its interval has passed. After a restart, an organization waits one interval before its first cleanup.
+- A cleanup deletes 500 profiles at a time and repeats until nothing is left to delete, up to 200 batches. The rest waits for the next cleanup. The batch size is fixed in the code and is not a setting.
+- Deletion is permanent.
 

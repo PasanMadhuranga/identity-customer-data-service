@@ -34,6 +34,9 @@ type AdminConfig struct {
 	// CORSAllowedOrigins are the browser origins of the organisation's own apps, allowed to
 	// call its endpoints in addition to the deployment-wide auth.cors_allowed_origins list.
 	CORSAllowedOrigins []string `json:"cors_allowed_origins" bson:"cors_allowed_origins"`
+	// The cleanup settings of temporary profiles are 0 when the organization has not set them.
+	TemporaryProfileRetentionDays       int `json:"temporary_profile_retention_days"`
+	TemporaryProfileCleanupIntervalDays int `json:"temporary_profile_cleanup_interval_days"`
 }
 
 // AdminConfigAPI is the configuration of an organization in the API responses.
@@ -45,6 +48,9 @@ type AdminConfigAPI struct {
 	ManualReviewThreshold      float64  `json:"manual_review_threshold" bson:"manual_review_threshold"`
 	DeterministicMatchDecisive bool     `json:"deterministic_match_decisive" bson:"deterministic_match_decisive"`
 	CORSAllowedOrigins         []string `json:"cors_allowed_origins,omitempty" bson:"cors_allowed_origins,omitempty"`
+	// The cleanup settings of temporary profiles are the effective ones, the defaults when none is set.
+	TemporaryProfileRetentionDays       int `json:"temporary_profile_retention_days"`
+	TemporaryProfileCleanupIntervalDays int `json:"temporary_profile_cleanup_interval_days"`
 }
 
 // AdminConfigUpdateAPI is the body of a configuration update. A nil field leaves the setting unchanged.
@@ -56,4 +62,14 @@ type AdminConfigUpdateAPI struct {
 	ManualReviewThreshold      *float64 `json:"manual_review_threshold,omitempty"`
 	DeterministicMatchDecisive *bool    `json:"deterministic_match_decisive,omitempty"`
 	CORSAllowedOrigins         []string `json:"cors_allowed_origins,omitempty"`
+	// The cleanup settings of temporary profiles must be at least 1 when given.
+	TemporaryProfileRetentionDays       *int `json:"temporary_profile_retention_days,omitempty"`
+	TemporaryProfileCleanupIntervalDays *int `json:"temporary_profile_cleanup_interval_days,omitempty"`
+}
+
+// TemporaryProfileCleanupSettings are the cleanup settings an organization has stored. A field is 0 when
+// the organization has not set it.
+type TemporaryProfileCleanupSettings struct {
+	RetentionDays int
+	IntervalDays  int
 }

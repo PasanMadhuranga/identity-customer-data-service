@@ -385,6 +385,42 @@ var DeleteProfileByProfileID = newQuery("CDS-PRF-11",
 var DeleteProfile = newQuery("CDS-PRF-18",
 	`DELETE FROM profiles WHERE profile_id = $1`)
 
+// ListExpiredTemporaryProfiles locks and returns up to $3 temporary profiles of org $1 not updated
+// since $2.
+var ListExpiredTemporaryProfiles = newQuery("CDS-PRF-22",
+	`SELECT p.profile_id FROM profiles p
+	JOIN profile_reference r ON r.profile_id = p.profile_id
+	WHERE p.org_id = $1 AND p.updated_at < $2 AND (p.user_id IS NULL OR p.user_id = '')
+	  AND r.profile_status = 'REFERENCE_PROFILE'
+	  AND NOT EXISTS (SELECT 1 FROM profile_reference c WHERE c.reference_profile_id = p.profile_id)
+	ORDER BY p.updated_at
+	LIMIT $3
+	FOR UPDATE`,
+	`SELECT p.profile_id FROM profiles p
+	JOIN profile_reference r ON r.profile_id = p.profile_id
+	WHERE p.org_id = $1 AND p.updated_at < $2 AND (p.user_id IS NULL OR p.user_id = '')
+	  AND r.profile_status = 'REFERENCE_PROFILE'
+	  AND NOT EXISTS (SELECT 1 FROM profile_reference c WHERE c.reference_profile_id = p.profile_id)
+	ORDER BY p.updated_at
+	LIMIT $3`)
+
+// DeleteProfilesByIDs deletes the profiles in the IN list %s. Dependent rows go through foreign keys.
+var DeleteProfilesByIDs = newQuery("CDS-PRF-25",
+	`DELETE FROM profiles WHERE org_id = $1 AND profile_id IN (%s)`)
+
+// DeleteReviewTasksByCandidateProfileIDs removes the review tasks that name a profile in the IN list %s
+// as candidate.
+var DeleteReviewTasksByCandidateProfileIDs = newQuery("CDS-IDR-24",
+	`DELETE FROM review_tasks WHERE org_id = $1 AND candidate_profile_id IN (%s)`)
+
+// DeleteProfileReferencesByProfileIDs removes the reference rows of the profiles in the IN list %s.
+var DeleteProfileReferencesByProfileIDs = newQuery("CDS-PRF-23",
+	`DELETE FROM profile_reference WHERE org_id = $1 AND profile_id IN (%s)`)
+
+// ListProfileOrgIDs returns the ID of every organization that has a profile.
+var ListProfileOrgIDs = newQuery("CDS-PRF-24",
+	`SELECT DISTINCT org_id FROM profiles`)
+
 // InsertApplicationData stores a profile's data for an application, replacing any existing data for that pair.
 var InsertApplicationData = newQuery("CDS-PRF-12",
 	`
@@ -628,6 +664,11 @@ var UpdateOrgConfiguration = newQuery("CDS-CFG-02",
 var GetOrgConfiguration = newQuery("CDS-CFG-03",
 	`SELECT value FROM cds_config WHERE org_id = $1 AND config = $2`)
 
+// ListOrgConfigurationValues returns the value of the config entries $1 and $2 of every org that
+// stores them.
+var ListOrgConfigurationValues = newQuery("CDS-CFG-05",
+	`SELECT org_id, config, value FROM cds_config WHERE config IN ($1, $2)`)
+
 // UpdateInitialSchemaSyncDoneConfig records whether the initial schema sync of an org is done.
 var UpdateInitialSchemaSyncDoneConfig = newQuery("CDS-CFG-04",
 	`INSERT INTO cds_config (org_id, config, value) 
@@ -817,6 +858,10 @@ var IRGetRejectionsForProfile = newQuery("CDS-IDR-20",
 // IRDeleteRejectionPairsForProfile removes every rejection that involves a profile.
 var IRDeleteRejectionPairsForProfile = newQuery("CDS-IDR-21",
 	`DELETE FROM rejection_pairs WHERE org_id = $1 AND (profile_id_1 = $2 OR profile_id_2 = $2)`)
+
+// IRDeleteRejectionPairsForProfiles removes the rejections that involve a profile in the IN list %s.
+var IRDeleteRejectionPairsForProfiles = newQuery("CDS-IDR-23",
+	`DELETE FROM rejection_pairs WHERE org_id = $1 AND (profile_id_1 IN (%s) OR profile_id_2 IN (%s))`)
 
 // IRRepointRejectionPairs moves a rejection from a profile that has become a child onto
 // the master that now represents it, so the decision survives the merge.

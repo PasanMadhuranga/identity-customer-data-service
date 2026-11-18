@@ -21,6 +21,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -72,8 +73,20 @@ func (h *AdminConfigHandler) GetAdminConfig(w http.ResponseWriter, r *http.Reque
 		ManualReviewThreshold:      config.ManualReviewThreshold,
 		DeterministicMatchDecisive: config.DeterministicMatchDecisive,
 		CORSAllowedOrigins:         config.CORSAllowedOrigins,
+		TemporaryProfileRetentionDays: effectiveSetting(config.TemporaryProfileRetentionDays,
+			constants.DefaultTemporaryProfileRetentionDays),
+		TemporaryProfileCleanupIntervalDays: effectiveSetting(config.TemporaryProfileCleanupIntervalDays,
+			constants.DefaultTemporaryProfileCleanupIntervalDays),
 	}
 	utils.RespondJSON(w, http.StatusOK, resp, constants.AdminConfigResource)
+}
+
+// effectiveSetting returns the stored setting, or its default when none is set.
+func effectiveSetting(stored, defaultValue int) int {
+	if stored > 0 {
+		return stored
+	}
+	return defaultValue
 }
 
 // UpdateAdminConfig handles PATCH /admin/configs
@@ -112,15 +125,18 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	}
 
 	configToUpdate := model.AdminConfig{
-		OrgID:                      org.ID,
-		InitialSchemaSyncDone:      existingConfig.InitialSchemaSyncDone,
-		CDSEnabled:                 existingConfig.CDSEnabled,
-		SystemApplications:         existingConfig.SystemApplications,
-		AutoMergeEnabled:           existingConfig.AutoMergeEnabled,
-		AutoMergeThreshold:         existingConfig.AutoMergeThreshold,
-		ManualReviewThreshold:      existingConfig.ManualReviewThreshold,
-		DeterministicMatchDecisive: existingConfig.DeterministicMatchDecisive,
-		CORSAllowedOrigins:         existingConfig.CORSAllowedOrigins,
+		OrgID:                         org.ID,
+		InitialSchemaSyncDone:         existingConfig.InitialSchemaSyncDone,
+		CDSEnabled:                    existingConfig.CDSEnabled,
+		SystemApplications:            existingConfig.SystemApplications,
+		AutoMergeEnabled:              existingConfig.AutoMergeEnabled,
+		AutoMergeThreshold:            existingConfig.AutoMergeThreshold,
+		ManualReviewThreshold:         existingConfig.ManualReviewThreshold,
+		DeterministicMatchDecisive:    existingConfig.DeterministicMatchDecisive,
+		CORSAllowedOrigins:            existingConfig.CORSAllowedOrigins,
+		TemporaryProfileRetentionDays: existingConfig.TemporaryProfileRetentionDays,
+
+		TemporaryProfileCleanupIntervalDays: existingConfig.TemporaryProfileCleanupIntervalDays,
 	}
 
 	// Update only if provided in request
@@ -145,6 +161,31 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 	if config.CORSAllowedOrigins != nil {
 		configToUpdate.CORSAllowedOrigins = config.CORSAllowedOrigins
 	}
+	// Zero is not a value of these settings; the store reads an absent value as "not set".
+	for _, setting := range []struct {
+		name    string
+		given   *int
+		target  *int
+		minimum int
+	}{
+		{"temporary_profile_retention_days", config.TemporaryProfileRetentionDays,
+			&configToUpdate.TemporaryProfileRetentionDays, constants.MinTemporaryProfileRetentionDays},
+		{"temporary_profile_cleanup_interval_days", config.TemporaryProfileCleanupIntervalDays,
+			&configToUpdate.TemporaryProfileCleanupIntervalDays, constants.MinTemporaryProfileCleanupIntervalDays},
+	} {
+		if setting.given == nil {
+			continue
+		}
+		if *setting.given == 0 {
+			utils.HandleError(w, errors.NewClientError(errors.ErrorMessage{
+				Code:        errors.UpdateConfigBadRequest.Code,
+				Message:     errors.UpdateConfigBadRequest.Message,
+				Description: fmt.Sprintf("%s must be at least %d.", setting.name, setting.minimum),
+			}, http.StatusBadRequest))
+			return
+		}
+		*setting.target = *setting.given
+	}
 
 	err = adminConfigService.UpdateAdminConfig(ctx, &configToUpdate, org)
 	if err != nil {
@@ -160,6 +201,10 @@ func (h *AdminConfigHandler) UpdateAdminConfig(w http.ResponseWriter, r *http.Re
 		ManualReviewThreshold:      configToUpdate.ManualReviewThreshold,
 		DeterministicMatchDecisive: configToUpdate.DeterministicMatchDecisive,
 		CORSAllowedOrigins:         configToUpdate.CORSAllowedOrigins,
+		TemporaryProfileRetentionDays: effectiveSetting(configToUpdate.TemporaryProfileRetentionDays,
+			constants.DefaultTemporaryProfileRetentionDays),
+		TemporaryProfileCleanupIntervalDays: effectiveSetting(configToUpdate.TemporaryProfileCleanupIntervalDays,
+			constants.DefaultTemporaryProfileCleanupIntervalDays),
 	}
 	utils.RespondJSON(w, http.StatusOK, resp, constants.AdminConfigResource)
 }

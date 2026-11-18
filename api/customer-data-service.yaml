@@ -2718,6 +2718,19 @@ components:
           description: Browser origins allowed to call the organization's endpoints. When empty, the deployment-wide list applies.
           items:
             type: string
+        temporary_profile_retention_days:
+          type: integer
+          format: int32
+          minimum: 1
+          description: >-
+            Number of days a temporary profile may go without an update before it is deleted, together
+            with its cookies. An organization that has not set it gets the default of 90 days. Profiles
+            that have a user_id, or that are merged with another profile, are never deleted by this setting.
+        temporary_profile_cleanup_interval_days:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Days between two cleanups of the temporary profiles of the organization. The default is 30.
 
     AdminConfigUpdate:
       type: object
@@ -2743,6 +2756,16 @@ components:
           type: array
           items:
             type: string
+        temporary_profile_retention_days:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Days a temporary profile may go without an update before it is deleted. Values below 1, or above 2147483647, are rejected.
+        temporary_profile_cleanup_interval_days:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Days between two cleanups of the temporary profiles of the organization. Values below 1, or above 2147483647, are rejected.
 
     ReviewTask:
       type: object

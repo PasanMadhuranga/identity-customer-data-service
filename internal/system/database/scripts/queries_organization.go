@@ -78,3 +78,7 @@ var GetOrganizationsByIDs = newQuery("CDS-ORG-08",
 var GetOrganizationAncestors = newQuery("CDS-ORG-09",
 	chainOf+`SELECT `+organizationColumnsOfO+`, c.hops FROM organizations o JOIN chain c ON c.org_id = o.org_id
 	WHERE c.hops > 0 ORDER BY c.hops`)
+
+// ListOrganizationPrimaries returns every stored organization with its primary organization.
+var ListOrganizationPrimaries = newQuery("CDS-ORG-10",
+	`SELECT org_id, primary_org_id FROM organizations`)

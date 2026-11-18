@@ -21,6 +21,7 @@
 package constants
 
 import (
+	"math"
 	"regexp"
 	"time"
 )
@@ -294,6 +295,12 @@ const (
 	ConfigInitialSchemaSyncDone = "initial_schema_sync_done"
 	ConfigSystemApplications    = "system_applications"
 	ConfigCORSAllowedOrigins    = "cors_allowed_origins"
+	// ConfigTemporaryProfileRetentionDays is the days a temporary profile may go without an update
+	// before it is deleted. Unset means the default applies.
+	ConfigTemporaryProfileRetentionDays = "temporary_profile_retention_days"
+	// ConfigTemporaryProfileCleanupIntervalDays is the days between two cleanups of the organization's
+	// temporary profiles.
+	ConfigTemporaryProfileCleanupIntervalDays = "temporary_profile_cleanup_interval_days"
 
 	// Identity resolution config keys
 	ConfigAutoMergeEnabled      = "auto_merge_enabled"
@@ -670,6 +677,20 @@ const (
 // DefaultCookieCleanupTime is the default interval of the cookie cleanup worker, in seconds.
 const (
 	DefaultCookieCleanupTime = 24 * 60 * 60 // 24 hours in seconds
+)
+
+// Retention of temporary profiles.
+const (
+	DefaultTemporaryProfileRetentionDays = 90
+	MinTemporaryProfileRetentionDays     = 1
+	MaxTemporaryProfileRetentionDays     = math.MaxInt32
+
+	DefaultTemporaryProfileCleanupIntervalDays = 30
+	MinTemporaryProfileCleanupIntervalDays     = 1
+	MaxTemporaryProfileCleanupIntervalDays     = math.MaxInt32
+
+	TemporaryProfileCleanupBatchSize    = 500
+	MaxTemporaryProfileCleanupBatchSize = 1000
 )
 
 // DefaultShutdownGracePeriod bounds the whole shutdown sequence when

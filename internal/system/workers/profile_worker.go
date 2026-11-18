@@ -101,7 +101,7 @@ func StartProfileWorker() error {
 				return
 			}
 			if !found {
-				log.GetLogger().Error(fmt.Sprintf("CDS does not know the organization %s of profile %s, so the "+
+				log.GetLogger().Error(fmt.Sprintf("CDD does not know the organization %s of profile %s, so the "+
 					"profile was not unified", profile.OrgID, profile.ProfileID))
 				return
 			}

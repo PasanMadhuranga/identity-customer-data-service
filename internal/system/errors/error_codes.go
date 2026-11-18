@@ -387,7 +387,7 @@ var (
 	CDSNotEnabled = ErrorMessage{
 		Code:        errorPrefix + "16001",
 		Message:     "Not enabled.",
-		Description: "Customer data service is not enabled for the organization",
+		Description: "Customer data directory is not enabled for the organization",
 	}
 
 	ServiceCredentialsRejected = ErrorMessage{
@@ -398,7 +398,7 @@ var (
 	ServiceCredentialsNotConfigured = ErrorMessage{
 		Code:    errorPrefix + "16004",
 		Message: "Service credentials are not accepted.",
-		Description: "CDS has no encryption key to store the credentials with. Set " +
+		Description: "CDD has no encryption key to store the credentials with. Set " +
 			"idp.service_credentials.encryption_key in deployment.yaml.",
 	}
 
@@ -500,7 +500,7 @@ var (
 	SubOrgConfigNotAllowed = ErrorMessage{
 		Code:        errorPrefix + "17007",
 		Message:     "Configuration is inherited.",
-		Description: "A child organization inherits the CDS enablement from its primary organization.",
+		Description: "A child organization inherits the CDD enablement from its primary organization.",
 	}
 
 	SharePolicyExists = ErrorMessage{

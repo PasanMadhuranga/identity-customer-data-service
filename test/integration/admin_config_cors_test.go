@@ -150,7 +150,7 @@ func TestStoredOriginsDriveTheMiddleware(t *testing.T) {
 		{"deployment origin allowed for unconfigured org",
 			"/t/cors-never-configured/cds/api/v1/profiles", "https://console.example.com",
 			"https://console.example.com"},
-		{"deployment origin allowed for a handle CDS does not know",
+		{"deployment origin allowed for a handle CDD does not know",
 			"/t/cors-mw-unknown/cds/api/v1/profiles", "https://console.example.com",
 			"https://console.example.com"},
 		{"deployment origin allowed with no org in path", "/health", "https://console.example.com",

@@ -561,7 +561,7 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 		if known {
 			orgLabel = org.ID
 		}
-		errMsg := "Unable to process profile sync event as CDS is not enabled for organization: " + orgLabel
+		errMsg := "Unable to process profile sync event as CDD is not enabled for organization: " + orgLabel
 		logger.Info(errMsg)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.CDSNotEnabled.Code,

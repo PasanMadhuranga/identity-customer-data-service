@@ -539,7 +539,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isCDSEnabled(ctx, org.ID) {
-		errMsg := "CDS is not enabled for organization: " + org.ID
+		errMsg := "CDD is not enabled for organization: " + org.ID
 		log.GetLogger().Info(errMsg)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.CDSNotEnabled.Code,
@@ -949,7 +949,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 		if known {
 			orgLabel = org.ID
 		}
-		errMsg := "Unable to process profile sync event as CDS is not enabled for organization: " + orgLabel
+		errMsg := "Unable to process profile sync event as CDD is not enabled for organization: " + orgLabel
 		log.GetLogger().Info(errMsg)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.CDSNotEnabled.Code,

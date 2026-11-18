@@ -39,7 +39,7 @@ func main() {
 // resolveCDSHome determines the CDS home directory from the -cdsHome flag, the
 // CDS_HOME environment variable, or the working directory, in that order.
 func resolveCDSHome() string {
-	cdsHomeFlag := flag.String("cdsHome", "", "Path to customer data service home directory")
+	cdsHomeFlag := flag.String("cdsHome", "", "Path to the CDD home directory")
 
 	if !flag.Parsed() {
 		flag.Parse()

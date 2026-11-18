@@ -101,7 +101,7 @@ func GetOrganizationHandle(ctx context.Context, orgID string) (string, error) {
 		return "", errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.OrganizationNotFound.Code,
 			Message:     errors2.OrganizationNotFound.Message,
-			Description: fmt.Sprintf("CDS has no organization with the ID '%s'.", orgID),
+			Description: fmt.Sprintf("CDD has no organization with the ID '%s'.", orgID),
 		}, fmt.Errorf("no organization with the ID %s", orgID))
 	}
 	return ref.Handle, nil
@@ -111,7 +111,7 @@ func organizationNotFound(orgHandle string) error {
 	return errors2.NewClientError(errors2.ErrorMessage{
 		Code:        errors2.OrganizationNotFound.Code,
 		Message:     errors2.OrganizationNotFound.Message,
-		Description: fmt.Sprintf("CDS does not know the organization '%s'.", orgHandle),
+		Description: fmt.Sprintf("CDD does not know the organization '%s'.", orgHandle),
 	}, http.StatusNotFound)
 }
 

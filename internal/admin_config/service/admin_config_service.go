@@ -326,7 +326,7 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 			return err
 		}
 		updatedConfig.InitialSchemaSyncDone = true
-		logger.Debug(fmt.Sprintf("UpdateAdminConfig: CDS enabled for org=%s", org.ID))
+		logger.Debug(fmt.Sprintf("UpdateAdminConfig: CDD enabled for org=%s", org.ID))
 	}
 
 	// In app_id mode, register each system application so its clientId->app_id mapping exists for the GET path.

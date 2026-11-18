@@ -91,7 +91,7 @@ func knownOrg(ctx context.Context, ref orgModel.Ref) (*orgModel.Organization, er
 		return nil, errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.OrganizationNotFound.Code,
 			Message:     errors2.OrganizationNotFound.Message,
-			Description: "CDS does not know the organization '" + ref.ID + "'.",
+			Description: "CDD does not know the organization '" + ref.ID + "'.",
 		}, http.StatusNotFound)
 	}
 	return org, nil

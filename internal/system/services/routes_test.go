@@ -75,8 +75,6 @@ func TestProfileRoutes(t *testing.T) {
 	requireRoutesRequireAuthentication(t, tenantRouter(service.Route), []route{
 		{http.MethodGet, "/profiles"},
 		{http.MethodPost, "/profiles"},
-		{http.MethodGet, "/profiles/Me"},
-		{http.MethodPatch, "/profiles/Me"},
 		{http.MethodPost, "/profiles/sync"},
 		{http.MethodPost, "/profiles/link"},
 		{http.MethodGet, "/profiles/p-1"},

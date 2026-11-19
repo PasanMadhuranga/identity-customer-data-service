@@ -176,26 +176,24 @@ func Test_OrgScope_API(t *testing.T) {
 		})
 	})
 
-	t.Run("CurrentUserProfile", func(t *testing.T) {
+	t.Run("ProfileCookie", func(t *testing.T) {
 		f := setUpOrgScopeFixture(t)
 		ownerCookie := &http.Cookie{Name: constants.ProfileCookie, Value: f.ownerCookie}
-		unknownCookie := &http.Cookie{Name: constants.ProfileCookie, Value: uuid.New().String()}
 
-		t.Run("Get_with_other_org_cookie_returns_not_found", func(t *testing.T) {
-			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodGet, "/profiles/Me", "", ownerCookie)
+		// /profiles/Me is not served. The path falls through to /profiles/{profileId}
+		// with the ID "Me", so even the owner's token and cookie do not reach the profile.
+		t.Run("Get_me_with_owner_cookie_returns_not_found", func(t *testing.T) {
+			status, body := f.call(t, f.ownerOrg, f.ownerToken, http.MethodGet, "/profiles/Me", "", ownerCookie)
 			assert.Equal(t, http.StatusNotFound, status, string(body))
 			assert.NotContains(t, string(body), f.ownerAnonInterest)
 			assert.NotContains(t, string(body), f.ownerAnonID)
 		})
 
-		t.Run("Patch_with_other_org_cookie_matches_unknown_cookie", func(t *testing.T) {
-			unknownStatus, unknownBody := f.call(t, f.otherOrg, f.otherToken, http.MethodPatch, "/profiles/Me",
-				`{"traits":{"interests":"changed by other org"}}`, unknownCookie)
-			status, body := f.call(t, f.otherOrg, f.otherToken, http.MethodPatch, "/profiles/Me",
-				`{"traits":{"interests":"changed by other org"}}`, ownerCookie)
-			assert.NotEqual(t, http.StatusOK, status, string(body))
-			assert.Equal(t, unknownStatus, status, string(body))
-			assert.Equal(t, string(unknownBody), string(body))
+		t.Run("Patch_me_with_owner_cookie_returns_not_found", func(t *testing.T) {
+			status, body := f.call(t, f.ownerOrg, f.ownerToken, http.MethodPatch, "/profiles/Me",
+				`{"traits":{"interests":"changed through me"}}`, ownerCookie)
+			assert.Equal(t, http.StatusNotFound, status, string(body))
+			assert.NotContains(t, string(body), f.ownerAnonID)
 		})
 
 		t.Run("Init_with_other_org_cookie_creates_a_new_profile", func(t *testing.T) {

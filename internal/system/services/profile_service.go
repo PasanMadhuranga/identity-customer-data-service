@@ -44,8 +44,6 @@ func NewProfileService(mux *http.ServeMux) *ProfileService {
 	// Register routes using Go 1.22+ ServeMux patterns on the shared mux
 	ps.mux.HandleFunc("GET "+base+"/profiles", ps.profileHandler.GetAllProfiles)
 	ps.mux.HandleFunc("POST "+base+"/profiles", ps.profileHandler.InitProfile)
-	ps.mux.HandleFunc("GET "+base+"/profiles/Me", ps.profileHandler.GetCurrentUserProfile)
-	ps.mux.HandleFunc("PATCH "+base+"/profiles/Me", ps.profileHandler.PatchCurrentUserProfile)
 	ps.mux.HandleFunc("POST "+base+"/profiles/sync", ps.profileHandler.SyncProfile)
 	ps.mux.HandleFunc("POST "+base+"/profiles/link", ps.profileHandler.LinkProfile)
 

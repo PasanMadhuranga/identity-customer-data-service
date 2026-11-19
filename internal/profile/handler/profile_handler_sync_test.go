@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wso2/identity-customer-data-service/internal/profile/model"
+	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
 	schemaStore "github.com/wso2/identity-customer-data-service/internal/profile_schema/store"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
@@ -269,4 +270,98 @@ func TestSyncIgnoresAnEventItDoesNotKnow(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Nil(t, env.findUser(t, "u-1"))
+}
+
+// mergeInto marks the child profile as merged into the master profile, as unification does.
+func (e *profileHandlerEnv) mergeInto(t *testing.T, master, child *model.ProfileResponse) {
+	t.Helper()
+	require.NoError(t, profileStore.UpdateProfileReferences(e.ctx, model.Profile{ProfileID: master.ProfileID},
+		[]model.Reference{{ProfileID: child.ProfileID, Reason: "test"}}))
+	merged, err := e.svc.GetProfile(e.ctx, child.ProfileID, e.orgID)
+	require.NoError(t, err)
+	require.Equal(t, master.UserID, merged.UserID, "a merged profile reads the user of its master")
+}
+
+// assertStillOwnedBy checks that the profile still belongs to the user and keeps its data.
+func (e *profileHandlerEnv) assertStillOwnedBy(t *testing.T, profile *model.ProfileResponse, userID, city string) {
+	t.Helper()
+	got, err := e.svc.GetProfile(e.ctx, profile.ProfileID, e.orgID)
+	require.NoError(t, err)
+	assert.Equal(t, userID, got.UserID, "the profile keeps its user")
+	assert.Equal(t, city, got.Traits["city"], "the profile keeps its data")
+	owner := e.findUser(t, userID)
+	require.NotNil(t, owner)
+	assert.Equal(t, profile.ProfileID, owner.ProfileID, "the user keeps the profile")
+}
+
+func TestAddUserDoesNotTakeTheProfileOfAnotherUser(t *testing.T) {
+	env := newSyncEnv(t)
+	owned := env.createUserProfile(t, "u-owner", "Colombo")
+	child := env.createProfile(t, "Kandy")
+	env.mergeInto(t, owned, child)
+
+	for name, cookieProfile := range map[string]*model.ProfileResponse{
+		"the cookie of the user's profile":  owned,
+		"the cookie of a merged-in profile": child,
+	} {
+		t.Run(name, func(t *testing.T) {
+			newUser := "u-new-" + cookieProfile.ProfileID
+			cookieID := env.createCookie(t, cookieProfile.ProfileID, true)
+
+			recorder := env.sync(t, adminAuthorization(), env.event(constants.AddUserEvent, newUser,
+				map[string]interface{}{
+					"profileCookie": cookieID,
+					"claims":        map[string]interface{}{"http://wso2.org/claims/email": "new@b.c"},
+				}))
+
+			require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+			env.assertStillOwnedBy(t, owned, "u-owner", "Colombo")
+			created := env.findUser(t, newUser)
+			require.NotNil(t, created, "the new user gets a profile of their own")
+			assert.NotEqual(t, owned.ProfileID, created.ProfileID)
+			assert.NotEqual(t, child.ProfileID, created.ProfileID)
+			assert.Equal(t, "new@b.c", created.IdentityAttributes["email"])
+			assert.Nil(t, created.Traits["city"], "no data of the other user")
+		})
+	}
+}
+
+func TestAddUserWithTheCookieOfTheirOwnProfileUpdatesIt(t *testing.T) {
+	env := newSyncEnv(t)
+	owned := env.createUserProfile(t, "u-1", "Colombo")
+	cookieID := env.createCookie(t, owned.ProfileID, true)
+
+	recorder := env.sync(t, adminAuthorization(), env.event(constants.AddUserEvent, "u-1",
+		map[string]interface{}{
+			"profileCookie": cookieID,
+			"claims":        map[string]interface{}{"http://wso2.org/claims/email": "a@b.c"},
+		}))
+
+	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+	got := env.findUser(t, "u-1")
+	require.NotNil(t, got)
+	assert.Equal(t, owned.ProfileID, got.ProfileID)
+	assert.Equal(t, "a@b.c", got.IdentityAttributes["email"])
+}
+
+func TestAuthenticationSuccessDoesNotTakeTheProfileOfAnotherUser(t *testing.T) {
+	env := newSyncEnv(t)
+	owned := env.createUserProfile(t, "u-owner", "Colombo")
+	child := env.createProfile(t, "Kandy")
+	env.mergeInto(t, owned, child)
+	env.createUserProfile(t, "u-other", "Galle")
+
+	for _, cookieProfile := range []*model.ProfileResponse{owned, child} {
+		cookieID := env.createCookie(t, cookieProfile.ProfileID, true)
+		// One user with a profile of their own, and one user without a profile.
+		for _, userID := range []string{"u-other", "u-without-profile"} {
+			recorder := env.sync(t, adminAuthorization(), env.event(constants.AuthenticationSuccess, userID,
+				map[string]interface{}{"profileCookie": cookieID}))
+
+			require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+			env.assertStillOwnedBy(t, owned, "u-owner", "Colombo")
+		}
+	}
+	assert.Equal(t, "Galle", env.findUser(t, "u-other").Traits["city"])
+	assert.Nil(t, env.findUser(t, "u-without-profile"))
 }

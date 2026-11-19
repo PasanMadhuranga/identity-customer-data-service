@@ -932,10 +932,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 
 	if profileSync.Event == constants.AddUserEvent {
 		if profileSync.ProfileCookie != "" && profileSync.UserID != "" {
-			logger.Debug(
-				"Syncing profile for user id: " + profileSync.UserID +
-					" with profile cookie: " + profileSync.ProfileCookie,
-			)
+			logger.Debug("Syncing profile for user id: " + profileSync.UserID + " with a profile cookie")
 			cookieObj, err := profilesService.GetProfileCookieByID(ctx, profileSync.ProfileCookie, org.ID)
 			if err == nil && cookieObj != nil && cookieObj.IsActive {
 				profileID = cookieObj.ProfileID
@@ -947,6 +944,17 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 			existingProfile, err = profilesService.GetProfile(ctx, profileID, org.ID)
 			if err != nil {
 				utils.HandleError(writer, err)
+				return
+			}
+			if existingProfile != nil && isLinkedToAnotherUser(existingProfile, profileSync.UserID) {
+				// The profile of the cookie (or the profile it is merged into) already belongs to a different
+				// user. Do not give it to the new user. Create a separate profile for the new user instead.
+				logger.Warn(fmt.Sprintf("Profile: %s is already linked to a different user. Not linking it "+
+					"to the new user: %s.", existingProfile.ProfileID, profileSync.UserID))
+				if err := createProfileForUserIfMissing(ctx, profilesService, profileSync.UserID, org.ID,
+					identityClaims); err != nil {
+					utils.HandleError(writer, err)
+				}
 				return
 			}
 			if existingProfile != nil {
@@ -979,29 +987,9 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 		} else if profileSync.ProfileCookie == "" && profileSync.UserID != "" {
 			logger.Debug("Syncing profile for user id: " + profileSync.UserID + " without profile cookie")
 			// this is when we create a profile for a new user created in IS
-			existingProfile, err = profilesService.FindProfileByUserID(ctx, profileSync.UserID, org.ID)
-			if err != nil {
-				if !utils.HasClientErrorCode(err, errors2.ProfileNotFound.Code) {
-					utils.HandleError(writer, err)
-					return
-				}
-			}
-			if existingProfile == nil {
-				identityAttributes := make(map[string]interface{})
-				for claimURI, value := range identityClaims {
-					attributeKeyPath := extractClaimKeyFromLocalURI(claimURI)
-					setNestedMapValue(identityAttributes, attributeKeyPath, value)
-				}
-
-				profileRequest := model.ProfileRequest{
-					UserID:             profileSync.UserID,
-					IdentityAttributes: identityAttributes,
-				}
-				_, err := profilesService.CreateProfile(ctx, profileRequest, org.ID)
-				if err != nil {
-					utils.HandleError(writer, err)
-					return
-				}
+			if err := createProfileForUserIfMissing(ctx, profilesService, profileSync.UserID, org.ID,
+				identityClaims); err != nil {
+				utils.HandleError(writer, err)
 			}
 			return
 		}
@@ -1129,7 +1117,17 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 			}
 
 			// Step 3: Handle sub-cases
-			if anonymousProfile != nil && existingUserProfile != nil {
+			if anonymousProfile != nil && anonymousProfile.UserID != "" {
+				// The profile of the cookie (or the profile it is merged into) is already linked to a user.
+				// Do not give a profile of a different user to this user.
+				if isLinkedToAnotherUser(anonymousProfile, profileSync.UserID) {
+					logger.Warn(fmt.Sprintf("Profile: %s is already linked to a different user. Not linking it "+
+						"to the user: %s.", anonymousProfile.ProfileID, profileSync.UserID))
+				} else {
+					logger.Debug("Profile: " + anonymousProfile.ProfileID + " is already linked to the user: " +
+						profileSync.UserID + ". No action needed.")
+				}
+			} else if anonymousProfile != nil && existingUserProfile != nil {
 				if anonymousProfile.ProfileID != existingUserProfile.ProfileID {
 					// Both profiles exist and are different — attach userId on the anonymous profile.
 					// UpdateProfile will enqueue for unification. The worker will detect two profiles
@@ -1387,6 +1385,37 @@ func parseCommaSeparatedOrRepeated(values []string) []string {
 func extractClaimKeyFromLocalURI(localURI string) string {
 	parts := strings.Split(localURI, "/")
 	return parts[len(parts)-1]
+}
+
+// isLinkedToAnotherUser reports whether the profile already belongs to a user other than userID.
+// For a merged (child) profile, GetProfile returns the user ID of the profile it is merged into, so this
+// also covers that profile.
+func isLinkedToAnotherUser(profile *model.ProfileResponse, userID string) bool {
+	return profile != nil && profile.UserID != "" && profile.UserID != userID
+}
+
+// createProfileForUserIfMissing creates a profile for the user from the identity claims, if the user has no
+// profile yet.
+func createProfileForUserIfMissing(ctx context.Context, profilesService profileService.ProfilesServiceInterface,
+	userID, orgID string, identityClaims map[string]interface{}) error {
+	existingProfile, err := profilesService.FindProfileByUserID(ctx, userID, orgID)
+	if err != nil && !utils.HasClientErrorCode(err, errors2.ProfileNotFound.Code) {
+		return err
+	}
+	if existingProfile != nil {
+		return nil
+	}
+	identityAttributes := make(map[string]interface{})
+	for claimURI, value := range identityClaims {
+		attributeKeyPath := extractClaimKeyFromLocalURI(claimURI)
+		setNestedMapValue(identityAttributes, attributeKeyPath, value)
+	}
+	profileRequest := model.ProfileRequest{
+		UserID:             userID,
+		IdentityAttributes: identityAttributes,
+	}
+	_, err = profilesService.CreateProfile(ctx, profileRequest, orgID)
+	return err
 }
 
 func getCallerClientIDFromRequest(r *http.Request) string {

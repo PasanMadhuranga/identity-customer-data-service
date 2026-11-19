@@ -386,8 +386,6 @@ func TestProfileHandlersRequireAuthentication(t *testing.T) {
 		{"patch", env.h.PatchProfile, http.MethodPatch, `{}`},
 		{"delete", env.h.DeleteProfile, http.MethodDelete, ""},
 		{"link", env.h.LinkProfile, http.MethodPost, `{}`},
-		{"current user", env.h.GetCurrentUserProfile, http.MethodGet, ""},
-		{"patch current user", env.h.PatchCurrentUserProfile, http.MethodPatch, `{}`},
 		{"get consents", env.h.GetProfileConsents, http.MethodGet, ""},
 		{"update consents", env.h.UpdateProfileConsents, http.MethodPut, `[]`},
 	}

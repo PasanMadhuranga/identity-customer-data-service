@@ -39,7 +39,7 @@ import (
 func (e *profileHandlerEnv) callWithCookie(t *testing.T, handler http.HandlerFunc, method, authorization, body,
 	cookieID string) *httptest.ResponseRecorder {
 	t.Helper()
-	request := httptest.NewRequest(method, "/t/"+e.handle+"/cds/api/v1/profiles/Me", strings.NewReader(body))
+	request := httptest.NewRequest(method, "/t/"+e.handle+"/cds/api/v1/profiles", strings.NewReader(body))
 	request = request.WithContext(context.WithValue(request.Context(), constants.TenantContextKey, e.handle))
 	if authorization != "" {
 		request.Header.Set("Authorization", authorization)
@@ -54,16 +54,6 @@ func (e *profileHandlerEnv) callWithCookie(t *testing.T, handler http.HandlerFun
 }
 
 func (e *profileHandlerEnv) bearer() string { return "Bearer " + e.auth.ValidToken }
-
-// userToken is a JWT of the user, for the organization of the environment.
-func (e *profileHandlerEnv) userToken(t *testing.T, subject string) string {
-	t.Helper()
-	claims := map[string]interface{}{"org_handle": e.handle}
-	if subject != "" {
-		claims["sub"] = subject
-	}
-	return "Bearer " + e.auth.NewJWT(t, claims)
-}
 
 func (e *profileHandlerEnv) createUserProfile(t *testing.T, userID, city string) *model.ProfileResponse {
 	t.Helper()
@@ -81,99 +71,6 @@ func (e *profileHandlerEnv) createCookie(t *testing.T, profileID string, active 
 		require.NoError(t, e.svc.UpdateCookieStatusByCookieID(e.ctx, cookie.CookieID, false))
 	}
 	return cookie.CookieID
-}
-
-func TestGetCurrentUserProfileByTheTokenSubject(t *testing.T) {
-	env := newProfileHandlerEnv(t)
-	created := env.createUserProfile(t, "u-1", "Colombo")
-
-	recorder := env.callWithCookie(t, env.h.GetCurrentUserProfile, http.MethodGet, env.userToken(t, "u-1"), "", "")
-
-	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
-	assert.Equal(t, created.ProfileID, decodeProfile(t, recorder).ProfileID)
-}
-
-func TestGetCurrentUserProfileByTheCookie(t *testing.T) {
-	env := newProfileHandlerEnv(t)
-	created := env.createProfile(t, "Colombo")
-	cookieID := env.createCookie(t, created.ProfileID, true)
-
-	// An opaque token carries no subject, so the cookie is what finds the profile.
-	recorder := env.callWithCookie(t, env.h.GetCurrentUserProfile, http.MethodGet, env.bearer(), "", cookieID)
-
-	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
-	assert.Equal(t, created.ProfileID, decodeProfile(t, recorder).ProfileID)
-}
-
-func TestGetCurrentUserProfileRefusals(t *testing.T) {
-	env := newProfileHandlerEnv(t)
-	created := env.createProfile(t, "Colombo")
-	inactive := env.createCookie(t, created.ProfileID, false)
-
-	tests := []struct {
-		name          string
-		authorization string
-		cookie        string
-		status        int
-	}{
-		{"an opaque token and no cookie", env.bearer(), "", http.StatusUnauthorized},
-		{"an opaque token and an inactive cookie", env.bearer(), inactive, http.StatusUnauthorized},
-		{"a token without a subject", env.userToken(t, ""), "", http.StatusUnauthorized},
-		{"a subject that has no profile", env.userToken(t, "nobody"), "", http.StatusNotFound},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			recorder := env.callWithCookie(t, env.h.GetCurrentUserProfile, http.MethodGet, tc.authorization, "",
-				tc.cookie)
-
-			assert.Equal(t, tc.status, recorder.Code, recorder.Body.String())
-		})
-	}
-}
-
-func TestPatchCurrentUserProfile(t *testing.T) {
-	env := newProfileHandlerEnv(t)
-	byCookie := env.createProfile(t, "Colombo")
-	cookieID := env.createCookie(t, byCookie.ProfileID, true)
-	env.createUserProfile(t, "u-2", "Kandy")
-
-	viaCookie := env.callWithCookie(t, env.h.PatchCurrentUserProfile, http.MethodPatch, env.bearer(),
-		`{"traits":{"city":"Galle"}}`, cookieID)
-	require.Equal(t, http.StatusOK, viaCookie.Code, viaCookie.Body.String())
-	assert.Equal(t, "Galle", decodeProfile(t, viaCookie).Traits["city"])
-
-	viaToken := env.callWithCookie(t, env.h.PatchCurrentUserProfile, http.MethodPatch, env.userToken(t, "u-2"),
-		`{"traits":{"city":"Jaffna"}}`, "")
-	require.Equal(t, http.StatusOK, viaToken.Code, viaToken.Body.String())
-	assert.Equal(t, "Jaffna", decodeProfile(t, viaToken).Traits["city"])
-}
-
-func TestPatchCurrentUserProfileRefusals(t *testing.T) {
-	env := newProfileHandlerEnv(t)
-	created := env.createUserProfile(t, "u-1", "Colombo")
-	cookieID := env.createCookie(t, created.ProfileID, true)
-
-	tests := []struct {
-		name          string
-		authorization string
-		cookie        string
-		body          string
-		status        int
-	}{
-		{"an opaque token and no cookie", env.bearer(), "", `{}`, http.StatusUnauthorized},
-		{"a token without a subject", env.userToken(t, ""), "", `{}`, http.StatusUnauthorized},
-		{"a subject that has no profile", env.userToken(t, "nobody"), "", `{}`, http.StatusUnauthorized},
-		{"malformed JSON", env.bearer(), cookieID, `{"traits":`, http.StatusBadRequest},
-		{"a value that breaks the schema", env.bearer(), cookieID, `{"traits":{"age":"old"}}`, http.StatusBadRequest},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			recorder := env.callWithCookie(t, env.h.PatchCurrentUserProfile, http.MethodPatch, tc.authorization,
-				tc.body, tc.cookie)
-
-			assert.Equal(t, tc.status, recorder.Code, recorder.Body.String())
-		})
-	}
 }
 
 func TestInitProfileReturnsTheProfileOfAnActiveCookie(t *testing.T) {

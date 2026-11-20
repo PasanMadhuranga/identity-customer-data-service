@@ -587,15 +587,99 @@ func GetConsentCategoryIDs(ctx context.Context, orgID string) ([]string, error) 
 	return ids, nil
 }
 
-// GetConsentedCategoryAttributesByProfileID returns the allowed attribute sets for each
-// consented category. It only returns attributes for categories the profile has actively consented to.
-// Mandatory categories are always included regardless of profile consent records.
-func GetConsentedCategoryAttributesByProfileID(ctx context.Context,
-	profileID string, orgID string, categoryIDs []string) (map[string][]model.ConsentAttribute, error) {
+// GetConsentFilterAttributes returns what filtering profiles by consent needs from an
+// organization, once for any number of profiles: the mandatory category identifiers, and
+// the attributes of each mandatory and requested category. Attributes are returned for a
+// requested category whether or not any profile consented to it; GetProfileConsentsByProfileIDs
+// supplies which categories each profile consented to.
+func GetConsentFilterAttributes(ctx context.Context, orgID string, categoryIDs []string) (
+	map[string]bool, map[string][]model.ConsentAttribute, error) {
 	dbClient, err := provider.NewDBProvider().GetDBClient()
 	logger := log.GetLogger()
 	if err != nil {
-		errorMsg := "Failed to get db client for fetching consented category attributes"
+		errorMsg := "Failed to get db client for fetching consent filter attributes"
+		logger.Debug(errorMsg, log.Error(err))
+		return nil, nil, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.FetchConsentCategories.Code,
+			Message:     errors2.FetchConsentCategories.Message,
+			Description: errorMsg,
+		}, err)
+	}
+	defer func() { _ = dbClient.Close() }()
+
+	mandatoryQuery := scripts.GetMandatoryConsentCategoryIDsByOrg
+	mandatoryResults, err := dbClient.ExecuteQueryContext(ctx, mandatoryQuery, orgID)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to fetch mandatory category ids for org: %s", orgID)
+		logger.Debug(errorMsg, log.Error(err))
+		return nil, nil, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.FetchConsentCategories.Code,
+			Message:     errors2.FetchConsentCategories.Message,
+			Description: errorMsg,
+		}, err)
+	}
+	mandatorySet := make(map[string]bool, len(mandatoryResults))
+	for _, row := range mandatoryResults {
+		mandatorySet[row["category_identifier"].(string)] = true
+	}
+
+	result := make(map[string][]model.ConsentAttribute)
+
+	// Mandatory categories resolve their attributes live from profile_schema instead of
+	// consent_category_attributes. This means adding or removing an identity attribute via
+	// schema sync automatically updates what the mandatory "Identity Data" category covers —
+	// no reseeding or migration needed.
+	if len(mandatorySet) > 0 {
+		attrs, err := resolveMandatoryAttributes(ctx, dbClient, orgID)
+		if err != nil {
+			errorMsg := fmt.Sprintf("Failed to fetch identity attributes from schema for org: %s", orgID)
+			logger.Debug(errorMsg, log.Error(err))
+			return nil, nil, errors2.NewServerError(errors2.ErrorMessage{
+				Code:        errors2.FetchConsentCategories.Code,
+				Message:     errors2.FetchConsentCategories.Message,
+				Description: errorMsg,
+			}, err)
+		}
+		for id := range mandatorySet {
+			result[id] = attrs
+		}
+	}
+
+	seen := make(map[string]bool, len(categoryIDs))
+	regularIDs := make([]string, 0, len(categoryIDs))
+	for _, id := range categoryIDs {
+		if seen[id] || mandatorySet[id] {
+			continue
+		}
+		seen[id] = true
+		regularIDs = append(regularIDs, id)
+	}
+	if len(regularIDs) > 0 {
+		regularAttrs, err := getAttributesByCategoryIDs(ctx, dbClient, regularIDs)
+		if err != nil {
+			return nil, nil, err
+		}
+		for id, attrs := range regularAttrs {
+			result[id] = attrs
+		}
+	}
+
+	return mandatorySet, result, nil
+}
+
+// GetProfileConsentsByProfileIDs returns, for each of the given profiles, the categories it
+// has consented to (consent_status = true), in one query. A profile with no consent records
+// is absent from the result.
+func GetProfileConsentsByProfileIDs(ctx context.Context, profileIDs []string) (map[string]map[string]bool, error) {
+	result := make(map[string]map[string]bool)
+	if len(profileIDs) == 0 {
+		return result, nil
+	}
+
+	dbClient, err := provider.NewDBProvider().GetDBClient()
+	logger := log.GetLogger()
+	if err != nil {
+		errorMsg := "Failed to get db client for fetching profile consents"
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.FetchConsentCategories.Code,
@@ -605,11 +689,17 @@ func GetConsentedCategoryAttributesByProfileID(ctx context.Context,
 	}
 	defer func() { _ = dbClient.Close() }()
 
-	// Fetch which categories the profile has consented to (consent_status = true)
-	consentQuery := scripts.GetProfileConsentsByProfileID
-	consentResults, err := dbClient.ExecuteQueryContext(ctx, consentQuery, profileID)
+	ids := make([]interface{}, len(profileIDs))
+	placeholders := make([]string, len(profileIDs))
+	for i, id := range profileIDs {
+		ids[i] = id
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+	inQuery := scripts.GetProfileConsentsByProfileIDs.Format(strings.Join(placeholders, ", "))
+
+	rows, err := dbClient.ExecuteQueryContext(ctx, inQuery, ids...)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to fetch consents for profile: %s", profileID)
+		errorMsg := "Failed to fetch consents for profiles"
 		logger.Debug(errorMsg, log.Error(err))
 		return nil, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.FetchConsentCategories.Code,
@@ -618,88 +708,16 @@ func GetConsentedCategoryAttributesByProfileID(ctx context.Context,
 		}, err)
 	}
 
-	consentedSet := make(map[string]bool)
-	for _, row := range consentResults {
-		if status, ok := row["consent_status"].(bool); ok && status {
-			consentedSet[row["category_id"].(string)] = true
-		}
-	}
-
-	// Fetch mandatory category IDs for the org — always included regardless of profile consent records.
-	mandatoryQuery := scripts.GetMandatoryConsentCategoryIDsByOrg
-	mandatoryResults, err := dbClient.ExecuteQueryContext(ctx, mandatoryQuery, orgID)
-	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to fetch mandatory category ids for org: %s", orgID)
-		logger.Debug(errorMsg, log.Error(err))
-		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.FetchConsentCategories.Code,
-			Message:     errors2.FetchConsentCategories.Message,
-			Description: errorMsg,
-		}, err)
-	}
-	mandatorySet := make(map[string]bool)
-	for _, row := range mandatoryResults {
-		mandatorySet[row["category_identifier"].(string)] = true
-	}
-
-	// Split requested categoryIds into mandatory and regular.
-	// Mandatory categories are always included; regular ones only if profile has consented.
-	seen := make(map[string]bool)
-	mandatoryIDs := make([]string, 0)
-	regularIDs := make([]string, 0)
-	for _, id := range categoryIDs {
-		if seen[id] {
+	for _, row := range rows {
+		if !parseBool(row["consent_status"]) {
 			continue
 		}
-		seen[id] = true
-		if mandatorySet[id] {
-			mandatoryIDs = append(mandatoryIDs, id)
-		} else if consentedSet[id] {
-			regularIDs = append(regularIDs, id)
+		profileID := row["profile_id"].(string)
+		if result[profileID] == nil {
+			result[profileID] = make(map[string]bool)
 		}
+		result[profileID][row["category_id"].(string)] = true
 	}
-
-	result := make(map[string][]model.ConsentAttribute)
-
-	// For mandatory categories: resolve attributes live from profile_schema instead of
-	// reading from consent_category_attributes. This means adding or removing an identity
-	// attribute via schema sync automatically updates what the mandatory "Identity Data"
-	// category covers — no reseeding or migration needed.
-	if len(mandatoryIDs) > 0 {
-		schemaQuery := scripts.GetProfileSchemaAttributeByScope
-		schemaResults, err := dbClient.ExecuteQueryContext(ctx, schemaQuery, orgID, constants.IdentityAttributes)
-		if err != nil {
-			errorMsg := fmt.Sprintf("Failed to fetch identity attributes from schema for org: %s", orgID)
-			logger.Debug(errorMsg, log.Error(err))
-			return nil, errors2.NewServerError(errors2.ErrorMessage{
-				Code:        errors2.FetchConsentCategories.Code,
-				Message:     errors2.FetchConsentCategories.Message,
-				Description: errorMsg,
-			}, err)
-		}
-		attrs := make([]model.ConsentAttribute, 0, len(schemaResults))
-		for _, row := range schemaResults {
-			attrs = append(attrs, model.ConsentAttribute{
-				Scope:         constants.ScopeIdentityAttributes,
-				AttributeName: fmt.Sprint(row["attribute_name"]),
-			})
-		}
-		for _, id := range mandatoryIDs {
-			result[id] = attrs
-		}
-	}
-
-	// For regular categories: fetch from consent_category_attributes as usual.
-	if len(regularIDs) > 0 {
-		regularAttrs, err := getAttributesByCategoryIDs(ctx, dbClient, regularIDs)
-		if err != nil {
-			return nil, err
-		}
-		for id, attrs := range regularAttrs {
-			result[id] = attrs
-		}
-	}
-
 	return result, nil
 }
 

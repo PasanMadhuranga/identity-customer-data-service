@@ -41,7 +41,14 @@ paths:
 
         Supplying both is a hybrid search: a profile is returned only where it is similar on
         the `fuzzyFilter` values **and** exactly satisfies every `filter` condition.
-        
+
+        Unless the caller is a system application, each profile is filtered as it is when
+        retrieved by id: only the attributes covered by a consent that profile has given are
+        returned, and `application_data` only for the caller's own application. A profile is
+        left out when a `filter` or `fuzzyFilter` condition tests a value the caller could not
+        read on it, so a page can hold fewer profiles than `page_size`. A `filter` condition
+        on `application_data.<key>` is read as one on the caller's own application.
+
         <br><b>Scope required:</b> `profile:view`
       operationId: getAllProfiles
       parameters:
@@ -123,6 +130,16 @@ paths:
           schema:
             type: string
           example: "traits.city,identity_attributes"
+        - name: consentCategoryId
+          in: query
+          required: false
+          description: |
+            Consent categories to filter each profile by, comma-separated or repeated. Not used
+            for a system application.
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: |

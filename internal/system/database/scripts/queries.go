@@ -264,6 +264,11 @@ var DeleteProfileConsentsByProfileID = newQuery("CDS-CON-02",
 var InsertProfileConsentsByProfileID = newQuery("CDS-CON-03",
 	`INSERT INTO profile_consents (profile_id, category_id, consent_status, consented_at) VALUES ($1, $2, $3, $4)`)
 
+// GetProfileConsentsByProfileIDs returns the consents recorded for several profiles. It is a
+// template: the caller fills the IN list with one placeholder per profile.
+var GetProfileConsentsByProfileIDs = newQuery("CDS-CON-17",
+	`SELECT profile_id, category_id, consent_status FROM profile_consents WHERE profile_id IN (%s)`)
+
 // GetAppDataByProfileID returns the application data of a profile for every application.
 var GetAppDataByProfileID = newQuery("CDS-PRF-04",
 	`SELECT app_id, application_data FROM application_data WHERE profile_id = $1;`)

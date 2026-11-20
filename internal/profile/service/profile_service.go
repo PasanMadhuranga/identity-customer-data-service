@@ -1024,7 +1024,7 @@ func (ps *ProfilesService) GetProfile(
 			Meta: profileModel.Meta{
 				CreatedAt: profile.CreatedAt,
 				UpdatedAt: profile.UpdatedAt,
-				Location:  utils.BuildProfileLocation(orgHandle, profile.ProfileID),
+				Location:  utils.BuildProfileLocation(ctx, orgHandle, profile.ProfileID),
 			},
 			MergedFrom: alias,
 		}
@@ -1056,7 +1056,7 @@ func (ps *ProfilesService) GetProfile(
 				Meta: profileModel.Meta{
 					CreatedAt: masterProfile.CreatedAt,
 					UpdatedAt: masterProfile.UpdatedAt,
-					Location:  utils.BuildProfileLocation(orgHandle, masterProfile.ProfileID),
+					Location:  utils.BuildProfileLocation(ctx, orgHandle, masterProfile.ProfileID),
 				},
 				MergedTo: alias,
 			}
@@ -1372,7 +1372,7 @@ func (ps *ProfilesService) GetAllProfilesCursor(ctx context.Context,
 		baseMeta := profileModel.Meta{
 			CreatedAt: profile.CreatedAt,
 			UpdatedAt: profile.UpdatedAt,
-			Location:  utils.BuildProfileLocation(orgHandle, profile.ProfileID),
+			Location:  utils.BuildProfileLocation(ctx, orgHandle, profile.ProfileID),
 		}
 
 		alias, err := profileStore.FetchReferencedProfiles(ctx, profile.ProfileID)
@@ -1494,7 +1494,7 @@ func (ps *ProfilesService) GetAllProfilesWithFilterCursor(ctx context.Context,
 		baseMeta := profileModel.Meta{
 			CreatedAt: profile.CreatedAt,
 			UpdatedAt: profile.UpdatedAt,
-			Location:  utils.BuildProfileLocation(orgHandle, profile.ProfileID),
+			Location:  utils.BuildProfileLocation(ctx, orgHandle, profile.ProfileID),
 		}
 
 		alias, err := profileStore.FetchReferencedProfiles(ctx, profile.ProfileID)
@@ -1586,7 +1586,7 @@ func (ps *ProfilesService) FindProfileByUserID(ctx context.Context,
 		Meta: profileModel.Meta{
 			CreatedAt: profile.CreatedAt,
 			UpdatedAt: profile.UpdatedAt,
-			Location:  utils.BuildProfileLocation(orgHandle, profile.ProfileID),
+			Location:  utils.BuildProfileLocation(ctx, orgHandle, profile.ProfileID),
 		},
 		MergedFrom: alias,
 	}
@@ -2164,7 +2164,7 @@ func scoreAndBuildFuzzyResults(ctx context.Context,
 		baseMeta := profileModel.Meta{
 			CreatedAt: profile.CreatedAt,
 			UpdatedAt: profile.UpdatedAt,
-			Location:  utils.BuildProfileLocation(orgHandle, profile.ProfileID),
+			Location:  utils.BuildProfileLocation(ctx, orgHandle, profile.ProfileID),
 		}
 		alias, _ := profileStore.FetchReferencedProfiles(ctx, profile.ProfileID)
 

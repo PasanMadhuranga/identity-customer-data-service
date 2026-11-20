@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -130,4 +131,39 @@ func TestMask(t *testing.T) {
 	assert.Equal(t, "a***************m", Mask("alice@example.com"))
 	assert.Equal(t, "***", Mask("abc"))
 	assert.Equal(t, "", Mask(""))
+}
+
+func TestEachOutputHasItsOwnFormat(t *testing.T) {
+	reader, writer, err := os.Pipe()
+	require.NoError(t, err)
+	stdout := os.Stdout
+	os.Stdout = writer
+	t.Cleanup(func() { os.Stdout = stdout })
+
+	path := filepath.Join(t.TempDir(), "cds.log")
+	logger, err := New(TypeApp, Options{Output: OutputOptions{
+		Console:       true,
+		ConsoleFormat: FormatText,
+		File:          &rollingfile.Config{Path: path},
+		FileFormat:    FormatJSON,
+	}})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = logger.Close() })
+
+	logger.Info("Both outputs.", String(KeyProfileID, "p-1"))
+	require.NoError(t, writer.Close())
+	console, err := io.ReadAll(reader)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(console), `msg="Both outputs."`)
+	assert.Contains(t, string(console), "profile_id=p-1")
+	var record map[string]any
+	require.NoError(t, json.Unmarshal([]byte(readFile(t, path)), &record))
+	assert.Equal(t, "Both outputs.", record["msg"])
+	assert.Equal(t, "p-1", record[KeyProfileID])
+}
+
+func TestUnknownOutputFormatIsRefused(t *testing.T) {
+	_, err := New(TypeApp, Options{Output: OutputOptions{Console: true, ConsoleFormat: "xml"}})
+	assert.Error(t, err)
 }

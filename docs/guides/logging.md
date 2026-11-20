@@ -12,28 +12,91 @@ All timestamps are UTC with milliseconds, for example `2026-11-11T09:30:15.123Z`
 
 ## Configuration
 
-Configure logging in the `log` section of `deployment.yaml`. Only `log_level` is necessary.
+Configure logging in the `log` section of `deployment.yaml`. All keys are optional. With no `log` section, all log
+types write text records to standard output at `INFO` level.
+
+Each log type (`app`, `access`, `audit`) has two outputs: `console` and `file`. The `log.outputs` block holds the
+defaults for all log types. The block of a log type can override each key.
 
 ```yaml
 log:
-  log_level: "INFO"      # Application log: DEBUG, INFO, WARN, ERROR
-  format: "text"         # Application log and access log: text, json. The audit log is always JSON.
-  console: true          # Write all streams to standard output
-  file:
-    enabled: false       # Write each stream to its own rotating file
-    dir: "repository/logs"   # Relative to CDS_HOME unless absolute
-    max_size_mb: 10      # A file also rotates each day
-    max_backups: 20      # Rotated files to keep for each stream
+  outputs:                     # Defaults for all log types
+    console:
+      enabled: true
+      format: "text"           # text or json
+    file:
+      enabled: false
+      format: "json"           # text or json
+      dir: "repository/logs"   # Relative to CDS_HOME unless absolute
+      max_size_mb: 10          # A file also rotates each day
+      max_backups: 20          # Rotated files to keep for each log type
+  app:
+    level: "INFO"              # DEBUG, INFO, WARN, ERROR
+    outputs:
+      file:
+        name: "cds.log"
   access:
     enabled: true
+    outputs:
+      file:
+        name: "http_access.log"
   audit:
     enabled: true
-    read_events: false   # Also record the read operations that succeeded
+    read_events: false         # Also record the read operations that succeeded
+    outputs:
+      file:
+        name: "audit.log"
 ```
 
-- With the defaults, all streams go to standard output. Use `log_type` to separate them in a log collector.
+CDS finds the value of an output key in this sequence:
+
+1. The block of the log type, for example `log.audit.outputs.file.enabled`.
+2. The default block, `log.outputs.file.enabled`.
+3. The built-in default.
+
+| Key | Valid in | Default |
+|---|---|---|
+| `log.app.level` | `app` only | `INFO` |
+| `log.<type>.enabled` | `access`, `audit` | `true` |
+| `log.audit.read_events` | `audit` only | `false` |
+| `outputs.console.enabled` | `log.outputs` and each type | `true` |
+| `outputs.console.format` | `log.outputs` and each type | `text` |
+| `outputs.file.enabled` | `log.outputs` and each type | `false` |
+| `outputs.file.format` | `log.outputs` and each type | `json` |
+| `outputs.file.name` | Each type only | `cds.log`, `http_access.log`, `audit.log` |
+| `outputs.file.dir`, `max_size_mb`, `max_backups` | `log.outputs` and each type | `repository/logs`, `10`, `20` |
+
+Rules:
+
+- The level applies only to the application log. The access log and the audit log have no level: use `enabled`.
+- The audit log is always JSON. CDS does not start if `log.audit.outputs.<output>.format` is not `json`.
+- CDS does not start if `log.outputs.file.name` is set, or if a file name is a path.
+- `log.log_level` stays valid for existing deployment files. `log.app.level` takes precedence.
 - A rotated file has the date of its content and a sequence number, for example `cds-2026-11-11.1.log`.
-- If you disable the console and the files, CDS writes to the console. A configuration error cannot silence the logs.
+- If a log type has no output enabled, it writes to the console. A configuration error cannot silence the logs.
+- When all log types go to standard output, use the `log_type` field to separate them in a log collector.
+
+Example: the application log on the console, and the access log and the audit log in files only.
+
+```yaml
+log:
+  outputs:
+    file:
+      enabled: true
+  app:
+    level: "INFO"
+    outputs:
+      file:
+        enabled: false
+  access:
+    outputs:
+      console:
+        enabled: false
+  audit:
+    outputs:
+      console:
+        enabled: false
+```
 
 ## Correlation ID
 

@@ -67,20 +67,26 @@ const TimeLayout = "2006-01-02T15:04:05.000Z"
 
 const defaultLevel = "INFO"
 
-// OutputOptions selects where a log stream goes. With no destination enabled, the stream goes to
-// the console, so that a configuration error cannot silence it.
+// OutputOptions selects where a log stream goes, and the record format of each destination. With
+// no destination enabled, the stream goes to the console, so that a configuration error cannot
+// silence it.
 type OutputOptions struct {
 	// Console writes the records to standard output.
 	Console bool
+	// ConsoleFormat is the record format on the console. Empty means Options.Format.
+	ConsoleFormat string
 	// File writes the records to a rotating file, when it is not nil.
 	File *rollingfile.Config
+	// FileFormat is the record format in the file. Empty means Options.Format.
+	FileFormat string
 }
 
 // Options configures a log stream.
 type Options struct {
 	// Level is the minimum level: DEBUG, INFO, WARN, or ERROR. Empty means INFO.
 	Level string
-	// Format is FormatText or FormatJSON. Empty means FormatText.
+	// Format is the record format of a destination that has no format of its own: FormatText or
+	// FormatJSON. Empty means FormatText.
 	Format string
 	// Output selects the destinations.
 	Output OutputOptions
@@ -168,21 +174,31 @@ func (l *Logger) configure(logType string, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("error parsing log level: %w", err)
 	}
-	if opts.Format != "" && !strings.EqualFold(opts.Format, FormatText) &&
-		!strings.EqualFold(opts.Format, FormatJSON) {
-		return fmt.Errorf("unsupported log format: %s", opts.Format)
+	consoleFormat, err := resolveFormat(opts.Output.ConsoleFormat, opts.Format)
+	if err != nil {
+		return err
 	}
-	out, closer, err := NewOutput(opts.Output)
+	fileFormat, err := resolveFormat(opts.Output.FileFormat, opts.Format)
 	if err != nil {
 		return err
 	}
 
-	handlerOptions := &slog.HandlerOptions{Level: l.core.level, ReplaceAttr: replaceAttr}
-	var handler slog.Handler
-	if strings.EqualFold(opts.Format, FormatJSON) {
-		handler = slog.NewJSONHandler(out, handlerOptions)
-	} else {
-		handler = slog.NewTextHandler(out, handlerOptions)
+	var handlers []slog.Handler
+	var closer io.Closer
+	if opts.Output.File != nil {
+		file, err := rollingfile.New(*opts.Output.File)
+		if err != nil {
+			return err
+		}
+		closer = file
+		handlers = append(handlers, l.newFormatHandler(fileFormat, file))
+	}
+	if opts.Output.Console || opts.Output.File == nil {
+		handlers = append([]slog.Handler{l.newFormatHandler(consoleFormat, os.Stdout)}, handlers...)
+	}
+	var handler slog.Handler = handlers[0]
+	if len(handlers) > 1 {
+		handler = multiHandler(handlers)
 	}
 	handler = handler.WithAttrs([]slog.Attr{slog.String(KeyLogType, logType)})
 
@@ -197,6 +213,31 @@ func (l *Logger) configure(logType string, opts Options) error {
 		_ = previous.Close()
 	}
 	return nil
+}
+
+// newFormatHandler returns the handler that writes records in format to out.
+func (l *Logger) newFormatHandler(format string, out io.Writer) slog.Handler {
+	handlerOptions := &slog.HandlerOptions{Level: l.core.level, ReplaceAttr: replaceAttr}
+	if format == FormatJSON {
+		return slog.NewJSONHandler(out, handlerOptions)
+	}
+	return slog.NewTextHandler(out, handlerOptions)
+}
+
+// resolveFormat returns the format of one destination: its own format, else the default format,
+// else FormatText. It refuses an unknown format.
+func resolveFormat(format, defaultFormat string) (string, error) {
+	if strings.TrimSpace(format) == "" {
+		format = defaultFormat
+	}
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "", FormatText:
+		return FormatText, nil
+	case FormatJSON:
+		return FormatJSON, nil
+	default:
+		return "", fmt.Errorf("unsupported log format: %s", format)
+	}
 }
 
 // Close releases the log file of the logger, if it has one.
@@ -337,6 +378,47 @@ func (h *dynamicHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 // WithGroup is not supported. CDS records are flat, so that all streams use the same field names.
 func (h *dynamicHandler) WithGroup(string) slog.Handler {
 	return h
+}
+
+// multiHandler sends each record to all of its handlers, for example to the console in text and to
+// a file in JSON.
+type multiHandler []slog.Handler
+
+var _ slog.Handler = multiHandler(nil)
+
+func (m multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	for _, handler := range m {
+		if handler.Enabled(ctx, level) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m multiHandler) Handle(ctx context.Context, record slog.Record) error {
+	var errs []error
+	for _, handler := range m {
+		if handler.Enabled(ctx, record.Level) {
+			errs = append(errs, handler.Handle(ctx, record.Clone()))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func (m multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	handlers := make(multiHandler, len(m))
+	for i, handler := range m {
+		handlers[i] = handler.WithAttrs(attrs)
+	}
+	return handlers
+}
+
+func (m multiHandler) WithGroup(name string) slog.Handler {
+	handlers := make(multiHandler, len(m))
+	for i, handler := range m {
+		handlers[i] = handler.WithGroup(name)
+	}
+	return handlers
 }
 
 // replaceAttr writes the timestamp of every stream in UTC with milliseconds.

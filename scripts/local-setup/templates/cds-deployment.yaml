@@ -11,27 +11,38 @@
 env: dev
 
 log:
-  log_level: "${CDS_LOG_LEVEL}"
-  #    - "INFO", "WARN", "ERROR", "DEBUG" - and environment specific log level
-  # Record format of the application log and the access log: "text" (default) or "json".
-  # The audit log is always JSON.
-  format: "text"
-  # Write all log streams to standard output.
-  console: true
-  # Write each log stream to its own rotating file: cds.log, http_access.log, and audit.log.
-  file:
-    enabled: false
-    dir: "repository/logs" # Relative to CDS_HOME unless absolute
-    max_size_mb: 10        # A file also rotates each day
-    max_backups: 20        # Rotated files to keep for each stream
-  # One record for each HTTP request.
+  # Default outputs for all log types. A log type can override each key in its own block.
+  outputs:
+    console:
+      enabled: true
+      format: "text"           # "text" or "json"
+    file:
+      enabled: false
+      format: "json"           # "text" or "json"
+      dir: "repository/logs"   # Relative to CDS_HOME unless absolute
+      max_size_mb: 10          # A file also rotates each day
+      max_backups: 20          # Rotated files to keep for each log type
+  # Application log: what the server and its workers do.
+  app:
+    level: "${CDS_LOG_LEVEL}"
+    #    - "INFO", "WARN", "ERROR", "DEBUG" - and environment specific log level
+    outputs:
+      file:
+        name: "cds.log"
+  # Access log: one record for each HTTP request.
   access:
     enabled: true
-  # One record for each audited operation: who did what to which resource, with what outcome.
+    outputs:
+      file:
+        name: "http_access.log"
+  # Audit log: who did what to which resource, with what outcome. The records are always JSON.
   audit:
     enabled: true
     # Also record the read operations that succeeded. A denied attempt is always recorded.
     read_events: false
+    outputs:
+      file:
+        name: "audit.log"
 
 cache:
   enabled: true

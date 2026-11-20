@@ -1,8 +1,11 @@
 env: {{ .Values.cloud.deployment.cds.config.env }}
 
 log:
-  log_level: {{ .Values.cloud.deployment.cds.config.logLevel }} # "INFO", "WARN", "ERROR", "DEBUG"
-  format: {{ .Values.cloud.deployment.cds.config.logFormat | default "text" }} # "text", "json"
+  outputs:
+    console:
+      format: {{ .Values.cloud.deployment.cds.config.logFormat | default "text" }} # "text", "json"
+  app:
+    level: {{ .Values.cloud.deployment.cds.config.logLevel }} # "INFO", "WARN", "ERROR", "DEBUG"
 
 cache:
   enabled: {{ .Values.cloud.deployment.cds.config.cache.enabled }}

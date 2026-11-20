@@ -286,6 +286,9 @@ checksums and the release compatibility metadata:
 ```
 cdd-linux-amd64-<version>.zip
 cdd-linux-arm64-<version>.zip
+cdd-darwin-amd64-<version>.zip
+cdd-darwin-arm64-<version>.zip
+cdd-windows-amd64-<version>.zip
 ```
 
 `make build` compiles the binary for the host platform alone, which is faster
@@ -301,6 +304,8 @@ cd /opt/cdd-linux-amd64-<version>
 
 ./start.sh       # runs in the foreground; Ctrl+C stops it
 ```
+
+On Windows, run `start.bat` from the extracted folder instead.
 
 Then switch CDD on in the Identity Server with one `[customer_data_service]`
 block in its `deployment.toml`.

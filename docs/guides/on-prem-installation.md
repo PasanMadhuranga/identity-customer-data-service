@@ -24,6 +24,18 @@ less LICENSE.txt
 ./start.sh
 ```
 
+On Windows, extract the zip and run `start.bat` from the extracted folder.
+The Windows pack carries `cdd.exe` and `start.bat` where the others carry
+`cdd` and `start.sh`; everything else is the same.
+
+On macOS, the executable is not notarized. If the zip was downloaded with a
+browser and extracted in Finder, macOS blocks it as coming from an unidentified
+developer. Clear the quarantine flag once, after extracting:
+
+```bash
+xattr -dr com.apple.quarantine cdd-darwin-arm64-1.2.0
+```
+
 A pack is extracted onto a machine where nothing else has been installed, so
 it defaults to the inbuilt database and needs no database server to start.
 Switch `datasource` in `repository/conf/deployment.yaml` to PostgreSQL, MySQL
@@ -122,7 +134,9 @@ Restart=on-failure
 WantedBy=multi-user.target
 ```
 
-and its logs are then `journalctl -u cdd`.
+and its logs are then `journalctl -u cdd`. On macOS, a launchd job runs it the
+same way. On Windows, CDD does not register as a Windows service itself, so run
+`cdd.exe start` under a service wrapper.
 
 ## Certificates
 
@@ -161,8 +175,8 @@ from there and needs no file.
 
 ```
 <CDD_HOME>/
-├── cdd                             the runtime
-├── start.sh                        runs it in the foreground
+├── cdd                             the runtime (cdd.exe on Windows)
+├── start.sh                        runs it in the foreground (start.bat on Windows)
 ├── repository/
 │   ├── conf/
 │   │   ├── deployment.yaml         the configuration

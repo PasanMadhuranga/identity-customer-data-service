@@ -13,12 +13,11 @@ set -euo pipefail
 DIST_DIR="${1:?usage: check-pack.sh <dist-dir>}"
 [ -d "$DIST_DIR" ] || { echo "check-pack: $DIST_DIR not found" >&2; exit 1; }
 
-# Paths every pack must contain, relative to the pack root. cdd is the
-# product; the rest is what it reads on first start, plus the identity the
+# Paths every pack must contain, relative to the pack root, beside the
+# executable and its launcher, which depend on the platform. The executable is
+# the product; the rest is what it reads on first start, plus the identity the
 # update service resolves the pack by.
 REQUIRED="
-cdd
-start.sh
 repository/conf/deployment.yaml
 repository/conf/compatibility.yaml
 repository/dbscripts/postgres.sql
@@ -42,7 +41,12 @@ for zip in "$DIST_DIR"/*.zip; do
   packs=$((packs + 1))
   listing="$(unzip -Z1 "$zip")"
 
-  for required in $REQUIRED; do
+  case "$pack" in
+    *-windows-*) entry="cdd.exe start.bat" ;;
+    *)           entry="cdd start.sh" ;;
+  esac
+
+  for required in $entry $REQUIRED; do
     if ! printf '%s\n' "$listing" | grep -qx "$pack/$required"; then
       echo "  x $pack is missing $required" >&2
       failures=$((failures + 1))

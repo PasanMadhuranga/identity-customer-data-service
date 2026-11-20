@@ -5,7 +5,8 @@ can be downloaded from the following locations:
 
 This product also contains software under different licenses. The table below
 lists all the contained libraries (Go modules, statically linked into the
-service binary) and the license under which they are provided to you.
+service binary of one or more of the platform packs) and the license under
+which they are provided to you.
 
 At the bottom of this file is a table that shows what each license indicated
 below is and where the actual text of the license can be found.
@@ -20,6 +21,8 @@ github.com/golang-jwt/jwt/v5@v5.2.2                                             
 github.com/google/uuid@v1.6.0                                                                        module         bsd3
 github.com/joho/godotenv@v1.5.1                                                                      module         mit
 github.com/lib/pq@v1.10.9                                                                            module         mit
+github.com/mattn/go-isatty@v0.0.20                                                                   module         mit
+github.com/ncruces/go-strftime@v1.0.0                                                                module         mit
 github.com/pkg/errors@v0.9.1                                                                         module         bsd2
 github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec                                  module         bsd3
 golang.org/x/sys@v0.47.0                                                                             module         bsd3

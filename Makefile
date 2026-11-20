@@ -7,11 +7,10 @@ BUILD_DIR=$(OUTPUT_DIR)/.build
 DIST_DIR=$(OUTPUT_DIR)/dist
 DISTRIBUTION_SRC=distribution
 
-# Platform targets for the release distribution, as <os>/<arch> pairs. Only
-# Linux is supported: those are the platforms CDS is released and maintained
-# on. Every dependency is pure Go, so both cross-compile with CGO_ENABLED=0
-# and no per-platform build host is needed.
-PLATFORMS ?= linux/amd64 linux/arm64
+# Platform targets for the release distribution, as <os>/<arch> pairs. Every
+# dependency is pure Go, so all of them cross-compile with CGO_ENABLED=0 and no
+# per-platform build host is needed.
+PLATFORMS ?= linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
 # Product name as registered with the update service. It names the packed
 # binary (<PACK>/$(PRODUCT_NAME)), the pack directory, its zip and the product
@@ -132,8 +131,8 @@ dist: clean-dist
 # Stage and zip one platform pack. Not meant to be called directly.
 #
 # Pack layout:
-#   $(PRODUCT_NAME)                  the runtime
-#   start.sh                         runs it in the foreground
+#   $(PRODUCT_NAME)                  the runtime ($(PRODUCT_NAME).exe on Windows)
+#   start.sh                         runs it in the foreground (start.bat on Windows)
 #   repository/conf/                 deployment.yaml and compatibility.yaml
 #   repository/database/             where the inbuilt database is created
 #   repository/dbscripts/            DDL for operators running an external database
@@ -150,18 +149,20 @@ _dist_one:
 	os=$(DIST_OS); arch=$(DIST_ARCH); \
 	pack=$(PRODUCT_NAME)-$$os-$$arch-$(PACK_VERSION); \
 	stage=$(DIST_DIR)/$$pack; \
+	exe=$(PRODUCT_NAME); launcher=start.sh; \
+	if [ "$$os" = windows ]; then exe=$(PRODUCT_NAME).exe; launcher=start.bat; fi; \
 	echo "Building $$pack..."; \
 	rm -rf $$stage; \
 	mkdir -p $$stage/updates \
 		$$stage/repository/database $$stage/repository/dbscripts $$stage/repository/resources/security; \
-	CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -o $$stage/$(PRODUCT_NAME) ./cmd/cdd; \
+	CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -o $$stage/$$exe ./cmd/cdd; \
 	cp -r $(REPOSITORY_DIR)/. $$stage/repository/; \
 	$(DISTRIBUTION_SRC)/pack-config.sh $$stage/repository/conf/deployment.yaml; \
 	cp dbscripts/*.sql $$stage/repository/dbscripts/; \
 	cp $(DISTRIBUTION_SRC)/pack/security-README.md $$stage/repository/resources/security/README.md; \
 	$(DISTRIBUTION_SRC)/default-cert.sh $$stage/repository/resources/security; \
 	cp LICENSE.txt README.md $(VERSION_FILE) $$stage/; \
-	install -m 755 $(DISTRIBUTION_SRC)/pack/start.sh $$stage/; \
+	install -m 755 $(DISTRIBUTION_SRC)/pack/$$launcher $$stage/; \
 	printf '%s\n' "$$pack" > $$stage/updates/product.txt; \
 	find $$stage -name '.DS_Store' -delete; \
 	cd $(DIST_DIR) && COPYFILE_DISABLE=1 zip -rq $$pack.zip $$pack -x '**/.DS_Store' -x '**/__MACOSX/**'; \
@@ -187,7 +188,7 @@ help:
 	@echo "  all                        - Clean, build, and test the project."
 	@echo "  clean                      - Remove build artifacts."
 	@echo "  build                      - Compile the binary for the host platform."
-	@echo "  dist                       - Build the Linux release packs into $(DIST_DIR)."
+	@echo "  dist                       - Build the release packs into $(DIST_DIR)."
 	@echo "  clean-dist                 - Remove the staged distributions and their zips."
 	@echo "  integration-test           - Run integration tests against PostgreSQL (use test=TestName to filter)."
 	@echo "  integration-test-sqlite    - Run integration tests against the inbuilt database (use test=TestName to filter)."

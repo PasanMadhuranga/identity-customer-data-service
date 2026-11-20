@@ -2,9 +2,9 @@
 #
 # Writes the release body that goes above GitHub's generated change list.
 #
-# A release publishes seven files. Landing on that page, the questions are
-# always the same: which one do I want, is it the file you built, and what do
-# I do with it. The generated "What's Changed" list answers none of them, so
+# A release publishes a zip per platform, each with its checksums, and the
+# release metadata. Landing on that page, the questions are always the same:
+# which one do I want, is it the file you built, and what do I do with it. The generated "What's Changed" list answers none of them, so
 # this answers them first — from the artifacts themselves, never from a list
 # kept by hand that would drift from what was built.
 #
@@ -101,8 +101,11 @@ echo
 echo "Each zip is published with a \`.sha256\` and \`.md5\` beside it:"
 echo
 echo '```bash'
-echo "sha256sum -c $PRODUCT-linux-amd64-$PACK_VERSION.zip.sha256"
+echo "sha256sum -c $PRODUCT-linux-amd64-$PACK_VERSION.zip.sha256          # Linux"
+echo "shasum -a 256 -c $PRODUCT-darwin-arm64-$PACK_VERSION.zip.sha256     # macOS"
 echo '```'
+echo
+echo "On Windows, compare \`Get-FileHash $PRODUCT-windows-amd64-$PACK_VERSION.zip\` with the \`.sha256\` file."
 echo
 
 # --- Compatibility -------------------------------------------------------- #
@@ -131,6 +134,16 @@ Extracting the zip is the installation; there is nothing to run first:
 unzip $PRODUCT-linux-amd64-$PACK_VERSION.zip -d /opt
 cd /opt/$PRODUCT-linux-amd64-$PACK_VERSION
 ./start.sh
+\`\`\`
+
+On Windows, extract the zip and run \`start.bat\` from the extracted folder.
+
+The macOS executable is not notarized. If the zip was downloaded with a
+browser and extracted in Finder, macOS blocks it as coming from an unidentified
+developer. Clear the quarantine flag once, after extracting:
+
+\`\`\`bash
+xattr -dr com.apple.quarantine $PRODUCT-darwin-arm64-$PACK_VERSION
 \`\`\`
 
 Then switch CDD on in the Identity Server's \`deployment.toml\` and restart it:

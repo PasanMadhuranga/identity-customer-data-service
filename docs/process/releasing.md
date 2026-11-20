@@ -8,13 +8,20 @@
 
 One source revision produces every supported platform pack, so a release — and
 the updates later published from it — carry executables built from the same
-code. CDD is released for Linux only:
+code. CDD is released for Linux, macOS and Windows:
 
 ```
-cdd-linux-amd64-<version>.zip   + .sha256 + .md5
-cdd-linux-arm64-<version>.zip   + .sha256 + .md5
+cdd-linux-amd64-<version>.zip    + .sha256 + .md5
+cdd-linux-arm64-<version>.zip    + .sha256 + .md5
+cdd-darwin-amd64-<version>.zip   + .sha256 + .md5
+cdd-darwin-arm64-<version>.zip   + .sha256 + .md5
+cdd-windows-amd64-<version>.zip  + .sha256 + .md5
 cdd-<version>-release-metadata.yaml
 ```
+
+A Windows pack carries `cdd.exe` and `start.bat` in place of `cdd` and
+`start.sh`. The macOS executable is ad-hoc signed by the Go linker, which is
+what Apple silicon requires to run it, but it is not notarized.
 
 The pack directory, its zip and its update-service product identity are all
 the same string, which is why each platform is a separate product. `<version>`
@@ -207,7 +214,7 @@ Because the tag lands on the version bump commit created *during* the release, t
 |---|---|
 | Version bump commit | `Version bump: vX.Y.Z` on the release branch |
 | Tag | Points at that bump commit |
-| GitHub release | Tagged `vX.Y.Z`, carries both platform zips, their checksums and the release metadata |
+| GitHub release | Tagged `vX.Y.Z`, carries every platform zip, their checksums and the release metadata |
 | Pack contents | `distribution/check-pack.sh target/dist` passes |
 | Deployment repo | `CDS_APPLICATION_TAG` updated in `ci-pipelines/cds/setup-variables.yaml` |
 

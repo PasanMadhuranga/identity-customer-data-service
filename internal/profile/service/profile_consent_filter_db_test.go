@@ -161,3 +161,99 @@ func TestConsentFilterKeepsTheApplicationDataOfAConsentedGroup(t *testing.T) {
 		"client-x": {"app-1": map[string]interface{}{"theme": "dark"}},
 	}, got.ApplicationData, "only the data group that the category names is kept")
 }
+
+func TestListingFiltersEachProfileByItsOwnConsent(t *testing.T) {
+	env := newProfileEnv(t)
+	consented := env.createWithCity(t, "Colombo")
+	notConsented := env.createWithCity(t, "Kandy")
+	analytics := env.addCategoryWith(t, "Analytics", traitAttribute("city"))
+	env.consentTo(t, consented.ProfileID, analytics)
+
+	profiles, _, err := env.svc.GetAllProfilesCursor(env.ctx, env.orgID, 10, nil)
+	require.NoError(t, err)
+	require.Len(t, profiles, 2)
+
+	got, err := FilterProfilesForCaller(env.ctx, profiles, env.orgID, "", []string{analytics}, nil)
+
+	require.NoError(t, err)
+	byID := profilesByID(got)
+	require.Len(t, byID, 2, "filtering by consent leaves no profile out when nothing is filtered on")
+	assert.Equal(t, map[string]interface{}{"city": "Colombo"}, byID[consented.ProfileID].Traits)
+	assert.Nil(t, byID[notConsented.ProfileID].Traits, "a profile that did not consent shares nothing")
+}
+
+func TestListingDoesNotSelectAProfileByAValueItDidNotConsentToShare(t *testing.T) {
+	env := newProfileEnv(t)
+	consented := env.createWithCity(t, "Colombo")
+	notConsented := env.createWithCity(t, "Colombo")
+	analytics := env.addCategoryWith(t, "Analytics", traitAttribute("city"))
+	env.consentTo(t, consented.ProfileID, analytics)
+
+	filters := []string{"traits.city eq Colombo"}
+	profiles, _, err := env.svc.GetAllProfilesWithFilterCursor(env.ctx, env.orgID, filters, 10, nil)
+	require.NoError(t, err)
+	require.Len(t, profiles, 2, "both profiles hold the value")
+
+	got, err := FilterProfilesForCaller(env.ctx, profiles, env.orgID, "", []string{analytics}, filters)
+
+	require.NoError(t, err)
+	byID := profilesByID(got)
+	assert.Contains(t, byID, consented.ProfileID)
+	assert.NotContains(t, byID, notConsented.ProfileID,
+		"the listing would otherwise tell the caller a value the profile does not share")
+}
+
+func TestListingKeepsOnlyTheCallersApplicationData(t *testing.T) {
+	env := newProfileEnv(t)
+	env.seedSchemaForApp(t, "app-1")
+	profile := env.createWithCity(t, "Colombo")
+	category := env.addCategoryWith(t, "Apps", consentModel.ConsentAttribute{
+		Scope:                 constants.ApplicationData,
+		AttributeName:         "application_data.theme",
+		AttributeID:           "attr-app-1-theme",
+		ApplicationIdentifier: "app-1",
+	})
+	env.consentTo(t, profile.ProfileID, category)
+
+	listed := fullProfile(profile.ProfileID)
+	listed.ApplicationData["client-y"] = map[string]interface{}{"app-1": map[string]interface{}{"theme": "light"}}
+
+	got, err := FilterProfilesForCaller(env.ctx, []profileModel.ProfileResponse{listed}, env.orgID, "client-x",
+		[]string{category}, nil)
+
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, map[string]map[string]interface{}{
+		"client-x": {"app-1": map[string]interface{}{"theme": "dark"}},
+	}, got[0].ApplicationData, "another application's data is not listed")
+}
+
+func TestFuzzyResultsAreFilteredForTheCaller(t *testing.T) {
+	env := newProfileEnv(t)
+	consented := env.createWithCity(t, "Colombo")
+	notConsented := env.createWithCity(t, "Colombo")
+	analytics := env.addCategoryWith(t, "Analytics", traitAttribute("city"))
+	env.consentTo(t, consented.ProfileID, analytics)
+
+	results := []profileModel.FuzzyMatchResult{
+		{Profile: fullProfile(consented.ProfileID), MatchScore: 0.9},
+		{Profile: fullProfile(notConsented.ProfileID), MatchScore: 0.9},
+	}
+
+	got, err := FilterFuzzyResultsForCaller(env.ctx, results, env.orgID, "", []string{analytics},
+		[]string{"traits.city eq Colombo"})
+
+	require.NoError(t, err)
+	require.Len(t, got, 1, "a match on a value the profile does not share is not returned")
+	assert.Equal(t, consented.ProfileID, got[0].Profile.ProfileID)
+	assert.Equal(t, map[string]interface{}{"city": "Colombo"}, got[0].Profile.Traits)
+	assert.Equal(t, 0.9, got[0].MatchScore)
+}
+
+func profilesByID(profiles []profileModel.ProfileResponse) map[string]profileModel.ProfileResponse {
+	byID := make(map[string]profileModel.ProfileResponse, len(profiles))
+	for _, profile := range profiles {
+		byID[profile.ProfileID] = profile
+	}
+	return byID
+}

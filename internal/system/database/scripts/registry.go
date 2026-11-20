@@ -127,6 +127,7 @@ func AllQueries() map[string]model.DBQuery {
 		"DeleteStaleIdentityClaimsForProfileSchema": DeleteStaleIdentityClaimsForProfileSchema,
 		"GetAppDataByProfileIDs":                    GetAppDataByProfileIDs,
 		"GetConsentCategoryAttributesByCategoryIDs": GetConsentCategoryAttributesByCategoryIDs,
+		"GetProfileConsentsByProfileIDs":            GetProfileConsentsByProfileIDs,
 		"DeleteInactiveCookies":                     DeleteInactiveCookies,
 		"GetOrganizationsByIDs":                     GetOrganizationsByIDs,
 		"InsertSharePolicyTargets":                  InsertSharePolicyTargets,

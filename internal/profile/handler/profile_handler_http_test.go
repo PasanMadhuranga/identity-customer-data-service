@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	consentModel "github.com/wso2/identity-customer-data-service/internal/consent/model"
+	consentStore "github.com/wso2/identity-customer-data-service/internal/consent/store"
 	"github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileService "github.com/wso2/identity-customer-data-service/internal/profile/service"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -110,6 +112,15 @@ func (e *profileHandlerEnv) call(t *testing.T, handler http.HandlerFunc, method,
 	recorder := httptest.NewRecorder()
 	handler(recorder, request)
 	return recorder
+}
+
+// markConsoleSystemApp lists the Console, which the stub token speaks for, as a system
+// application of the org, as enabling CDS does for an admin surface.
+func (e *profileHandlerEnv) markConsoleSystemApp(t *testing.T) {
+	t.Helper()
+	_, err := e.db.Exec(`INSERT INTO cds_config (org_id, config, value) VALUES (?, ?, ?)`,
+		e.orgID, constants.ConfigSystemApplications, `["`+constants.ConsoleApp+`"]`)
+	require.NoError(t, err)
 }
 
 func profileIDOf(id string) map[string]string { return map[string]string{"profileId": id} }
@@ -235,6 +246,7 @@ func TestGetAllProfilesRefusals(t *testing.T) {
 
 func TestGetAllProfilesSelectsTheRequestedAttributes(t *testing.T) {
 	env := newProfileHandlerEnv(t)
+	env.markConsoleSystemApp(t)
 	env.createProfile(t, "Colombo")
 
 	recorder := env.call(t, env.h.GetAllProfiles, http.MethodGet, env.auth.ValidToken, "?attributes=traits.city", "",
@@ -250,6 +262,7 @@ func TestGetAllProfilesSelectsTheRequestedAttributes(t *testing.T) {
 
 func TestGetAllProfilesFiltersByTrait(t *testing.T) {
 	env := newProfileHandlerEnv(t)
+	env.markConsoleSystemApp(t)
 	colombo := env.createProfile(t, "Colombo")
 	env.createProfile(t, "Kandy")
 
@@ -261,6 +274,53 @@ func TestGetAllProfilesFiltersByTrait(t *testing.T) {
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &page))
 	require.Len(t, page.Items, 1)
 	assert.Equal(t, colombo.ProfileID, page.Items[0].ProfileID)
+}
+
+// A caller that is not a system application lists what it could read one profile at a time:
+// nothing the profile has not consented to share, and no profile selected by such a value.
+func TestGetAllProfilesAppliesConsentForOtherCallers(t *testing.T) {
+	env := newProfileHandlerEnv(t)
+	consented := env.createProfile(t, "Colombo")
+	notConsented := env.createProfile(t, "Colombo")
+	category := "category-city"
+	require.NoError(t, consentStore.AddConsentCategory(env.ctx, env.orgID, consentModel.ConsentCategory{
+		CategoryName:       "Analytics",
+		CategoryIdentifier: category,
+		OrgID:              env.orgID,
+		Purpose:            "profiling",
+		Attributes: []consentModel.ConsentAttribute{{
+			Scope:         constants.Traits,
+			AttributeName: constants.Traits + ".city",
+			AttributeID:   "attr-" + constants.Traits + ".city",
+		}},
+	}))
+	require.NoError(t, env.svc.UpdateProfileConsents(env.ctx, consented.ProfileID, env.orgID,
+		[]model.ConsentRecord{{CategoryIdentifier: category, IsConsented: true}}))
+
+	list := func(query string) map[string]model.ProfileListResponse {
+		recorder := env.call(t, env.h.GetAllProfiles, http.MethodGet, env.auth.ValidToken, query, "", nil)
+		require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+		var page model.ProfileListAPIResponse
+		require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &page))
+		items := make(map[string]model.ProfileListResponse, len(page.Items))
+		for _, item := range page.Items {
+			items[item.ProfileID] = item
+		}
+		return items
+	}
+
+	all := list("?attributes=traits&consentCategoryId=" + category)
+	require.Len(t, all, 2)
+	assert.Equal(t, map[string]interface{}{"city": "Colombo"}, all[consented.ProfileID].Traits)
+	assert.Empty(t, all[notConsented.ProfileID].Traits, "a trait without consent is not listed")
+
+	filtered := list("?attributes=traits&filter=traits.city+eq+Colombo&consentCategoryId=" + category)
+	assert.Contains(t, filtered, consented.ProfileID)
+	assert.NotContains(t, filtered, notConsented.ProfileID, "a profile is not selected by a trait it does not share")
+
+	withoutCategory := list("?attributes=traits")
+	require.Len(t, withoutCategory, 2)
+	assert.Empty(t, withoutCategory[consented.ProfileID].Traits, "no category requested shares no trait")
 }
 
 func TestUpdateProfile(t *testing.T) {

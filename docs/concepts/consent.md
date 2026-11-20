@@ -350,7 +350,24 @@ System app → full profile regardless of consent.
 
 ## Profile listing
 
-`GET /profiles` does **not** apply consent filtering. Listing is an administrative operation and always returns full profiles.
+`GET /profiles` applies the same rules as fetching one profile. System apps receive full profiles. Every other caller receives, for each profile on the page, only its own application data and the attributes that profile has consented to share. Pass `consentCategoryId` the same way as on a single fetch:
+
+```
+GET /api/v1/{orgHandle}/profiles?attributes=identity_attributes,traits&consentCategoryId=<marketing UUID>
+```
+
+Each profile is filtered by its own consent records, so two profiles on the same page can return different attributes.
+
+A `filter` or `fuzzyFilter` condition only selects a profile by a value the caller could read on it. For a regular app:
+
+| Condition on | Profile is returned when |
+|---|---|
+| `profile_id`, `user_id` | It matches. |
+| `identity_attributes.<attr>`, `traits.<attr>` | It matches and the profile has consented to share `<attr>` under a requested or mandatory category. |
+| `application_data.<app>.<key>` | It matches, `<app>` is the calling app, and the profile has consented to share `<key>`. |
+| `application_data.<key>` | Treated as `application_data.<calling app>.<key>`. |
+
+A profile left out by these rules is dropped from the page, so a page can hold fewer profiles than `page_size` while `next_cursor` still points past it.
 
 ---
 
@@ -359,7 +376,6 @@ System app → full profile regardless of consent.
 | Area | Behaviour |
 |---|---|
 | Profile **writes** | Consent does not gate write operations. Controlled by permissions. |
-| Profile **listing** | No consent filtering — full profiles returned. |
 | System app access | Consent filtering is bypassed entirely. |
 | Mandatory category | Always contributes identity attributes — no profile consent record needed. |
 
@@ -393,6 +409,8 @@ profile_consents
 
 ## Sequence — consent-filtered profile fetch
 
+Listing follows the same sequence once per page, not once per profile: the category lookups run once, and `profile_consents` is read for every profile on the page in one query.
+
 ```
 Caller                    API                  ConsentFilterService              DB
   |                        |                          |                           |
@@ -406,17 +424,17 @@ Caller                    API                  ConsentFilterService             
   |                        |-- filterByConsent() ---->|                           |
   |                        |   (profile, orgHandle,   |                           |
   |                        |    [<uuid>])             |                           |
-  |                        |                          |-- profile_consents ------>|
-  |                        |                          |   (has user consented?)   |
-  |                        |                          |<-- consent rows ----------|
-  |                        |                          |                           |
   |                        |                          |-- mandatory categories -->|
   |                        |                          |   (is_mandatory = true)   |
   |                        |                          |<-- mandatory ids ---------|
   |                        |                          |                           |
   |                        |                          |-- category_attributes --->|
-  |                        |                          |   (consented + mandatory) |
+  |                        |                          |   (requested + mandatory) |
   |                        |                          |<-- attribute list --------|
+  |                        |                          |                           |
+  |                        |                          |-- profile_consents ------>|
+  |                        |                          |   (has user consented?)   |
+  |                        |                          |<-- consent rows ----------|
   |                        |                          |                           |
   |                        |                          |-- filter & union ---------|
   |                        |<-- filtered profile -----|                           |

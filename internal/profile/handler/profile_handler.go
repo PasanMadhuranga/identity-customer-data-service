@@ -104,19 +104,11 @@ func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filterParams := parseApplicationDataParams(r)
-	// In app_id mode the caller's clientId is resolved to its app ID; the system-app check runs on that identifier.
-	callerClientID := getCallerClientIDFromRequest(r)
-	callerAppIdentifier := callerClientID
-	if config.GetCDSRuntime().Config.UsesAppIDIdentifier() && callerClientID != "" {
-		resolved, resolveErr := appProvider.NewApplicationProvider().GetApplicationService().
-			ResolveAppIdentifierByClientID(ctx, org.ID, callerClientID)
-		if resolveErr != nil {
-			utils.HandleError(w, resolveErr)
-			return
-		}
-		callerAppIdentifier = resolved
+	callerAppIdentifier, isSystemApp, err := resolveCaller(ctx, r, org.ID)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
 	}
-	isSystemApp := isCallerSystemApplication(ctx, org.ID, callerAppIdentifier)
 
 	profile.ApplicationData = profileService.FilterApplicationData(
 		profile.ApplicationData,
@@ -241,6 +233,20 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 
 	requestedAttrs := parseRequestedAttributes(r)
 
+	// Listing reads the same profiles as GetProfile, so it applies the same rules: a system
+	// application sees full profiles, any other caller only its own application data and
+	// what each profile has consented to share.
+	callerAppIdentifier, isSystemApp, err := resolveCaller(ctx, r, org.ID)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+	var consentIDs []string
+	if !isSystemApp {
+		filters = profileService.ScopeFiltersToCaller(filters, callerAppIdentifier)
+		consentIDs = parseCommaSeparatedOrRepeated(r.URL.Query()["consentCategoryId"])
+	}
+
 	profilesProvider := provider.NewProfilesProvider()
 	profilesService := profilesProvider.GetProfilesService()
 
@@ -287,6 +293,16 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
+		if !isSystemApp {
+			searchedOn := append(append([]string{}, fuzzyFilters...), filters...)
+			fuzzyResults, fuzzyErr = profileService.FilterFuzzyResultsForCaller(ctx, fuzzyResults, org.ID,
+				callerAppIdentifier, consentIDs, searchedOn)
+			if fuzzyErr != nil {
+				utils.HandleError(w, fuzzyErr)
+				return
+			}
+		}
+
 		items := buildFuzzyResponseItems(fuzzyResults, requestedAttrs)
 
 		resp := model.ProfileListAPIResponse{
@@ -319,7 +335,19 @@ func (ph *ProfileHandler) GetAllProfiles(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	items := buildProfileListResponse(profiles, requestedAttrs)
+	visible := profiles
+	if !isSystemApp {
+		visible, err = profileService.FilterProfilesForCaller(ctx, profiles, org.ID, callerAppIdentifier,
+			consentIDs, filters)
+		if err != nil {
+			utils.HandleError(w, err)
+			return
+		}
+	}
+
+	// The cursors below stay on the profiles the store returned, so that leaving some out
+	// does not move the next page.
+	items := buildProfileListResponse(visible, requestedAttrs)
 
 	var nextCursorStr, prevCursorStr string
 
@@ -462,8 +490,6 @@ func buildProfileListResponse(
 						}
 					}
 				}
-				// Note: Filter out the allowed application data only if it is not a system app."
-
 				if len(filteredAppData) > 0 {
 					profileRes.ApplicationData = filteredAppData
 				}
@@ -1448,6 +1474,23 @@ func extractAppIDFromClaims(claims map[string]interface{}) string {
 		return clientID
 	}
 	return ""
+}
+
+// resolveCaller returns the identifier of the application making the request and whether
+// it is a system application. In app_id mode the caller's clientId is resolved to its app
+// ID; the system-app check runs on that identifier.
+func resolveCaller(ctx context.Context, r *http.Request, orgID string) (string, bool, error) {
+	callerClientID := getCallerClientIDFromRequest(r)
+	callerAppIdentifier := callerClientID
+	if config.GetCDSRuntime().Config.UsesAppIDIdentifier() && callerClientID != "" {
+		resolved, err := appProvider.NewApplicationProvider().GetApplicationService().
+			ResolveAppIdentifierByClientID(ctx, orgID, callerClientID)
+		if err != nil {
+			return "", false, err
+		}
+		callerAppIdentifier = resolved
+	}
+	return callerAppIdentifier, isCallerSystemApplication(ctx, orgID, callerAppIdentifier), nil
 }
 
 func isCallerSystemApplication(ctx context.Context, orgID string, appID string) bool {

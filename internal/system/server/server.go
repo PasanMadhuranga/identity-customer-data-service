@@ -85,21 +85,23 @@ func Run(cdsHome string) {
 	// Load the configuration file
 	cdsConfig, err := config.LoadConfig(cdsHome, configFile)
 	if err != nil {
-		fmt.Println("Failed to load cdsConfig. ", err)
+		log.GetLogger().Error("Failed to load the configuration.", log.Error(err))
 		os.Exit(1)
 	}
 
 	// Initialize runtime configurations
 	if err := config.InitializeCDSRuntime(cdsHome, cdsConfig); err != nil {
-		fmt.Println("Failed to initialize cds runtime.", err)
+		log.GetLogger().Error("Failed to initialize the CDD runtime.", log.Error(err))
 		os.Exit(1)
 	}
 
-	// Initialize logger
-	if err := log.Init(cdsConfig.Log.LogLevel); err != nil {
-		fmt.Println("Failed to initialize logger.", err)
+	// Initialize the application log, the access log, and the audit log.
+	logStreams, err := setupLogging(cdsHome, cdsConfig.Log)
+	if err != nil {
+		log.GetLogger().Error("Failed to initialize logging.", log.Error(err))
 		os.Exit(1)
 	}
+	defer logStreams.close()
 
 	// Create the adapter of the identity provider.
 	adapter, err := idp.NewAdapter(cdsConfig.IDP.Type)
@@ -144,7 +146,7 @@ func Run(cdsHome string) {
 
 	// Initialize Profile worker
 	if err := workers.StartProfileWorker(); err != nil {
-		fmt.Println("Failed to start profile worker.", err)
+		log.GetLogger().Error("Failed to start the profile worker.", log.Error(err))
 		os.Exit(1)
 	}
 	workers.RegisterFuzzyResolveFunc(irWorker.ResolveProfileAsync)
@@ -152,7 +154,7 @@ func Run(cdsHome string) {
 
 	// Initialize Schema Sync worker
 	if err := workers.StartSchemaSyncWorker(); err != nil {
-		fmt.Println("Failed to start schema sync worker.", err)
+		log.GetLogger().Error("Failed to start the schema sync worker.", log.Error(err))
 		os.Exit(1)
 	}
 
@@ -165,7 +167,7 @@ func Run(cdsHome string) {
 	workers.StartTemporaryProfileCleanupWorker()
 
 	serverAddr := fmt.Sprintf("%s:%d", cdsConfig.Addr.Host, cdsConfig.Addr.Port)
-	mux := newCORSMiddleware(initMultiplexer())
+	mux := logStreams.wrap(newCORSMiddleware(initMultiplexer()))
 
 	logger := log.GetLogger()
 	logger.Info(fmt.Sprintf("CDD starting securely on: https://%s", serverAddr))
@@ -212,6 +214,7 @@ func Run(cdsHome string) {
 		WriteTimeout:      15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		ErrorLog:          newServerErrorLog(),
 		TLSConfig: &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		},

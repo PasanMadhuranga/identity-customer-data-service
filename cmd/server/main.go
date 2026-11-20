@@ -26,9 +26,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
+	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/server"
 )
 
@@ -46,18 +46,19 @@ func resolveCDSHome() string {
 	}
 
 	if *cdsHomeFlag != "" {
-		fmt.Printf("Using %s from command line argument\n", *cdsHomeFlag)
+		log.GetLogger().Info("Using the CDD home from the command line argument.", log.String("cds_home", *cdsHomeFlag))
 		return *cdsHomeFlag
 	}
 
 	if envHome := os.Getenv("CDS_HOME"); envHome != "" {
-		fmt.Printf("Using CDS_HOME from environment: %s\n", envHome)
+		log.GetLogger().Info("Using the CDD home from the CDS_HOME environment variable.",
+			log.String("cds_home", envHome))
 		return envHome
 	}
 
 	dir, err := os.Getwd()
 	if err != nil {
-		fmt.Println("Failed to get current working directory", err)
+		log.GetLogger().Error("Failed to get the current working directory.", log.Error(err))
 		os.Exit(1)
 	}
 	return dir

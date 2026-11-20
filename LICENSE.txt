@@ -15,17 +15,25 @@ below is and where the actual text of the license can be found.
 Name                                                                                                 Type           License
 _________________________________________________________________________________________________________________________________________________
 Go standard library (go1.26.10)                                                                      runtime        golang
+filippo.io/edwards25519@v1.2.0                                                                       module         bsd3
 github.com/dustin/go-humanize@v1.0.1                                                                 module         mit
+github.com/go-sql-driver/mysql@v1.10.1                                                               module         mpl2
 github.com/go-stomp/stomp/v3@v3.1.5                                                                  module         apache2
-github.com/golang-jwt/jwt/v5@v5.2.2                                                                  module         mit
+github.com/golang-jwt/jwt/v5@v5.3.1                                                                  module         mit
+github.com/golang-sql/civil@v0.0.0-20220223132316-b832511892a9                                       module         apache2
+github.com/golang-sql/sqlexp@v0.1.0                                                                  module         bsd3
 github.com/google/uuid@v1.6.0                                                                        module         bsd3
 github.com/joho/godotenv@v1.5.1                                                                      module         mit
 github.com/lib/pq@v1.10.9                                                                            module         mit
 github.com/mattn/go-isatty@v0.0.20                                                                   module         mit
+github.com/microsoft/go-mssqldb@v1.10.0                                                              module         bsd3
 github.com/ncruces/go-strftime@v1.0.0                                                                module         mit
 github.com/pkg/errors@v0.9.1                                                                         module         bsd2
 github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec                                  module         bsd3
+github.com/shopspring/decimal@v1.4.0                                                                 module         mit
+golang.org/x/crypto@v0.56.0                                                                          module         bsd3
 golang.org/x/sys@v0.47.0                                                                             module         bsd3
+golang.org/x/text@v0.41.0                                                                            module         bsd3
 gopkg.in/yaml.v2@v2.4.0                                                                              module         apache2 + mit
 modernc.org/libc@v1.73.4                                                                             module         bsd3 + mit
 modernc.org/mathutil@v1.7.1                                                                          module         bsd3
@@ -43,6 +51,8 @@ bsd2           Berkeley License - 2
                https://opensource.org/licenses/BSD-2-Clause
 bsd3           Berkeley License - 3
                http://opensource.org/licenses/BSD-3-Clause
+mpl2           Mozilla Public License Version 2.0
+               https://www.mozilla.org/en-US/MPL/2.0/
 golang         Go Lang
                https://golang.org/LICENSE
 

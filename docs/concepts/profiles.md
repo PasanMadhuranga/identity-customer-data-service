@@ -20,6 +20,27 @@ A **profile** is the central entity in CDD. It represents a single person's coll
 
 ---
 
+## Application data
+
+Each application keeps its own data on a profile, under its application
+identifier, and **one application never sees another's**.
+
+`GET /profiles/{profileId}` returns application data only when asked, with
+`includeApplicationData=true`, and then returns only the calling application's
+own entry. The caller is the application the access token was issued to,
+identified as `application_identifier_type` in `deployment.yaml` says — the
+Identity Server application ID (`app_id`, the default) or its OAuth client ID.
+
+Applications an organization lists in `system_applications`, in its
+configuration (`PATCH /config`), are trusted to read across applications: they
+get every application's data, or the ones named with `application_identifier`
+(`*` for all). They also read profiles without consent filtering — see
+[Consent](consent.md#consent-scoped-profile-fetch).
+
+`GET /profiles` applies the same rules to every profile it lists.
+
+---
+
 ## Temporary vs permanent profiles
 
 Profiles are either **temporary** (anonymous) or **permanent** (identified).

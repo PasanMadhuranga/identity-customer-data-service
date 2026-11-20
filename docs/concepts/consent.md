@@ -137,8 +137,8 @@ profile_consents
 Managed via:
 
 ```
-GET  /api/v1/{orgHandle}/profiles/{profileId}/consents
-PUT  /api/v1/{orgHandle}/profiles/{profileId}/consents
+GET  /t/{orgHandle}/cds/api/v1/profiles/{profileId}/consents
+PUT  /t/{orgHandle}/cds/api/v1/profiles/{profileId}/consents
 ```
 
 The `PUT` replaces the full consent record set for the profile. Mandatory categories cannot be included in the payload — attempting to do so returns `403`.
@@ -146,7 +146,7 @@ The `PUT` replaces the full consent record set for the profile. Mandatory catego
 ### Example — reading a profile's consents
 
 ```
-GET /api/v1/acme/profiles/p-001/consents
+GET /t/acme/cds/api/v1/profiles/p-001/consents
 ```
 
 ```json
@@ -162,7 +162,7 @@ GET /api/v1/acme/profiles/p-001/consents
 ### Example — updating a profile's consents
 
 ```
-PUT /api/v1/acme/profiles/p-001/consents
+PUT /t/acme/cds/api/v1/profiles/p-001/consents
 ```
 
 ```json
@@ -178,19 +178,19 @@ This replaces all non-mandatory consent records. Mandatory categories must not b
 
 ## Consent-scoped profile fetch
 
-When fetching a profile, third-party apps always receive a consent-filtered response. System apps (registered in `system_applications`) bypass consent filtering and always receive the full profile.
+When fetching a profile, third-party apps always receive a consent-filtered response. Applications listed in the organization's `system_applications` bypass consent filtering and always receive the full profile.
 
 ```
-GET /api/v1/{orgHandle}/profiles/{profileId}
-GET /api/v1/{orgHandle}/profiles/{profileId}?consentCategoryId=<marketing UUID>
-GET /api/v1/{orgHandle}/profiles/{profileId}?consentCategoryId=<marketing UUID>&consentCategoryId=<analytics UUID>
+GET /t/{orgHandle}/cds/api/v1/profiles/{profileId}
+GET /t/{orgHandle}/cds/api/v1/profiles/{profileId}?consentCategoryId=<marketing UUID>
+GET /t/{orgHandle}/cds/api/v1/profiles/{profileId}?consentCategoryId=<marketing UUID>&consentCategoryId=<analytics UUID>
 ```
 
 ### Behaviour by caller and consentCategoryId
 
 | Caller | `consentCategoryId` passed | Response |
 |---|---|---|
-| System app | yes or no | Full profile — consent filtering bypassed |
+| Listed in `system_applications` | yes or no | Full profile — consent filtering bypassed |
 | Regular app | no | Mandatory identity data fields only |
 | Regular app | yes, user has consented | Identity data fields + attributes from consented categories |
 | Regular app | yes, user has NOT consented | Identity data fields only (non-consented categories contribute nothing) |
@@ -222,7 +222,7 @@ Profile `p-001` has the following consent records:
 ### Case 1 — No consentCategoryId (regular app)
 
 ```
-GET /api/v1/acme/profiles/p-001
+GET /t/acme/cds/api/v1/profiles/p-001
 ```
 
 No `consentCategoryId` passed → mandatory Identity Data fields only.
@@ -244,7 +244,7 @@ No `consentCategoryId` passed → mandatory Identity Data fields only.
 ### Case 2 — Single consentCategoryId, user has consented
 
 ```
-GET /api/v1/acme/profiles/p-001?consentCategoryId=<marketing UUID>
+GET /t/acme/cds/api/v1/profiles/p-001?consentCategoryId=<marketing UUID>&includeApplicationData=true
 ```
 
 Marketing is consented → union of Identity Data + Marketing attributes.
@@ -274,7 +274,7 @@ Marketing is consented → union of Identity Data + Marketing attributes.
 ### Case 3 — Single consentCategoryId, user has NOT consented
 
 ```
-GET /api/v1/acme/profiles/p-001?consentCategoryId=<analytics UUID>
+GET /t/acme/cds/api/v1/profiles/p-001?consentCategoryId=<analytics UUID>
 ```
 
 Analytics is revoked → only mandatory Identity Data fields returned.
@@ -296,7 +296,7 @@ Analytics is revoked → only mandatory Identity Data fields returned.
 ### Case 4 — Multiple consentCategoryIds (union)
 
 ```
-GET /api/v1/acme/profiles/p-001?consentCategoryId=<marketing UUID>&consentCategoryId=<analytics UUID>
+GET /t/acme/cds/api/v1/profiles/p-001?consentCategoryId=<marketing UUID>&consentCategoryId=<analytics UUID>&includeApplicationData=true
 ```
 
 Marketing is consented, Analytics is revoked → union of Identity Data + Marketing only.
@@ -325,14 +325,16 @@ Marketing is consented, Analytics is revoked → union of Identity Data + Market
 
 ---
 
-### Case 5 — System app (no filtering)
+### Case 5 — Application in `system_applications` (no filtering)
 
 ```
-GET /api/v1/acme/profiles/p-001
-X-App-Id: console-app   ← registered as a system application
+GET /t/acme/cds/api/v1/profiles/p-001?includeApplicationData=true
 ```
 
-System app → full profile regardless of consent.
+The access token was issued to an application listed in the organization's
+`system_applications`.
+
+Listed in `system_applications` → full profile regardless of consent.
 
 ```json
 {
@@ -350,15 +352,15 @@ System app → full profile regardless of consent.
 
 ## Profile listing
 
-`GET /profiles` applies the same rules as fetching one profile. System apps receive full profiles. Every other caller receives, for each profile on the page, only its own application data and the attributes that profile has consented to share. Pass `consentCategoryId` the same way as on a single fetch:
+`GET /profiles` applies the same rules as fetching one profile. Applications listed in `system_applications` receive full profiles. Every other caller receives, for each profile on the page, only its own application data and the attributes that profile has consented to share. Pass `consentCategoryId` the same way as on a single fetch:
 
 ```
-GET /api/v1/{orgHandle}/profiles?attributes=identity_attributes,traits&consentCategoryId=<marketing UUID>
+GET /t/{orgHandle}/cds/api/v1/profiles?attributes=identity_attributes,traits&consentCategoryId=<marketing UUID>
 ```
 
 Each profile is filtered by its own consent records, so two profiles on the same page can return different attributes.
 
-A `filter` or `fuzzyFilter` condition only selects a profile by a value the caller could read on it. For a regular app:
+A `filter` or `fuzzyFilter` condition only selects a profile by a value the caller could read on it. For any other caller:
 
 | Condition on | Profile is returned when |
 |---|---|
@@ -376,7 +378,7 @@ A profile left out by these rules is dropped from the page, so a page can hold f
 | Area | Behaviour |
 |---|---|
 | Profile **writes** | Consent does not gate write operations. Controlled by permissions. |
-| System app access | Consent filtering is bypassed entirely. |
+| Applications in `system_applications` | Consent filtering is bypassed entirely. |
 | Mandatory category | Always contributes identity attributes — no profile consent record needed. |
 
 ---

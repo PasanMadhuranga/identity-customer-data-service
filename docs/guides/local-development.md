@@ -165,8 +165,8 @@ and `--pg-container`.
   Without it, user events carry no profile cookie.
 - **A relaxed policy on `/oauth2/introspect`**, so CDD introspects the tokens it
   receives with its own client credentials instead of admin-user Basic auth.
-- **Two OAuth applications**: a system app for the calls CDD makes into IS, and
-  a client app with `aud=iam-cds`, the audience CDD requires, for calling the
+- **Two OAuth applications**: one whose client credentials CDD calls IS with
+  (see [Service Credentials](service-credentials.md)), and a client app with `aud=iam-cds`, the audience CDD requires, for calling the
   CDD APIs. The Console is handled separately because it issues opaque tokens.
 - **`cds_enabled` for the organization.** Every profile, schema and rule
   endpoint returns `400` until it is set. Setting it also runs the initial
@@ -232,7 +232,7 @@ cds_host` when the pack is recent enough.
 fixes it.
 
 **`GET /profile-schema` returns 400.** CDD could not reach the IS claim APIs,
-usually the trust store or the system application. `logs/cds.log` has the error.
+usually the trust store or the credentials CDD calls IS with. `logs/cds.log` has the error.
 
 **A user in IS never appears in CDD.** Check that the four bundles are in
 `repository/components/dropins` and that `logs/is.log` shows the CDD handlers

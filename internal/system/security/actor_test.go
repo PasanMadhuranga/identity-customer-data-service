@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/reqctx"
 )
 

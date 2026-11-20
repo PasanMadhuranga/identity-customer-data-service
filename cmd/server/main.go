@@ -301,7 +301,8 @@ func resolveCDSHome() string {
 
 	// Fallback to environment variable
 	if envHome := os.Getenv("CDS_HOME"); envHome != "" {
-		log.GetLogger().Info("Using the CDS home from the CDS_HOME environment variable.", log.String("cds_home", envHome))
+		log.GetLogger().Info("Using the CDS home from the CDS_HOME environment variable.",
+			log.String("cds_home", envHome))
 		return envHome
 	}
 

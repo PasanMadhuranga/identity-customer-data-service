@@ -142,7 +142,6 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 // application when the token was issued to the client itself, and a user otherwise. The log
 // streams use the actor, so that every record of a request names the same principal.
 func actorOf(claims map[string]interface{}) reqctx.Actor {
-
 	subject, _ := claims[constants.SUBClaim].(string)
 	clientID, _ := claims[constants.ClientIDClaim].(string)
 	if clientID == "" {

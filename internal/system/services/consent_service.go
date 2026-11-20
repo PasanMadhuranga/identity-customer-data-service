@@ -42,11 +42,16 @@ func NewConsentCategoryService(mux *http.ServeMux) *ConsentCategoryService {
 
 	const base = constants.APIBasePath + "/v1"
 	// Register routes with Go 1.22 ServeMux patterns on shared mux
-	s.mux.HandleFunc("GET "+base+"/consent-categories", audit.Wrap(audit.ConsentCategoryList, s.handler.GetAllConsentCategories))
-	s.mux.HandleFunc("POST "+base+"/consent-categories", audit.Wrap(audit.ConsentCategoryCreate, s.handler.AddConsentCategory))
-	s.mux.HandleFunc("GET "+base+"/consent-categories/{categoryId}", audit.Wrap(audit.ConsentCategoryRead, s.handler.GetConsentCategory))
-	s.mux.HandleFunc("PUT "+base+"/consent-categories/{categoryId}", audit.Wrap(audit.ConsentCategoryUpdate, s.handler.UpdateConsentCategory))
-	s.mux.HandleFunc("DELETE "+base+"/consent-categories/{categoryId}", audit.Wrap(audit.ConsentCategoryDelete, s.handler.DeleteConsentCategory))
+	s.mux.HandleFunc("GET "+base+"/consent-categories",
+		audit.Wrap(audit.ConsentCategoryList, s.handler.GetAllConsentCategories))
+	s.mux.HandleFunc("POST "+base+"/consent-categories",
+		audit.Wrap(audit.ConsentCategoryCreate, s.handler.AddConsentCategory))
+	s.mux.HandleFunc("GET "+base+"/consent-categories/{categoryId}",
+		audit.Wrap(audit.ConsentCategoryRead, s.handler.GetConsentCategory))
+	s.mux.HandleFunc("PUT "+base+"/consent-categories/{categoryId}",
+		audit.Wrap(audit.ConsentCategoryUpdate, s.handler.UpdateConsentCategory))
+	s.mux.HandleFunc("DELETE "+base+"/consent-categories/{categoryId}",
+		audit.Wrap(audit.ConsentCategoryDelete, s.handler.DeleteConsentCategory))
 
 	return s
 }

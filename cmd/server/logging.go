@@ -49,7 +49,6 @@ type logStreams struct {
 // setupLogging configures the application log, the access log, and the audit log from the
 // deployment configuration.
 func setupLogging(cdsHome string, cfg config.LogConfig) (*logStreams, error) {
-
 	if err := log.Configure(log.Options{
 		Level:  cfg.LogLevel,
 		Format: cfg.Format,
@@ -83,7 +82,6 @@ func setupLogging(cdsHome string, cfg config.LogConfig) (*logStreams, error) {
 // wrap puts the request middleware around handler. The request context is the outer layer, so
 // that every later layer has the correlation ID.
 func (s *logStreams) wrap(handler http.Handler) http.Handler {
-
 	if s.access != nil {
 		handler = httpmw.AccessLog(s.access, handler)
 	}
@@ -93,7 +91,6 @@ func (s *logStreams) wrap(handler http.Handler) http.Handler {
 // close releases the log files. The application log closes last, so that it can report an error
 // of the other streams.
 func (s *logStreams) close() {
-
 	if err := audit.Close(); err != nil {
 		log.GetLogger().Error("Failed to close the audit log.", log.Error(err))
 	}
@@ -107,7 +104,6 @@ func (s *logStreams) close() {
 
 // logOutput returns the destinations of the log stream that writes to fileName.
 func logOutput(cdsHome string, cfg config.LogConfig, fileName string) log.OutputOptions {
-
 	output := log.OutputOptions{Console: enabledByDefault(cfg.Console)}
 	if !cfg.File.Enabled {
 		return output
@@ -129,7 +125,6 @@ func logOutput(cdsHome string, cfg config.LogConfig, fileName string) log.Output
 
 // enabledByDefault returns the value of an optional switch that is on when it is not configured.
 func enabledByDefault(value *bool) bool {
-
 	return value == nil || *value
 }
 
@@ -138,13 +133,11 @@ func enabledByDefault(value *bool) bool {
 type serverErrorWriter struct{}
 
 func (serverErrorWriter) Write(p []byte) (int, error) {
-
 	log.FromContext(context.Background()).WithComponent("HTTPServer").Warn(strings.TrimSpace(string(p)))
 	return len(p), nil
 }
 
 // newServerErrorLog returns the error logger of the HTTP server.
 func newServerErrorLog() *stdlog.Logger {
-
 	return stdlog.New(serverErrorWriter{}, "", 0)
 }

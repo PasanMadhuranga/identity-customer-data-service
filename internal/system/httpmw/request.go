@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/reqctx"
 )

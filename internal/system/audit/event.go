@@ -22,6 +22,7 @@ package audit
 // these actions before it adds a new one.
 type Action string
 
+// The actions. An event name ends with one of these.
 const (
 	ActionCreate  Action = "create"
 	ActionRead    Action = "read"

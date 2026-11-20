@@ -50,10 +50,14 @@ func NewProfileService(mux *http.ServeMux) *ProfileService {
 
 	// Routes with path variables
 	ps.mux.HandleFunc("GET "+base+"/profiles/{profileId}", audit.Wrap(audit.ProfileRead, ps.profileHandler.GetProfile))
-	ps.mux.HandleFunc("PATCH "+base+"/profiles/{profileId}", audit.Wrap(audit.ProfileUpdate, ps.profileHandler.PatchProfile))
-	ps.mux.HandleFunc("DELETE "+base+"/profiles/{profileId}", audit.Wrap(audit.ProfileDelete, ps.profileHandler.DeleteProfile))
-	ps.mux.HandleFunc("GET "+base+"/profiles/{profileId}/consents", audit.Wrap(audit.ProfileConsentRead, ps.profileHandler.GetProfileConsents))
-	ps.mux.HandleFunc("PUT "+base+"/profiles/{profileId}/consents", audit.Wrap(audit.ProfileConsentUpdate, ps.profileHandler.UpdateProfileConsents))
+	ps.mux.HandleFunc("PATCH "+base+"/profiles/{profileId}",
+		audit.Wrap(audit.ProfileUpdate, ps.profileHandler.PatchProfile))
+	ps.mux.HandleFunc("DELETE "+base+"/profiles/{profileId}",
+		audit.Wrap(audit.ProfileDelete, ps.profileHandler.DeleteProfile))
+	ps.mux.HandleFunc("GET "+base+"/profiles/{profileId}/consents",
+		audit.Wrap(audit.ProfileConsentRead, ps.profileHandler.GetProfileConsents))
+	ps.mux.HandleFunc("PUT "+base+"/profiles/{profileId}/consents",
+		audit.Wrap(audit.ProfileConsentUpdate, ps.profileHandler.UpdateProfileConsents))
 
 	return ps
 }

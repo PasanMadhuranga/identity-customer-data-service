@@ -45,6 +45,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/reqctx"
 )
@@ -157,7 +158,6 @@ func shouldRecord(event Event, result Result) bool {
 // write builds the record and writes it as one JSON line in one Write call.
 func write(info *reqctx.Info, event Event, actor reqctx.Actor, orgHandle, orgID, targetID string,
 	outcome Outcome, details map[string]any) {
-
 	if !shouldRecord(event, outcome.Result) {
 		return
 	}
@@ -169,10 +169,14 @@ func write(info *reqctx.Info, event Event, actor reqctx.Actor, orgHandle, orgID,
 		Event:         event.Name(),
 		Action:        string(event.Action),
 		CorrelationID: info.CorrelationID(),
-		Actor:         actorRef{Type: actor.Type, ID: limit(actor.ID, maxIDLength), ClientID: limit(actor.ClientID, maxIDLength)},
-		Target:        targetRef{Type: event.TargetType, ID: limit(targetID, maxIDLength)},
-		Outcome:       outcome,
-		Details:       limitDetails(details),
+		Actor: actorRef{
+			Type:     actor.Type,
+			ID:       limit(actor.ID, maxIDLength),
+			ClientID: limit(actor.ClientID, maxIDLength),
+		},
+		Target:  targetRef{Type: event.TargetType, ID: limit(targetID, maxIDLength)},
+		Outcome: outcome,
+		Details: limitDetails(details),
 	}
 	if orgHandle != "" || orgID != "" {
 		rec.Org = &orgRef{Handle: orgHandle, ID: orgID}

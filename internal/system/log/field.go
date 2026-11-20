@@ -57,7 +57,6 @@ func Int(key string, value int) Field {
 
 // Bool creates a Field with a boolean value.
 func Bool(key string, value bool) Field {
-
 	return Field{Key: key, Value: value}
 }
 

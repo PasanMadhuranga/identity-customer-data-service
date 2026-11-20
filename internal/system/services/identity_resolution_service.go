@@ -42,8 +42,10 @@ func NewIdentityResolutionService(mux *http.ServeMux) *IdentityResolutionService
 	const base = constants.APIBasePath + "/v1"
 
 	// Review tasks management
-	s.mux.HandleFunc("GET "+base+"/identity-resolution/review-tasks", audit.Wrap(audit.ReviewTaskList, s.handler.GetReviewTasks))
-	s.mux.HandleFunc("POST "+base+"/identity-resolution/review-tasks/{taskId}/resolve", audit.Wrap(audit.ReviewTaskResolve, s.handler.ResolveReviewTask))
+	s.mux.HandleFunc("GET "+base+"/identity-resolution/review-tasks",
+		audit.Wrap(audit.ReviewTaskList, s.handler.GetReviewTasks))
+	s.mux.HandleFunc("POST "+base+"/identity-resolution/review-tasks/{taskId}/resolve",
+		audit.Wrap(audit.ReviewTaskResolve, s.handler.ResolveReviewTask))
 
 	return s
 }

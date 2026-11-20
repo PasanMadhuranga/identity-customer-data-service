@@ -41,7 +41,8 @@ func NewServiceCredentialsService(mux *http.ServeMux) *ServiceCredentialsService
 	}
 
 	const base = constants.APIBasePath + "/v1"
-	s.mux.HandleFunc("POST "+base+"/service-credentials/sync", audit.Wrap(audit.ServiceCredentialsSync, s.handler.SyncServiceCredentials))
+	s.mux.HandleFunc("POST "+base+"/service-credentials/sync",
+		audit.Wrap(audit.ServiceCredentialsSync, s.handler.SyncServiceCredentials))
 
 	return s
 }

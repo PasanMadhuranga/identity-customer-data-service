@@ -133,7 +133,8 @@ func (w *Writer) open() error {
 	if err := os.MkdirAll(filepath.Dir(w.path), dirMode); err != nil {
 		return fmt.Errorf("failed to create the log directory: %w", err)
 	}
-	file, err := os.OpenFile(w.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, fileMode) // #nosec G304 -- path is from the deployment configuration.
+	// #nosec G304 -- the path is from the deployment configuration.
+	file, err := os.OpenFile(w.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, fileMode)
 	if err != nil {
 		return fmt.Errorf("failed to open the log file: %w", err)
 	}

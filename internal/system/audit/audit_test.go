@@ -29,6 +29,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/httpmw"
 	"github.com/wso2/identity-customer-data-service/internal/system/reqctx"
 )
@@ -51,7 +52,6 @@ func captureOutput(out io.Writer, readEvents bool) (restore func()) {
 // It returns the audit records that the request wrote.
 func serve(t *testing.T, readEvents bool, method, pattern, target string, event Event,
 	handler http.HandlerFunc) []map[string]any {
-
 	t.Helper()
 	var out bytes.Buffer
 	defer captureOutput(&out, readEvents)()

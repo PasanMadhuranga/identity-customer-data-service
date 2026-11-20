@@ -133,3 +133,21 @@ func TestAccessLogSkipsHealthyProbes(t *testing.T) {
 	assert.Empty(t, accessRecords(t, ok, "/cds/api/v1/ready"))
 	assert.Len(t, accessRecords(t, failed, "/cds/api/v1/ready"), 1, "a failed probe is logged")
 }
+
+func TestRecorderWaitsForFinalStatus(t *testing.T) {
+	rec := NewRecorder(httptest.NewRecorder())
+
+	rec.WriteHeader(http.StatusEarlyHints)
+	rec.WriteHeader(http.StatusForbidden)
+
+	assert.Equal(t, http.StatusForbidden, rec.Status())
+}
+
+func TestRecorderRecordsStatusOfFlush(t *testing.T) {
+	rec := NewRecorder(httptest.NewRecorder())
+
+	rec.Flush()
+	rec.WriteHeader(http.StatusInternalServerError)
+
+	assert.Equal(t, http.StatusOK, rec.Status(), "a flush before a status commits 200")
+}

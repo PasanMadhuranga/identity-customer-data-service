@@ -582,6 +582,8 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 		utils.HandleError(w, err)
 		return
 	}
+	// Set the target now, so that a later failure still names the created profile.
+	audit.SetTargetID(ctx, profileResponse.ProfileID)
 
 	cookie, err := profilesService.CreateProfileCookie(ctx, profileResponse.ProfileID)
 	if err != nil {
@@ -593,7 +595,6 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 
 	profileResponse.AnonymousTracker = cookie.CookieID
 
-	audit.SetTargetID(ctx, profileResponse.ProfileID)
 	w.Header().Set("Location", profileResponse.Meta.Location)
 	utils.RespondJSON(w, http.StatusCreated, profileResponse, constants.ProfileResource)
 }
@@ -613,6 +614,8 @@ func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Re
 	if !cookieObj.IsActive {
 		return false
 	}
+	// The request resolves to the profile of the active cookie.
+	audit.SetTargetID(ctx, cookieObj.ProfileID)
 	profileResponse, err := profilesService.GetProfile(ctx, cookieObj.ProfileID, orgID)
 	if err != nil {
 		utils.HandleError(w, err)
@@ -828,6 +831,9 @@ func (ph *ProfileHandler) LinkProfile(w http.ResponseWriter, r *http.Request) {
 		utils.HandleError(w, clientError)
 		return
 	}
+	// Set the target before the lookup, so that every outcome names the profile and the user.
+	audit.SetTargetID(ctx, profileID)
+	audit.AddDetail(ctx, "user_id", userID)
 
 	profilesProvider := provider.NewProfilesProvider()
 	profilesService := profilesProvider.GetProfilesService()
@@ -872,8 +878,6 @@ func (ph *ProfileHandler) LinkProfile(w http.ResponseWriter, r *http.Request) {
 
 	log.GetLogger().Info(fmt.Sprintf("Linked profile: %s to user: %s in organization: %s", profileID, userID,
 		org.ID))
-	audit.SetTargetID(ctx, profileID)
-	audit.AddDetail(ctx, "user_id", userID)
 
 	linkResponse := model.ProfileLinkResponse{
 		ProfileID: profileID,
@@ -910,10 +914,14 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 	profilesService := profilesProvider.GetProfilesService()
 
 	profileID := profileSync.ProfileID
+	// The ID from the body is the attempted target. Each branch below replaces it with the profile
+	// that the branch resolves and changes.
 	audit.SetTargetID(ctx, profileID)
 	audit.AddDetail(ctx, "sync_event", profileSync.Event)
 	identityClaims := profileSync.Claims
 	orgHandle := profileSync.OrgHandle
+	// The body names the organization of the user, which can differ from the organization of the path.
+	audit.AddDetail(ctx, "synced_org", orgHandle)
 
 	if orgHandle == "" {
 		// orgHandle = utils.ExtractOrgHandleFromPath(request)
@@ -960,6 +968,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 			if err == nil && cookieObj != nil && cookieObj.IsActive {
 				profileID = cookieObj.ProfileID
 				logger.Debug("Found active profile cookie with profile id: " + profileID)
+				audit.SetTargetID(ctx, profileID)
 			}
 
 			// This scenario is when the user anonymously tried and then trying to signup or login. So profile with
@@ -1030,6 +1039,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 			logger.Debug("No profile found for user: " + profileSync.UserID)
 			return
 		}
+		audit.SetTargetID(ctx, existingProfile.ProfileID)
 		err := profilesService.DeleteProfile(ctx, existingProfile.ProfileID, org.ID)
 		if err != nil {
 			utils.HandleError(writer, err)
@@ -1058,13 +1068,15 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 					UserID:             profileSync.UserID,
 					IdentityAttributes: identityAttributes,
 				}
-				_, err := profilesService.CreateProfile(ctx, profileRequest, org.ID)
-
+				created, err := profilesService.CreateProfile(ctx, profileRequest, org.ID)
 				if err != nil {
+					utils.HandleError(writer, err)
 					return
 				}
+				audit.SetTargetID(ctx, created.ProfileID)
 				return
 			} else {
+				audit.SetTargetID(ctx, existingProfile.ProfileID)
 				// Update identity attributes based on claim URIs
 				if existingProfile.IdentityAttributes == nil {
 					existingProfile.IdentityAttributes = make(map[string]interface{})
@@ -1165,6 +1177,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 						Traits:             anonymousProfile.Traits,
 						ApplicationData:    profileService.WideAppDataMap(anonymousProfile.ApplicationData),
 					}
+					audit.SetTargetID(ctx, anonymousProfile.ProfileID)
 					_, err = profilesService.UpdateProfile(ctx, anonymousProfile.ProfileID, org.ID, profileRequest)
 					if err != nil {
 						utils.HandleError(writer, err)
@@ -1187,6 +1200,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 					ApplicationData:    profileService.WideAppDataMap(anonymousProfile.ApplicationData),
 				}
 
+				audit.SetTargetID(ctx, anonymousProfile.ProfileID)
 				_, err = profilesService.UpdateProfile(ctx, anonymousProfile.ProfileID, org.ID, profileRequest)
 				if err != nil {
 					utils.HandleError(writer, err)
@@ -1219,6 +1233,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 				logger.Debug("No profile found for user: " + profileSync.UserID)
 				return
 			}
+			audit.SetTargetID(ctx, existingProfile.ProfileID)
 
 			profileCookie, err := profilesService.GetProfileCookieByID(ctx, profileSync.ProfileCookie, org.ID)
 			if err != nil {
@@ -1426,6 +1441,7 @@ func createProfileForUserIfMissing(ctx context.Context, profilesService profileS
 		return err
 	}
 	if existingProfile != nil {
+		audit.SetTargetID(ctx, existingProfile.ProfileID)
 		return nil
 	}
 	identityAttributes := make(map[string]interface{})
@@ -1437,8 +1453,12 @@ func createProfileForUserIfMissing(ctx context.Context, profilesService profileS
 		UserID:             userID,
 		IdentityAttributes: identityAttributes,
 	}
-	_, err = profilesService.CreateProfile(ctx, profileRequest, orgID)
-	return err
+	created, err := profilesService.CreateProfile(ctx, profileRequest, orgID)
+	if err != nil {
+		return err
+	}
+	audit.SetTargetID(ctx, created.ProfileID)
+	return nil
 }
 
 func getCallerClientIDFromRequest(r *http.Request) string {

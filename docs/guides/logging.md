@@ -158,7 +158,7 @@ Each audit record is one JSON line.
 | `action` | `create`, `update`, `delete`, `sync`, `link`, `merge`, `resolve` |
 | `org` | Organization of the request: `handle`, and `id` for a sub organization path or a worker operation. |
 | `actor.type` | `user`, `application`, `service` (the deployment credentials), `system` (CDS itself), `anonymous` |
-| `actor.id` | Token subject (`user`), client ID (`application`), or service account (`service`). Absent for `anonymous`. |
+| `actor.id` | Token subject (`user`), client ID (`application`), `admin_credentials` (`service`), or `cds` (`system`). Absent for `anonymous`, and for a `user` whose token has no subject. Never a user name. |
 | `actor.client_id` | Only for a `user` actor: the OAuth client (application) that the user acted through. |
 | `target` | Resource type, and the resource ID when the operation has one target. |
 | `outcome.result` | `succeeded`, `denied` (authentication or authorization refused it), `failed` |
@@ -167,7 +167,14 @@ Each audit record is one JSON line.
 | `client` | `ip` and `user_agent` of the request. |
 | `details` | Data of the event. See the event tables. |
 
-An audit record does not hold personal data. It names a resource by ID, and it does not hold attribute values.
+An audit record does not hold profile attribute values, user names, tokens, or request bodies. It still holds data that
+can identify a person or can be linked to one:
+
+- `actor.id` of a user (the token subject) and `details.user_id`.
+- Resource IDs, for example the profile ID in `target.id`.
+- `client.ip` and `client.user_agent`.
+
+Treat the audit log as personal data: limit access to it, and set a retention period.
 
 ### Recording rules
 
@@ -184,7 +191,7 @@ Profiles:
 | `profile.create` | `POST /profiles` | |
 | `profile.update` | `PATCH /profiles/{profileId}` | |
 | `profile.delete` | `DELETE /profiles/{profileId}` | |
-| `profile.sync` | `POST /profiles/sync` | `sync_event` |
+| `profile.sync` | `POST /profiles/sync` | `sync_event`, `synced_org` |
 | `profile.link` | `POST /profiles/link` | `user_id` |
 | `profile.merge` | Profile unification (worker or approved review task) | `merged_profile_ids`, `reason` |
 | `profile_consent.update` | `PUT /profiles/{profileId}/consents` | |
@@ -194,7 +201,7 @@ Profile schema:
 | Event | Operation | Details |
 |---|---|---|
 | `profile_schema.delete` | `DELETE /profile-schema` | |
-| `profile_schema.sync` | `POST /profile-schema/sync` | |
+| `profile_schema.sync` | `POST /profile-schema/sync` | `sync_event`, `synced_org` |
 | `profile_schema_attribute.create` | `POST /profile-schema/{scope}` | `scope` |
 | `profile_schema_attribute.update` | `PUT /profile-schema/{scope}/{attrID}` | `scope` |
 | `profile_schema_attribute.delete` | `DELETE /profile-schema/{scope}/{attrID}`, `DELETE /profile-schema/{scope}` | `scope` |
@@ -218,7 +225,7 @@ Consent, configuration, identity resolution, and organizations:
 | `consent_category.delete` | `DELETE /consent-categories/{categoryId}` | |
 | `admin_config.update` | `PATCH /config` | |
 | `review_task.resolve` | `POST /identity-resolution/review-tasks/{taskId}/resolve` | `decision` |
-| `organization.sync` | `POST /organizations/event-sync` | |
+| `organization.sync` | `POST /organizations/event-sync` (target: `org_id` of the body) | `sync_event` |
 | `organization_tree.sync` | `POST /organizations/sync` | |
 | `organization_access_policy.<action>` | `/organizations/access-policies` | |
 | `service_credentials.sync` | `POST /service-credentials/sync` | |

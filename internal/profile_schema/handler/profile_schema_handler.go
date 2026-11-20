@@ -535,6 +535,9 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 		return
 	}
 	orgHandle := schemaSync.OrgHandle
+	// The body names the organization to sync, which can differ from the organization of the path.
+	audit.AddDetail(ctx, "sync_event", schemaSync.Event)
+	audit.AddDetail(ctx, "synced_org", orgHandle)
 	if orgHandle == "" {
 		errMsg := fmt.Sprintf("Organization handle cannot be empty in sync event: %s", schemaSync.Event)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{

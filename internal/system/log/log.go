@@ -98,7 +98,9 @@ type core struct {
 	handler atomic.Pointer[handlerRef]
 	level   *slog.LevelVar
 
-	mu      sync.Mutex
+	// mu guards the output: a write holds the read lock, and a reconfiguration or Close holds the
+	// write lock, so that a record never goes to a file that was just closed.
+	mu      sync.RWMutex
 	closer  io.Closer
 	logType string
 }
@@ -361,6 +363,8 @@ func (h *dynamicHandler) Handle(ctx context.Context, record slog.Record) error {
 			record.AddAttrs(slog.String(KeyOrg, org))
 		}
 	}
+	h.core.mu.RLock()
+	defer h.core.mu.RUnlock()
 	return h.core.handler.Load().handler.Handle(ctx, record)
 }
 

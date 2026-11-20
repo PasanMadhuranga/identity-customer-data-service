@@ -42,6 +42,10 @@ const (
 	ActorSystem = "system"
 	// ActorAnonymous is a caller with no verified identity.
 	ActorAnonymous = "anonymous"
+
+	// ServiceAdminActorID is the ID of a service actor that authenticated with the admin
+	// credentials of the deployment, for example the Identity Server extension.
+	ServiceAdminActorID = "admin_credentials"
 )
 
 // Actor is the principal that made a request.

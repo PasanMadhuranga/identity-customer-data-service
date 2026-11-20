@@ -43,7 +43,10 @@ func TestActorOf(t *testing.T) {
 			reqctx.Actor{Type: reqctx.ActorApplication, ID: "app-1"}},
 		{"introspection response with a username only",
 			map[string]interface{}{"username": "alice@example.com", "client_id": "console"},
-			reqctx.Actor{Type: reqctx.ActorUser, ID: "a***************m", ClientID: "console"}},
+			reqctx.Actor{Type: reqctx.ActorUser, ClientID: "console"}},
+		{"introspection response with the client as the username",
+			map[string]interface{}{"username": "app-1", "client_id": "app-1"},
+			reqctx.Actor{Type: reqctx.ActorApplication, ID: "app-1"}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

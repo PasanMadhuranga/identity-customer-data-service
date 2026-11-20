@@ -62,6 +62,7 @@ type Writer struct {
 	maxBytes   int64
 	maxBackups int
 	file       *os.File
+	closed     bool
 	size       int64
 	day        string
 	now        func() time.Time
@@ -100,8 +101,15 @@ func (w *Writer) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	if w.file == nil {
+	if w.closed {
 		return 0, errors.New("log file is closed")
+	}
+	if w.file == nil {
+		// An earlier rotation could not open the active file. Try again, so that file logging
+		// recovers when the cause is gone.
+		if err := w.open(); err != nil {
+			return 0, err
+		}
 	}
 	today := w.now().Format(dateLayout)
 	if today != w.day || (w.size > 0 && w.size+int64(len(p)) > w.maxBytes) {
@@ -109,6 +117,9 @@ func (w *Writer) Write(p []byte) (int, error) {
 			// Keep the records: continue in the current file when rotation fails.
 			fmt.Fprintf(os.Stderr, "log file rotation failed for %s: %v\n", w.path, err)
 		}
+	}
+	if w.file == nil {
+		return 0, errors.New("log file is not open")
 	}
 	n, err := w.file.Write(p)
 	w.size += int64(n)
@@ -120,6 +131,10 @@ func (w *Writer) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	if w.closed {
+		return nil
+	}
+	w.closed = true
 	if w.file == nil {
 		return nil
 	}
@@ -154,18 +169,26 @@ func (w *Writer) open() error {
 }
 
 // rotate renames the active file to the next free rotated name, opens a new active file, and
-// removes the rotated files that exceed the limit.
+// removes the rotated files that exceed the limit. If it cannot open the new active file, w.file
+// is nil, and the next Write tries to open it again.
 func (w *Writer) rotate() error {
 	if w.size == 0 {
 		w.day = w.now().Format(dateLayout)
 		return nil
 	}
-	if err := w.file.Close(); err != nil {
+	backupName, err := w.nextBackupName()
+	if err != nil {
+		// Keep the current file open, so that the records continue in it.
 		return err
 	}
-	renameErr := os.Rename(w.path, w.nextBackupName())
+	closeErr := w.file.Close()
+	w.file = nil
+	renameErr := os.Rename(w.path, backupName)
 	if err := w.open(); err != nil {
 		return err
+	}
+	if closeErr != nil {
+		return closeErr
 	}
 	if renameErr != nil {
 		return renameErr
@@ -174,13 +197,18 @@ func (w *Writer) rotate() error {
 	return nil
 }
 
-// nextBackupName returns the first rotated name of the content day that is not in use.
-func (w *Writer) nextBackupName() string {
+// nextBackupName returns the first rotated name of the content day that is not in use. It
+// returns an error when it cannot check a name, for example when it has no permission.
+func (w *Writer) nextBackupName() (string, error) {
 	base, ext := w.split()
 	for seq := 1; ; seq++ {
 		name := fmt.Sprintf("%s-%s.%d%s", base, w.day, seq, ext)
-		if _, err := os.Stat(name); os.IsNotExist(err) {
-			return name
+		_, err := os.Stat(name)
+		if os.IsNotExist(err) {
+			return name, nil
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to check the rotated file name %s: %w", name, err)
 		}
 	}
 }

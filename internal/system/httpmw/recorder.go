@@ -41,9 +41,11 @@ func NewRecorder(w http.ResponseWriter) *Recorder {
 	return &Recorder{ResponseWriter: w, status: http.StatusOK}
 }
 
-// WriteHeader records the status code.
+// WriteHeader records the status code. An informational status (1xx) other than 101 Switching
+// Protocols is not final, so the recorder waits for the final status.
 func (r *Recorder) WriteHeader(status int) {
-	if !r.wroteHeader {
+	informational := status >= 100 && status < 200 && status != http.StatusSwitchingProtocols
+	if !r.wroteHeader && !informational {
 		r.status = status
 		r.wroteHeader = true
 	}
@@ -58,9 +60,14 @@ func (r *Recorder) Write(p []byte) (int, error) {
 	return n, err
 }
 
-// Flush sends buffered data to the client, when the wrapped writer supports it.
+// Flush sends buffered data to the client, when the wrapped writer supports it. A flush before a
+// status commits 200 OK, so the recorder records it.
 func (r *Recorder) Flush() {
 	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		if !r.wroteHeader {
+			r.status = http.StatusOK
+			r.wroteHeader = true
+		}
 		flusher.Flush()
 	}
 }

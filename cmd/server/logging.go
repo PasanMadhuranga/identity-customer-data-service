@@ -200,7 +200,9 @@ func enabledByDefault(value *bool) bool {
 type serverErrorWriter struct{}
 
 func (serverErrorWriter) Write(p []byte) (int, error) {
-	log.FromContext(context.Background()).WithComponent("HTTPServer").Warn(strings.TrimSpace(string(p)))
+	// The HTTP server reports failures here, for example a recovered handler panic with its stack.
+	// ERROR keeps them when the log level is ERROR.
+	log.FromContext(context.Background()).WithComponent("HTTPServer").Error(strings.TrimSpace(string(p)))
 	return len(p), nil
 }
 

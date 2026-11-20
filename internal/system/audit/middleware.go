@@ -37,34 +37,50 @@ type scope struct {
 type scopeKey struct{}
 
 // Wrap returns a handler that runs next and then writes the audit record of event. The record is
-// written for every outcome, so a denied or failed attempt is also in the audit log.
+// written for every outcome, so a denied or failed attempt is also in the audit log. If next panics,
+// Wrap writes a failed record and then continues the panic.
 func Wrap(event Event, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sc := &scope{}
 		rec := httpmw.NewRecorder(w)
 		r = r.WithContext(context.WithValue(r.Context(), scopeKey{}, sc))
 
-		next(rec, r)
-
-		info := reqctx.From(r.Context())
-		handle, orgID := info.Org()
-
-		sc.mu.Lock()
-		targetID, details := sc.targetID, sc.details
-		sc.mu.Unlock()
-		if targetID == "" && event.IDParam != "" {
-			targetID = r.PathValue(event.IDParam)
-		}
-		for _, param := range event.DetailParams {
-			if value := r.PathValue(param); value != "" {
-				if details == nil {
-					details = make(map[string]any, len(event.DetailParams))
-				}
-				details[detailKey(param)] = value
+		completed := false
+		defer func() {
+			if completed {
+				return
 			}
-		}
-		write(info, event, info.Actor(), handle, orgID, targetID, outcomeOf(rec.Status(), rec.ErrorCode()), details)
+			if p := recover(); p != nil {
+				recordRequest(r, event, sc, outcomeOf(http.StatusInternalServerError, ""))
+				panic(p)
+			}
+		}()
+		next(rec, r)
+		completed = true
+		recordRequest(r, event, sc, outcomeOf(rec.Status(), rec.ErrorCode()))
 	}
+}
+
+// recordRequest writes the audit record of one request with the facts of its scope.
+func recordRequest(r *http.Request, event Event, sc *scope, outcome Outcome) {
+	info := reqctx.From(r.Context())
+	handle, orgID := info.Org()
+
+	sc.mu.Lock()
+	targetID, details := sc.targetID, sc.details
+	sc.mu.Unlock()
+	if targetID == "" && event.IDParam != "" {
+		targetID = r.PathValue(event.IDParam)
+	}
+	for _, param := range event.DetailParams {
+		if value := r.PathValue(param); value != "" {
+			if details == nil {
+				details = make(map[string]any, len(event.DetailParams))
+			}
+			details[detailKey(param)] = value
+		}
+	}
+	write(info, event, info.Actor(), handle, orgID, targetID, outcome, details)
 }
 
 // SetTargetID sets the ID of the target of the request. A handler calls it when the path does not

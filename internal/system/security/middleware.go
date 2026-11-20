@@ -59,10 +59,11 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 		}, http.StatusUnauthorized)
 	}
 
-	// The deployment credentials identify a trusted back-channel caller, not a person.
+	// The deployment credentials identify a trusted back-channel caller, not a person. The record
+	// names the credential type, not the configured user name.
 	reqctx.From(r.Context()).SetActor(reqctx.Actor{
 		Type: reqctx.ActorService,
-		ID:   strings.TrimSpace(config.GetCDSRuntime().Config.AuthServer.AdminUsername),
+		ID:   reqctx.ServiceAdminActorID,
 	})
 	return nil
 }
@@ -148,20 +149,21 @@ func actorOf(claims map[string]interface{}) reqctx.Actor {
 	if clientID == "" {
 		clientID, _ = claims[constants.AZPClaim].(string)
 	}
-	if subject == "" {
-		// An introspection response can name the user by username only. A username is personal
-		// data, so the logs get a masked value.
-		if username, _ := claims[constants.UsernameClaim].(string); username != "" {
-			subject = log.Mask(username)
-		}
+	// An introspection response can name the user by username only. A username is personal data,
+	// so the actor never holds it. It only helps to tell a user from an application.
+	username, _ := claims[constants.UsernameClaim].(string)
+	principal := subject
+	if principal == "" {
+		principal = username
 	}
 
 	tokenType, _ := claims[constants.AuthorizedUserTypeClaim].(string)
 	if strings.EqualFold(tokenType, constants.AuthorizedUserTypeApplication) ||
-		subject == "" || subject == clientID {
+		principal == "" || principal == clientID {
 		// The ID of an application actor is its client ID, so the record does not repeat it.
 		return reqctx.Actor{Type: reqctx.ActorApplication, ID: clientID}
 	}
+	// A user with no subject claim has no ID in the record.
 	return reqctx.Actor{Type: reqctx.ActorUser, ID: subject, ClientID: clientID}
 }
 

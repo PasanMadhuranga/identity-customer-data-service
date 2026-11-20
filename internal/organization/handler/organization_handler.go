@@ -64,6 +64,9 @@ func (h *OrganizationHandler) SyncOrganization(w http.ResponseWriter, r *http.Re
 		}, http.StatusBadRequest))
 		return
 	}
+	// The target is the organization of the event, which can differ from the organization of the path.
+	audit.SetTargetID(r.Context(), event.OrgID)
+	audit.AddDetail(r.Context(), "sync_event", event.Event)
 	orgHandle := utils.ExtractOrgHandleFromPath(r)
 	log.GetLogger().Info("Received organization event " + event.Event + " for org " + event.OrgID + " through " +
 		orgHandle)

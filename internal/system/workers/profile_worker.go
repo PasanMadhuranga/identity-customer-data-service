@@ -328,6 +328,15 @@ func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID st
 // Returns an error when the merge cannot proceed safely.
 func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfile profileModel.Profile,
 	newProfile profileModel.Profile, reason string) (*profileModel.Profile, error) {
+	master, err := mergeMatchedProfiles(ctx, orgID, existingMasterProfile, newProfile, reason)
+	// One audit record for each merge attempt, also when it fails before the merge starts.
+	auditMerge(ctx, orgID, existingMasterProfile.ProfileID, newProfile.ProfileID, reason, master, err)
+	return master, err
+}
+
+// mergeMatchedProfiles does the work of MergeMatchedProfiles.
+func mergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfile profileModel.Profile,
+	newProfile profileModel.Profile, reason string) (*profileModel.Profile, error) {
 	logger := log.GetLogger()
 
 	// Fetch references for the existing master.
@@ -366,7 +375,7 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 
 	// ── Case: perm-temp or temp-perm ──
 	if hasUserIDExisting != hasUserIDNew {
-		master, mergeErr := mergePermanentAndTemporary(
+		return mergePermanentAndTemporary(
 			ctx,
 			orgID,
 			existingMasterProfile,
@@ -375,12 +384,10 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 			reason,
 			hasExistingChildren,
 		)
-		auditMerge(ctx, orgID, existingMasterProfile.ProfileID, newProfile.ProfileID, reason, master, mergeErr)
-		return master, mergeErr
 	}
 
 	// ── Case: Both permanent with same userId OR both temporary ──
-	master, mergeErr := mergeSameKindProfiles(
+	return mergeSameKindProfiles(
 		ctx,
 		orgID,
 		existingMasterProfile,
@@ -390,8 +397,6 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 		hasUserIDExisting,
 		hasExistingChildren,
 	)
-	auditMerge(ctx, orgID, existingMasterProfile.ProfileID, newProfile.ProfileID, reason, master, mergeErr)
-	return master, mergeErr
 }
 
 // auditMerge records a merge of two profiles in the audit log. The target is the profile that

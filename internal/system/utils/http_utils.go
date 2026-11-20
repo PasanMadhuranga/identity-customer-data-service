@@ -168,6 +168,9 @@ func MountTenantDispatcher(mux *http.ServeMux, handlerFunc http.HandlerFunc) {
 		remainingPath := "/" + parts[1]
 
 		basePath := prefix + orgHandle
+		// The log streams report the primary organization, also when a later check refuses the
+		// request. A sub organization path replaces it below.
+		reqctx.From(r.Context()).SetOrg(orgHandle, "")
 		ctx := context.WithValue(r.Context(), constants.TenantContextKey, orgHandle)
 		ctx = context.WithValue(ctx, constants.PrimaryOrgHandleContextKey, orgHandle)
 		if strings.HasPrefix(remainingPath, "/o/") {
@@ -199,7 +202,7 @@ func MountTenantDispatcher(mux *http.ServeMux, handlerFunc http.HandlerFunc) {
 			}
 		}
 		ctx = context.WithValue(ctx, constants.OrgBasePathContextKey, basePath)
-		// The log streams report the organization of the request.
+		// The log streams report the resolved organization of the request.
 		orgOfRequest, _ := ctx.Value(constants.TenantContextKey).(string)
 		orgIDOfRequest, _ := ctx.Value(constants.OrgIDContextKey).(string)
 		reqctx.From(ctx).SetOrg(orgOfRequest, orgIDOfRequest)

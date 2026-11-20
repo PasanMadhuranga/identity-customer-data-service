@@ -190,3 +190,19 @@ func TestEventNamesFollowTheNamingRule(t *testing.T) {
 	assert.Equal(t, "profile_consent.update", ProfileConsentUpdate.Name())
 	assert.Equal(t, "profile.sync", ProfileSync.Name())
 }
+
+func TestWrapRecordsFailureWhenHandlerPanics(t *testing.T) {
+	var out bytes.Buffer
+	defer captureOutput(&out)()
+
+	handler := Wrap(ProfileDelete, func(http.ResponseWriter, *http.Request) { panic("boom") })
+	request := httptest.NewRequest(http.MethodDelete, "/profiles/p-1", nil)
+
+	assert.PanicsWithValue(t, "boom", func() { handler(httptest.NewRecorder(), request) },
+		"Wrap continues the panic")
+	var record map[string]any
+	require.NoError(t, json.Unmarshal(out.Bytes(), &record))
+	assert.Equal(t, "profile.delete", record["event"])
+	outcome := record["outcome"].(map[string]any)
+	assert.Equal(t, "failed", outcome["result"])
+}

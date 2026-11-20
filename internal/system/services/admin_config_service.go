@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/wso2/identity-customer-data-service/internal/admin_config/handler"
+	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
@@ -42,7 +43,7 @@ func NewAdminConfigService(mux *http.ServeMux) *AdminConfigService {
 	const base = constants.APIBasePath + "/v1"
 	// Register routes with Go 1.22 ServeMux patterns on shared mux
 	s.mux.HandleFunc("GET "+base+"/config", s.handler.GetAdminConfig)
-	s.mux.HandleFunc("PATCH "+base+"/config", s.handler.UpdateAdminConfig)
+	s.mux.HandleFunc("PATCH "+base+"/config", audit.Wrap(audit.AdminConfigUpdate, s.handler.UpdateAdminConfig))
 
 	return s
 }

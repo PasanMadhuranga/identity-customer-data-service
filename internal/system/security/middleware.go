@@ -31,6 +31,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
+	"github.com/wso2/identity-customer-data-service/internal/system/reqctx"
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
@@ -58,6 +59,12 @@ func AuthnWithAdminCredentials(r *http.Request) error {
 		}, http.StatusUnauthorized)
 	}
 
+	// The deployment credentials identify a trusted back-channel caller, not a person. The record
+	// names the credential type, not the configured user name.
+	reqctx.From(r.Context()).SetActor(reqctx.Actor{
+		Type: reqctx.ActorService,
+		ID:   reqctx.ServiceAdminActorID,
+	})
 	return nil
 }
 
@@ -128,7 +135,36 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 		}, http.StatusUnauthorized)
 		return nil, clientError
 	}
+	reqctx.From(r.Context()).SetActor(actorOf(claims))
 	return claims, nil
+}
+
+// actorOf derives the actor of a request from the claims of its token. The actor is an
+// application, identified by its client ID, when the token was issued to the client itself. Else
+// it is a user, and the client ID names the application that the user acted through. The log
+// streams use the actor, so that every record of a request names the same principal.
+func actorOf(claims map[string]interface{}) reqctx.Actor {
+	subject, _ := claims[constants.SUBClaim].(string)
+	clientID, _ := claims[constants.ClientIDClaim].(string)
+	if clientID == "" {
+		clientID, _ = claims[constants.AZPClaim].(string)
+	}
+	// An introspection response can name the user by username only. A username is personal data,
+	// so the actor never holds it. It only helps to tell a user from an application.
+	username, _ := claims[constants.UsernameClaim].(string)
+	principal := subject
+	if principal == "" {
+		principal = username
+	}
+
+	tokenType, _ := claims[constants.AuthorizedUserTypeClaim].(string)
+	if strings.EqualFold(tokenType, constants.AuthorizedUserTypeApplication) ||
+		principal == "" || principal == clientID {
+		// The ID of an application actor is its client ID, so the record does not repeat it.
+		return reqctx.Actor{Type: reqctx.ActorApplication, ID: clientID}
+	}
+	// A user with no subject claim has no ID in the record.
+	return reqctx.Actor{Type: reqctx.ActorUser, ID: subject, ClientID: clientID}
 }
 
 // authorize checks the scopes of the claims against the operation.

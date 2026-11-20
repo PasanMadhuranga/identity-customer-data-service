@@ -237,3 +237,16 @@ func TestIsValidOrgHandle(t *testing.T) {
 		}
 	}
 }
+
+func TestHandleErrorWritesServerErrorForOtherErrors(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	HandleError(recorder, errors.New("plain error"))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	}
+	if !strings.Contains(recorder.Body.String(), "Internal server error") {
+		t.Errorf("body = %q, want an internal server error", recorder.Body.String())
+	}
+}

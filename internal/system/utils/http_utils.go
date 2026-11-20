@@ -33,6 +33,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	error2 "github.com/wso2/identity-customer-data-service/internal/system/errors" // Importing custom error types
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
+	"github.com/wso2/identity-customer-data-service/internal/system/reqctx"
 )
 
 // HandleError sends an HTTP error response based on the provided error
@@ -40,6 +41,7 @@ func HandleError(w http.ResponseWriter, err error) {
 	var clientError *error2.ClientError
 	w.Header().Set("Content-Type", "application/json")
 	if ok := errors.As(err, &clientError); ok {
+		recordErrorCode(w, clientError.ErrorMessage.Code)
 		w.WriteHeader(clientError.StatusCode)
 		_ = json.NewEncoder(w).Encode(struct {
 			Code        string `json:"code"`
@@ -57,11 +59,29 @@ func HandleError(w http.ResponseWriter, err error) {
 	if ok := errors.As(err, &serverError); ok {
 		logger := log.GetLogger()
 		logger.Error(err.Error())
+		recordErrorCode(w, serverError.ErrorMessage.Code)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"error": "Internal server error",
 		})
 		return
+	}
+
+	// Any other error is a server error too. Without a response, the status would be 200, and the
+	// access log and the audit log would report a success.
+	log.GetLogger().Error(err.Error())
+	w.WriteHeader(http.StatusInternalServerError)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": "Internal server error",
+	})
+}
+
+// recordErrorCode gives the CDS error code of an error response to the response recorder, when
+// the request has one. The access log and the audit log report the code as the reason of a failed
+// request.
+func recordErrorCode(w http.ResponseWriter, code string) {
+	if recorder, ok := w.(interface{ RecordErrorCode(string) }); ok {
+		recorder.RecordErrorCode(code)
 	}
 }
 
@@ -115,6 +135,7 @@ func StripTenantPrefix(path string) string {
 
 // WriteErrorResponse writes the error message as JSON with the status of the client error.
 func WriteErrorResponse(w http.ResponseWriter, err *error2.ClientError) {
+	recordErrorCode(w, err.ErrorMessage.Code)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.StatusCode)
 
@@ -155,6 +176,9 @@ func MountTenantDispatcher(mux *http.ServeMux, handlerFunc http.HandlerFunc) {
 		remainingPath := "/" + parts[1]
 
 		basePath := prefix + orgHandle
+		// The log streams report the primary organization, also when a later check refuses the
+		// request. A sub organization path replaces it below.
+		reqctx.From(r.Context()).SetOrg(orgHandle, "")
 		ctx := context.WithValue(r.Context(), constants.TenantContextKey, orgHandle)
 		ctx = context.WithValue(ctx, constants.PrimaryOrgHandleContextKey, orgHandle)
 		if strings.HasPrefix(remainingPath, "/o/") {
@@ -186,6 +210,10 @@ func MountTenantDispatcher(mux *http.ServeMux, handlerFunc http.HandlerFunc) {
 			}
 		}
 		ctx = context.WithValue(ctx, constants.OrgBasePathContextKey, basePath)
+		// The log streams report the resolved organization of the request.
+		orgOfRequest, _ := ctx.Value(constants.TenantContextKey).(string)
+		orgIDOfRequest, _ := ctx.Value(constants.OrgIDContextKey).(string)
+		reqctx.From(ctx).SetOrg(orgOfRequest, orgIDOfRequest)
 		r = r.WithContext(ctx)
 		r.URL.Path = remainingPath
 

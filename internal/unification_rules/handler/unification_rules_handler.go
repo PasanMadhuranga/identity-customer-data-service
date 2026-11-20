@@ -31,6 +31,7 @@ import (
 	adminConfigService "github.com/wso2/identity-customer-data-service/internal/admin_config/service"
 	"github.com/wso2/identity-customer-data-service/internal/identity_resolution/worker"
 	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
+	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
@@ -217,6 +218,7 @@ func (urh *UnificationRulesHandler) AddUnificationRule(w http.ResponseWriter, r 
 		return
 	}
 	addedRuleResponse := toRuleResponse(*addedRule)
+	audit.SetTargetID(ctx, addedRule.RuleID)
 
 	// Trigger reindex if rule is active.
 	if addedRule.IsActive {
@@ -577,6 +579,7 @@ func (h *UnificationRulesHandler) CreateSharingPolicy(w http.ResponseWriter, r *
 		utils.HandleError(w, err)
 		return
 	}
+	audit.SetTargetID(r.Context(), resp.ID)
 	utils.RespondJSON(w, http.StatusCreated, resp, shareHandler.PolicyResource)
 }
 

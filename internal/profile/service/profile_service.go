@@ -670,7 +670,8 @@ func hasExistingValue(v interface{}) bool {
 }
 
 func isValidType(value interface{}, expected string, multiValued bool) bool {
-	log.GetLogger().Info("Validating value type", log.String("expected", expected), log.Any("value", value))
+	// The value is personal data, so the record names only the expected type.
+	log.GetLogger().Debug("Validating value type", log.String("expected", expected))
 	switch expected {
 	case constants.StringDataType:
 		if multiValued {

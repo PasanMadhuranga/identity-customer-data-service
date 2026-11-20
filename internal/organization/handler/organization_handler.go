@@ -29,6 +29,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/organization/service"
 	shareHandler "github.com/wso2/identity-customer-data-service/internal/sharing/handler"
 	sharingService "github.com/wso2/identity-customer-data-service/internal/sharing/service"
+	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/security"
@@ -63,6 +64,9 @@ func (h *OrganizationHandler) SyncOrganization(w http.ResponseWriter, r *http.Re
 		}, http.StatusBadRequest))
 		return
 	}
+	// The target is the organization of the event, which can differ from the organization of the path.
+	audit.SetTargetID(r.Context(), event.OrgID)
+	audit.AddDetail(r.Context(), "sync_event", event.Event)
 	orgHandle := utils.ExtractOrgHandleFromPath(r)
 	log.GetLogger().Info("Received organization event " + event.Event + " for org " + event.OrgID + " through " +
 		orgHandle)
@@ -118,6 +122,7 @@ func (h *OrganizationHandler) CreateOrgAccess(w http.ResponseWriter, r *http.Req
 		utils.HandleError(w, err)
 		return
 	}
+	audit.SetTargetID(r.Context(), resp.ID)
 	utils.RespondJSON(w, http.StatusCreated, resp, orgAccessResource)
 }
 

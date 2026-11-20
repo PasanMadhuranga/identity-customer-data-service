@@ -26,6 +26,7 @@ import (
 	consentModel "github.com/wso2/identity-customer-data-service/internal/consent/model"
 	"github.com/wso2/identity-customer-data-service/internal/consent/provider"
 	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
+	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	"github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"github.com/wso2/identity-customer-data-service/internal/system/security"
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
@@ -101,6 +102,8 @@ func (h *ConsentCategoryHandler) AddConsentCategory(w http.ResponseWriter, r *ht
 		utils.HandleError(w, err)
 		return
 	}
+
+	audit.SetTargetID(ctx, consentCat.CategoryIdentifier)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

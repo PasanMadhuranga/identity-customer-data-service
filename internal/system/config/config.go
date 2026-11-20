@@ -25,9 +25,82 @@ type AddrConfig struct {
 	Host string `yaml:"host"`
 }
 
-// LogConfig holds the logging settings.
+// LogConfig configures the three log types of CDS: the application log (app), the access log
+// (access), and the audit log (audit). Each log type has two outputs: console and file.
+//
+// The keys of an output come from the block of the log type, then from log.outputs, then from the
+// built-in default. With no log block, all log types write text records to the console.
 type LogConfig struct {
+	// LogLevel is the minimum level of the application log. App.Level takes precedence. This key
+	// stays valid, so that existing deployment files keep working.
 	LogLevel string `yaml:"log_level"`
+	// Outputs holds the default output keys for all log types.
+	Outputs LogOutputsConfig `yaml:"outputs"`
+	// App configures the application log.
+	App AppLogConfig `yaml:"app"`
+	// Access configures the access log.
+	Access AccessLogConfig `yaml:"access"`
+	// Audit configures the audit log.
+	Audit AuditLogConfig `yaml:"audit"`
+}
+
+// LogOutputsConfig holds the outputs of a log type, or the defaults for all log types.
+type LogOutputsConfig struct {
+	// Console writes the records to standard output.
+	Console LogConsoleConfig `yaml:"console"`
+	// File writes the records to a rotating file.
+	File LogFileConfig `yaml:"file"`
+}
+
+// LogConsoleConfig configures the console output.
+type LogConsoleConfig struct {
+	// Enabled turns the output on. The default is true.
+	Enabled *bool `yaml:"enabled"`
+	// Format is the record format: "text" or "json". The default is "text".
+	Format string `yaml:"format"`
+}
+
+// LogFileConfig configures the file output.
+type LogFileConfig struct {
+	// Enabled turns the output on. The default is false.
+	Enabled *bool `yaml:"enabled"`
+	// Format is the record format: "text" or "json". The default is "json".
+	Format string `yaml:"format"`
+	// Name is the name of the file. It is valid only in the block of a log type. The defaults are
+	// cds.log, http_access.log, and audit.log.
+	Name string `yaml:"name"`
+	// Dir is the directory of the file, relative to CDS_HOME unless absolute. The default is
+	// repository/logs.
+	Dir string `yaml:"dir"`
+	// MaxSizeMB is the size at which the file rotates. The file also rotates each day. The default
+	// is 10.
+	MaxSizeMB int `yaml:"max_size_mb"`
+	// MaxBackups is the number of rotated files to keep. The default is 20.
+	MaxBackups int `yaml:"max_backups"`
+}
+
+// AppLogConfig configures the application log.
+type AppLogConfig struct {
+	// Level is the minimum level: DEBUG, INFO, WARN, or ERROR. The default is INFO.
+	Level string `yaml:"level"`
+	// Outputs overrides the default outputs.
+	Outputs LogOutputsConfig `yaml:"outputs"`
+}
+
+// AccessLogConfig configures the access log.
+type AccessLogConfig struct {
+	// Enabled turns the access log on. The default is true.
+	Enabled *bool `yaml:"enabled"`
+	// Outputs overrides the default outputs.
+	Outputs LogOutputsConfig `yaml:"outputs"`
+}
+
+// AuditLogConfig configures the audit log. Its records are always JSON.
+type AuditLogConfig struct {
+	// Enabled turns the audit log on. The default is true.
+	Enabled *bool `yaml:"enabled"`
+	// Outputs overrides the default outputs. A format other than "json" is refused.
+	Outputs LogOutputsConfig `yaml:"outputs"`
 }
 
 // AuthConfig holds the settings for cross-origin requests.

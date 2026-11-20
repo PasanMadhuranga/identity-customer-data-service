@@ -83,6 +83,17 @@ const SUBClaim = "sub"
 // ClientIDClaim is the token claim that names the client application.
 const ClientIDClaim = "client_id"
 
+// UsernameClaim names the user in an introspection response.
+const UsernameClaim = "username"
+
+// AuthorizedUserTypeClaim tells whether a token was issued to an application or to a user of an
+// application.
+const AuthorizedUserTypeClaim = "aut"
+
+// AuthorizedUserTypeApplication is the AuthorizedUserTypeClaim value of a token that an application
+// got for itself.
+const AuthorizedUserTypeApplication = "APPLICATION"
+
 // ActiveClaim is the introspection response field that says whether a token is active.
 const ActiveClaim = "active"
 

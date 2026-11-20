@@ -26,6 +26,7 @@ cloud:
       config:
         env: "dev"
         logLevel: "DEBUG" # Log level: "INFO", "WARN", "ERROR", "DEBUG"
+        logFormat: "text" # Record format on the console for the application log and the access log: "text", "json"
         cache:
           enabled: true
           defaultCacheTimeout: 15

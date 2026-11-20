@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/wso2/identity-customer-data-service/internal/service_credentials/handler"
+	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 )
 
@@ -40,7 +41,8 @@ func NewServiceCredentialsService(mux *http.ServeMux) *ServiceCredentialsService
 	}
 
 	const base = constants.APIBasePath + "/v1"
-	s.mux.HandleFunc("POST "+base+"/service-credentials/sync", s.handler.SyncServiceCredentials)
+	s.mux.HandleFunc("POST "+base+"/service-credentials/sync",
+		audit.Wrap(audit.ServiceCredentialsSync, s.handler.SyncServiceCredentials))
 
 	return s
 }

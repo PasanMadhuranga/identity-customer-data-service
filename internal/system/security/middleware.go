@@ -139,7 +139,8 @@ func authenticate(r *http.Request) (map[string]interface{}, error) {
 }
 
 // actorOf derives the actor of a request from the claims of its token. The actor is an
-// application when the token was issued to the client itself, and a user otherwise. The log
+// application, identified by its client ID, when the token was issued to the client itself. Else
+// it is a user, and the client ID names the application that the user acted through. The log
 // streams use the actor, so that every record of a request names the same principal.
 func actorOf(claims map[string]interface{}) reqctx.Actor {
 	subject, _ := claims[constants.SUBClaim].(string)
@@ -158,7 +159,8 @@ func actorOf(claims map[string]interface{}) reqctx.Actor {
 	tokenType, _ := claims[constants.AuthorizedUserTypeClaim].(string)
 	if strings.EqualFold(tokenType, constants.AuthorizedUserTypeApplication) ||
 		subject == "" || subject == clientID {
-		return reqctx.Actor{Type: reqctx.ActorApplication, ID: clientID, ClientID: clientID}
+		// The ID of an application actor is its client ID, so the record does not repeat it.
+		return reqctx.Actor{Type: reqctx.ActorApplication, ID: clientID}
 	}
 	return reqctx.Actor{Type: reqctx.ActorUser, ID: subject, ClientID: clientID}
 }

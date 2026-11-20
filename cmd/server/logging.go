@@ -75,9 +75,8 @@ func setupLogging(cdsHome string, cfg config.LogConfig) (*logStreams, error) {
 	}
 
 	if err := audit.Init(audit.Options{
-		Enabled:    enabledByDefault(cfg.Audit.Enabled),
-		ReadEvents: cfg.Audit.ReadEvents,
-		Output:     logOutput(cdsHome, cfg.Outputs, cfg.Audit.Outputs, auditLogFileName),
+		Enabled: enabledByDefault(cfg.Audit.Enabled),
+		Output:  logOutput(cdsHome, cfg.Outputs, cfg.Audit.Outputs, auditLogFileName),
 	}); err != nil {
 		return nil, err
 	}

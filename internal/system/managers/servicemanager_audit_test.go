@@ -74,3 +74,30 @@ func TestDeniedRequestIsAudited(t *testing.T) {
 	assert.Equal(t, "denied", outcome["result"])
 	assert.Equal(t, "unauthenticated", outcome["reason"])
 }
+
+// CDS audits only the operations that change data. A read request has no audit record, also when
+// it is denied.
+func TestReadRequestIsNotAudited(t *testing.T) {
+	config.OverrideCDSRuntime(config.Config{})
+	auditPath := filepath.Join(t.TempDir(), "audit.log")
+	require.NoError(t, audit.Init(audit.Options{
+		Enabled: true,
+		Output:  log.OutputOptions{File: log.FileOutput(auditPath)},
+	}))
+	defer func() { _ = audit.Init(audit.Options{}) }()
+
+	mux := http.NewServeMux()
+	require.NoError(t, NewServiceManager(mux).RegisterServices())
+	handler := httpmw.RequestContext(mux)
+
+	for _, path := range []string{"/profiles/p-1", "/profiles", "/consent-categories", "/config"} {
+		request := httptest.NewRequest(http.MethodGet, "/t/carbon.super/cds/api/v1"+path, nil)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		require.Equal(t, http.StatusUnauthorized, response.Code, path)
+	}
+
+	content, err := os.ReadFile(auditPath) // #nosec G304 -- the test reads a file in its temporary directory.
+	require.NoError(t, err)
+	assert.Empty(t, bytes.TrimSpace(content))
+}

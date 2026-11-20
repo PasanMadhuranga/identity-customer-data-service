@@ -45,14 +45,11 @@ func NewUnificationRulesService(mux *http.ServeMux) *UnificationRulesService {
 
 	const base = constants.APIBasePath + "/v1"
 	// Register routes using Go 1.22 ServeMux patterns on shared mux
-	s.mux.HandleFunc("GET "+base+"/unification-rules/options",
-		audit.Wrap(audit.UnificationRuleOptionList, s.unificationRulesHandler.GetUnificationOptions))
+	s.mux.HandleFunc("GET "+base+"/unification-rules/options", s.unificationRulesHandler.GetUnificationOptions)
 	s.mux.HandleFunc("POST "+base+"/unification-rules",
 		audit.Wrap(audit.UnificationRuleCreate, s.unificationRulesHandler.AddUnificationRule))
-	s.mux.HandleFunc("GET "+base+"/unification-rules",
-		audit.Wrap(audit.UnificationRuleList, s.unificationRulesHandler.GetUnificationRules))
-	s.mux.HandleFunc("GET "+base+"/unification-rules/{ruleId}",
-		audit.Wrap(audit.UnificationRuleRead, s.unificationRulesHandler.GetUnificationRule))
+	s.mux.HandleFunc("GET "+base+"/unification-rules", s.unificationRulesHandler.GetUnificationRules)
+	s.mux.HandleFunc("GET "+base+"/unification-rules/{ruleId}", s.unificationRulesHandler.GetUnificationRule)
 	s.mux.HandleFunc("PATCH "+base+"/unification-rules/{ruleId}",
 		audit.Wrap(audit.UnificationRuleUpdate, s.unificationRulesHandler.PatchUnificationRule))
 	s.mux.HandleFunc("DELETE "+base+"/unification-rules/{ruleId}",
@@ -62,10 +59,8 @@ func NewUnificationRulesService(mux *http.ServeMux) *UnificationRulesService {
 		const policies = base + "/unification-rules/{ruleId}/sharing-policies"
 		s.mux.HandleFunc("POST "+policies,
 			audit.Wrap(audit.UnificationRuleSharingPolicyCreate, s.unificationRulesHandler.CreateSharingPolicy))
-		s.mux.HandleFunc("GET "+policies,
-			audit.Wrap(audit.UnificationRuleSharingPolicyList, s.unificationRulesHandler.ListSharingPolicies))
-		s.mux.HandleFunc("GET "+policies+"/{policyId}",
-			audit.Wrap(audit.UnificationRuleSharingPolicyRead, s.unificationRulesHandler.GetSharingPolicy))
+		s.mux.HandleFunc("GET "+policies, s.unificationRulesHandler.ListSharingPolicies)
+		s.mux.HandleFunc("GET "+policies+"/{policyId}", s.unificationRulesHandler.GetSharingPolicy)
 		s.mux.HandleFunc("PUT "+policies+"/{policyId}",
 			audit.Wrap(audit.UnificationRuleSharingPolicyUpdate, s.unificationRulesHandler.UpdateSharingPolicy))
 		s.mux.HandleFunc("DELETE "+policies+"/{policyId}",

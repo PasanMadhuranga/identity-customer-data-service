@@ -38,8 +38,6 @@ log:
   # Audit log: who did what to which resource, with what outcome. The records are always JSON.
   audit:
     enabled: true
-    # Also record the read operations that succeeded. A denied attempt is always recorded.
-    read_events: false
     outputs:
       file:
         name: "audit.log"

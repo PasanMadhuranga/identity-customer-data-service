@@ -44,7 +44,7 @@ func NewProfileSchemaService(mux *http.ServeMux) *ProfileSchemaService {
 
 	const base = constants.APIBasePath + "/v1"
 	// Register routes using Go 1.22 ServeMux patterns on shared mux
-	s.mux.HandleFunc("GET "+base+"/profile-schema", audit.Wrap(audit.ProfileSchemaRead, s.handler.GetProfileSchema))
+	s.mux.HandleFunc("GET "+base+"/profile-schema", s.handler.GetProfileSchema)
 	s.mux.HandleFunc("DELETE "+base+"/profile-schema",
 		audit.Wrap(audit.ProfileSchemaDelete, s.handler.DeleteProfileSchema))
 	s.mux.HandleFunc("POST "+base+"/profile-schema/sync",
@@ -53,14 +53,12 @@ func NewProfileSchemaService(mux *http.ServeMux) *ProfileSchemaService {
 	// Scope-level
 	s.mux.HandleFunc("POST "+base+"/profile-schema/{scope}",
 		audit.Wrap(audit.ProfileSchemaAttributeCreate, s.handler.AddProfileSchemaAttributesForScope))
-	s.mux.HandleFunc("GET "+base+"/profile-schema/{scope}",
-		audit.Wrap(audit.ProfileSchemaAttributeList, s.handler.GetProfileSchemaAttributeForScope))
+	s.mux.HandleFunc("GET "+base+"/profile-schema/{scope}", s.handler.GetProfileSchemaAttributeForScope)
 	s.mux.HandleFunc("DELETE "+base+"/profile-schema/{scope}",
 		audit.Wrap(audit.ProfileSchemaAttributeDelete, s.handler.DeleteProfileSchemaAttributeForScope))
 
 	// Attribute-level (preserve original verb mapping)
-	s.mux.HandleFunc("GET "+base+"/profile-schema/{scope}/{attrID}",
-		audit.Wrap(audit.ProfileSchemaAttributeRead, s.handler.GetProfileSchemaAttributeByID))
+	s.mux.HandleFunc("GET "+base+"/profile-schema/{scope}/{attrID}", s.handler.GetProfileSchemaAttributeByID)
 	s.mux.HandleFunc("PUT "+base+"/profile-schema/{scope}/{attrID}",
 		audit.Wrap(audit.ProfileSchemaAttributeUpdate, s.handler.PatchProfileSchemaAttributeByID))
 	s.mux.HandleFunc("DELETE "+base+"/profile-schema/{scope}/{attrID}",
@@ -70,10 +68,8 @@ func NewProfileSchemaService(mux *http.ServeMux) *ProfileSchemaService {
 		const policies = base + "/profile-schema/{scope}/{attrID}/sharing-policies"
 		s.mux.HandleFunc("POST "+policies,
 			audit.Wrap(audit.ProfileSchemaSharingPolicyCreate, s.handler.CreateSharingPolicy))
-		s.mux.HandleFunc("GET "+policies,
-			audit.Wrap(audit.ProfileSchemaSharingPolicyList, s.handler.ListSharingPolicies))
-		s.mux.HandleFunc("GET "+policies+"/{policyId}",
-			audit.Wrap(audit.ProfileSchemaSharingPolicyRead, s.handler.GetSharingPolicy))
+		s.mux.HandleFunc("GET "+policies, s.handler.ListSharingPolicies)
+		s.mux.HandleFunc("GET "+policies+"/{policyId}", s.handler.GetSharingPolicy)
 		s.mux.HandleFunc("PUT "+policies+"/{policyId}",
 			audit.Wrap(audit.ProfileSchemaSharingPolicyUpdate, s.handler.UpdateSharingPolicy))
 		s.mux.HandleFunc("DELETE "+policies+"/{policyId}",

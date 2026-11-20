@@ -62,9 +62,6 @@ const (
 type Options struct {
 	// Enabled turns the audit log on.
 	Enabled bool
-	// ReadEvents also records the read and list operations that succeeded. A denied attempt is
-	// always recorded.
-	ReadEvents bool
 	// Output selects the destinations.
 	Output log.OutputOptions
 }
@@ -81,11 +78,10 @@ type Entry struct {
 }
 
 type auditor struct {
-	mu         sync.Mutex
-	out        io.Writer
-	closer     io.Closer
-	enabled    bool
-	readEvents bool
+	mu      sync.Mutex
+	out     io.Writer
+	closer  io.Closer
+	enabled bool
 }
 
 var current = &auditor{}
@@ -100,7 +96,7 @@ func Init(opts Options) error {
 			return err
 		}
 	}
-	setOutput(out, closer, opts.Enabled, opts.ReadEvents)
+	setOutput(out, closer, opts.Enabled)
 	return nil
 }
 
@@ -117,13 +113,13 @@ func Close() error {
 	return err
 }
 
-func setOutput(out io.Writer, closer io.Closer, enabled, readEvents bool) {
+func setOutput(out io.Writer, closer io.Closer, enabled bool) {
 	current.mu.Lock()
 	defer current.mu.Unlock()
 	if current.closer != nil {
 		_ = current.closer.Close()
 	}
-	current.out, current.closer, current.enabled, current.readEvents = out, closer, enabled, readEvents
+	current.out, current.closer, current.enabled = out, closer, enabled
 }
 
 // Log records an operation with no HTTP request. The actor is the actor of the request in ctx,
@@ -144,21 +140,18 @@ func Log(ctx context.Context, entry Entry) {
 	write(info, entry.Event, actor, handle, orgID, entry.TargetID, entry.Outcome, entry.Details)
 }
 
-// shouldRecord applies the recording rules: the audit log must be on, and a read operation is
-// recorded only when read events are on or when the attempt was denied.
-func shouldRecord(event Event, result Result) bool {
+// shouldRecord reports whether the audit log is on. CDS audits only the operations that change
+// data, so every event in the catalog is recorded.
+func shouldRecord() bool {
 	current.mu.Lock()
 	defer current.mu.Unlock()
-	if !current.enabled {
-		return false
-	}
-	return !event.IsRead() || current.readEvents || result == ResultDenied
+	return current.enabled
 }
 
 // write builds the record and writes it as one JSON line in one Write call.
 func write(info *reqctx.Info, event Event, actor reqctx.Actor, orgHandle, orgID, targetID string,
 	outcome Outcome, details map[string]any) {
-	if !shouldRecord(event, outcome.Result) {
+	if !shouldRecord() {
 		return
 	}
 	rec := record{

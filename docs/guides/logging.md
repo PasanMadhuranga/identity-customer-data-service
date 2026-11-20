@@ -42,7 +42,6 @@ log:
         name: "http_access.log"
   audit:
     enabled: true
-    read_events: false         # Also record the read operations that succeeded
     outputs:
       file:
         name: "audit.log"
@@ -58,7 +57,6 @@ CDS finds the value of an output key in this sequence:
 |---|---|---|
 | `log.app.level` | `app` only | `INFO` |
 | `log.<type>.enabled` | `access`, `audit` | `true` |
-| `log.audit.read_events` | `audit` only | `false` |
 | `outputs.console.enabled` | `log.outputs` and each type | `true` |
 | `outputs.console.format` | `log.outputs` and each type | `text` |
 | `outputs.file.enabled` | `log.outputs` and each type | `false` |
@@ -157,11 +155,11 @@ Each audit record is one JSON line.
 | `schema_version` | Version of the record. It changes only when a field is removed or changes meaning. |
 | `id` | Unique ID of the record. |
 | `event` | `<target.type>.<action>` |
-| `action` | `create`, `read`, `list`, `update`, `delete`, `sync`, `link`, `merge`, `resolve` |
+| `action` | `create`, `update`, `delete`, `sync`, `link`, `merge`, `resolve` |
 | `org` | Organization of the request: `handle`, and `id` for a sub organization path or a worker operation. |
 | `actor.type` | `user`, `application`, `service` (the deployment credentials), `system` (CDS itself), `anonymous` |
-| `actor.id` | Token subject, client ID, or service account. Absent for `anonymous`. |
-| `actor.client_id` | OAuth client that the actor used. |
+| `actor.id` | Token subject (`user`), client ID (`application`), or service account (`service`). Absent for `anonymous`. |
+| `actor.client_id` | Only for a `user` actor: the OAuth client (application) that the user acted through. |
 | `target` | Resource type, and the resource ID when the operation has one target. |
 | `outcome.result` | `succeeded`, `denied` (authentication or authorization refused it), `failed` |
 | `outcome.reason` | Stable code: `unauthenticated`, `forbidden`, the CDS error code of the response, `client_error`, or `server_error`. Absent on success. |
@@ -173,9 +171,9 @@ An audit record does not hold personal data. It names a resource by ID, and it d
 
 ### Recording rules
 
-1. A write operation is recorded for every outcome.
-2. A read operation (`read`, `list`) is recorded only when `log.audit.read_events` is `true`.
-3. A denied attempt is always recorded.
+1. CDS audits only the operations that change data. A read or list operation has no audit record, also when it is
+   denied. The access log records every request, reads included.
+2. An audited operation is recorded for every outcome: succeeded, denied, or failed.
 
 ### Events
 
@@ -184,26 +182,20 @@ Profiles:
 | Event | Operation | Details |
 |---|---|---|
 | `profile.create` | `POST /profiles` | |
-| `profile.list` | `GET /profiles` | |
-| `profile.read` | `GET /profiles/{profileId}` | |
 | `profile.update` | `PATCH /profiles/{profileId}` | |
 | `profile.delete` | `DELETE /profiles/{profileId}` | |
 | `profile.sync` | `POST /profiles/sync` | `sync_event` |
 | `profile.link` | `POST /profiles/link` | `user_id` |
 | `profile.merge` | Profile unification (worker or approved review task) | `merged_profile_ids`, `reason` |
-| `profile_consent.read` | `GET /profiles/{profileId}/consents` | |
 | `profile_consent.update` | `PUT /profiles/{profileId}/consents` | |
 
 Profile schema:
 
 | Event | Operation | Details |
 |---|---|---|
-| `profile_schema.read` | `GET /profile-schema` | |
 | `profile_schema.delete` | `DELETE /profile-schema` | |
 | `profile_schema.sync` | `POST /profile-schema/sync` | |
 | `profile_schema_attribute.create` | `POST /profile-schema/{scope}` | `scope` |
-| `profile_schema_attribute.list` | `GET /profile-schema/{scope}` | `scope` |
-| `profile_schema_attribute.read` | `GET /profile-schema/{scope}/{attrID}` | `scope` |
 | `profile_schema_attribute.update` | `PUT /profile-schema/{scope}/{attrID}` | `scope` |
 | `profile_schema_attribute.delete` | `DELETE /profile-schema/{scope}/{attrID}`, `DELETE /profile-schema/{scope}` | `scope` |
 | `profile_schema_sharing_policy.<action>` | `/profile-schema/{scope}/{attrID}/sharing-policies` | `scope`, `attribute_id` |
@@ -213,11 +205,8 @@ Unification rules:
 | Event | Operation | Details |
 |---|---|---|
 | `unification_rule.create` | `POST /unification-rules` | |
-| `unification_rule.list` | `GET /unification-rules` | |
-| `unification_rule.read` | `GET /unification-rules/{ruleId}` | |
 | `unification_rule.update` | `PATCH /unification-rules/{ruleId}` | |
 | `unification_rule.delete` | `DELETE /unification-rules/{ruleId}` | |
-| `unification_rule_option.list` | `GET /unification-rules/options` | |
 | `unification_rule_sharing_policy.<action>` | `/unification-rules/{ruleId}/sharing-policies` | `rule_id` |
 
 Consent, configuration, identity resolution, and organizations:
@@ -225,17 +214,12 @@ Consent, configuration, identity resolution, and organizations:
 | Event | Operation | Details |
 |---|---|---|
 | `consent_category.create` | `POST /consent-categories` | |
-| `consent_category.list` | `GET /consent-categories` | |
-| `consent_category.read` | `GET /consent-categories/{categoryId}` | |
 | `consent_category.update` | `PUT /consent-categories/{categoryId}` | |
 | `consent_category.delete` | `DELETE /consent-categories/{categoryId}` | |
-| `admin_config.read` | `GET /config` | |
 | `admin_config.update` | `PATCH /config` | |
-| `review_task.list` | `GET /identity-resolution/review-tasks` | |
 | `review_task.resolve` | `POST /identity-resolution/review-tasks/{taskId}/resolve` | `decision` |
 | `organization.sync` | `POST /organizations/event-sync` | |
 | `organization_tree.sync` | `POST /organizations/sync` | |
-| `organization_tree.read` | `GET /organizations/sync-status` | |
 | `organization_access_policy.<action>` | `/organizations/access-policies` | |
 | `service_credentials.sync` | `POST /service-credentials/sync` | |
 

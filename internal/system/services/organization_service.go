@@ -51,15 +51,13 @@ func NewOrganizationService(mux *http.ServeMux) *OrganizationService {
 		audit.Wrap(audit.OrganizationSync, s.organizations.SyncOrganization))
 	s.mux.HandleFunc("POST "+base+"/organizations/sync",
 		audit.Wrap(audit.OrganizationTreeSync, s.organizations.StartTreeSync))
-	s.mux.HandleFunc("GET "+base+"/organizations/sync-status",
-		audit.Wrap(audit.OrganizationTreeRead, s.organizations.GetTreeSync))
+	s.mux.HandleFunc("GET "+base+"/organizations/sync-status", s.organizations.GetTreeSync)
 
 	const orgAccess = base + "/organizations/access-policies"
 	s.mux.HandleFunc("POST "+orgAccess,
 		audit.Wrap(audit.OrganizationAccessPolicyCreate, s.organizations.CreateOrgAccess))
-	s.mux.HandleFunc("GET "+orgAccess, audit.Wrap(audit.OrganizationAccessPolicyList, s.organizations.ListOrgAccess))
-	s.mux.HandleFunc("GET "+orgAccess+"/{orgPolicyId}",
-		audit.Wrap(audit.OrganizationAccessPolicyRead, s.organizations.GetOrgAccess))
+	s.mux.HandleFunc("GET "+orgAccess, s.organizations.ListOrgAccess)
+	s.mux.HandleFunc("GET "+orgAccess+"/{orgPolicyId}", s.organizations.GetOrgAccess)
 	s.mux.HandleFunc("PUT "+orgAccess+"/{orgPolicyId}",
 		audit.Wrap(audit.OrganizationAccessPolicyUpdate, s.organizations.UpdateOrgAccess))
 	s.mux.HandleFunc("DELETE "+orgAccess+"/{orgPolicyId}",

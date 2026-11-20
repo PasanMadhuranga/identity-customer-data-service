@@ -25,8 +25,6 @@ type Action string
 // The actions. An event name ends with one of these.
 const (
 	ActionCreate  Action = "create"
-	ActionRead    Action = "read"
-	ActionList    Action = "list"
 	ActionUpdate  Action = "update"
 	ActionDelete  Action = "delete"
 	ActionSync    Action = "sync"
@@ -43,7 +41,6 @@ const (
 	TargetProfileSchemaAttribute       = "profile_schema_attribute"
 	TargetProfileSchemaSharingPolicy   = "profile_schema_sharing_policy"
 	TargetUnificationRule              = "unification_rule"
-	TargetUnificationRuleOption        = "unification_rule_option"
 	TargetUnificationRuleSharingPolicy = "unification_rule_sharing_policy"
 	TargetConsentCategory              = "consent_category"
 	TargetAdminConfig                  = "admin_config"
@@ -73,38 +70,25 @@ func (e Event) Name() string {
 	return e.TargetType + "." + string(e.Action)
 }
 
-// IsRead reports whether the operation only reads data.
-func (e Event) IsRead() bool {
-	return e.Action == ActionRead || e.Action == ActionList
-}
-
 // The event catalog. Each operation of CDS has one event. The routes and the workers use these
 // variables, so the catalog is the one place that defines what CDS audits.
 var (
 	// Profiles.
 	ProfileCreate = Event{TargetType: TargetProfile, Action: ActionCreate}
-	ProfileList   = Event{TargetType: TargetProfile, Action: ActionList}
-	ProfileRead   = Event{TargetType: TargetProfile, Action: ActionRead, IDParam: "profileId"}
 	ProfileUpdate = Event{TargetType: TargetProfile, Action: ActionUpdate, IDParam: "profileId"}
 	ProfileDelete = Event{TargetType: TargetProfile, Action: ActionDelete, IDParam: "profileId"}
 	ProfileSync   = Event{TargetType: TargetProfile, Action: ActionSync}
 	ProfileLink   = Event{TargetType: TargetProfile, Action: ActionLink}
 	ProfileMerge  = Event{TargetType: TargetProfile, Action: ActionMerge}
 
-	ProfileConsentRead   = Event{TargetType: TargetProfileConsent, Action: ActionRead, IDParam: "profileId"}
 	ProfileConsentUpdate = Event{TargetType: TargetProfileConsent, Action: ActionUpdate, IDParam: "profileId"}
 
 	// Profile schema.
-	ProfileSchemaRead   = Event{TargetType: TargetProfileSchema, Action: ActionRead}
 	ProfileSchemaDelete = Event{TargetType: TargetProfileSchema, Action: ActionDelete}
 	ProfileSchemaSync   = Event{TargetType: TargetProfileSchema, Action: ActionSync}
 
 	ProfileSchemaAttributeCreate = Event{TargetType: TargetProfileSchemaAttribute, Action: ActionCreate,
 		DetailParams: []string{"scope"}}
-	ProfileSchemaAttributeList = Event{TargetType: TargetProfileSchemaAttribute, Action: ActionList,
-		DetailParams: []string{"scope"}}
-	ProfileSchemaAttributeRead = Event{TargetType: TargetProfileSchemaAttribute, Action: ActionRead,
-		IDParam: "attrID", DetailParams: []string{"scope"}}
 	ProfileSchemaAttributeUpdate = Event{TargetType: TargetProfileSchemaAttribute, Action: ActionUpdate,
 		IDParam: "attrID", DetailParams: []string{"scope"}}
 	// ProfileSchemaAttributeDelete deletes one attribute, or all attributes of a scope when the
@@ -114,29 +98,18 @@ var (
 
 	ProfileSchemaSharingPolicyCreate = Event{TargetType: TargetProfileSchemaSharingPolicy, Action: ActionCreate,
 		DetailParams: []string{"scope", "attrID"}}
-	ProfileSchemaSharingPolicyList = Event{TargetType: TargetProfileSchemaSharingPolicy, Action: ActionList,
-		DetailParams: []string{"scope", "attrID"}}
-	ProfileSchemaSharingPolicyRead = Event{TargetType: TargetProfileSchemaSharingPolicy, Action: ActionRead,
-		IDParam: "policyId", DetailParams: []string{"scope", "attrID"}}
 	ProfileSchemaSharingPolicyUpdate = Event{TargetType: TargetProfileSchemaSharingPolicy, Action: ActionUpdate,
 		IDParam: "policyId", DetailParams: []string{"scope", "attrID"}}
 	ProfileSchemaSharingPolicyDelete = Event{TargetType: TargetProfileSchemaSharingPolicy, Action: ActionDelete,
 		IDParam: "policyId", DetailParams: []string{"scope", "attrID"}}
 
 	// Unification rules.
-	UnificationRuleCreate     = Event{TargetType: TargetUnificationRule, Action: ActionCreate}
-	UnificationRuleList       = Event{TargetType: TargetUnificationRule, Action: ActionList}
-	UnificationRuleRead       = Event{TargetType: TargetUnificationRule, Action: ActionRead, IDParam: "ruleId"}
-	UnificationRuleUpdate     = Event{TargetType: TargetUnificationRule, Action: ActionUpdate, IDParam: "ruleId"}
-	UnificationRuleDelete     = Event{TargetType: TargetUnificationRule, Action: ActionDelete, IDParam: "ruleId"}
-	UnificationRuleOptionList = Event{TargetType: TargetUnificationRuleOption, Action: ActionList}
+	UnificationRuleCreate = Event{TargetType: TargetUnificationRule, Action: ActionCreate}
+	UnificationRuleUpdate = Event{TargetType: TargetUnificationRule, Action: ActionUpdate, IDParam: "ruleId"}
+	UnificationRuleDelete = Event{TargetType: TargetUnificationRule, Action: ActionDelete, IDParam: "ruleId"}
 
 	UnificationRuleSharingPolicyCreate = Event{TargetType: TargetUnificationRuleSharingPolicy,
 		Action: ActionCreate, DetailParams: []string{"ruleId"}}
-	UnificationRuleSharingPolicyList = Event{TargetType: TargetUnificationRuleSharingPolicy,
-		Action: ActionList, DetailParams: []string{"ruleId"}}
-	UnificationRuleSharingPolicyRead = Event{TargetType: TargetUnificationRuleSharingPolicy,
-		Action: ActionRead, IDParam: "policyId", DetailParams: []string{"ruleId"}}
 	UnificationRuleSharingPolicyUpdate = Event{TargetType: TargetUnificationRuleSharingPolicy,
 		Action: ActionUpdate, IDParam: "policyId", DetailParams: []string{"ruleId"}}
 	UnificationRuleSharingPolicyDelete = Event{TargetType: TargetUnificationRuleSharingPolicy,
@@ -144,28 +117,20 @@ var (
 
 	// Consent categories.
 	ConsentCategoryCreate = Event{TargetType: TargetConsentCategory, Action: ActionCreate}
-	ConsentCategoryList   = Event{TargetType: TargetConsentCategory, Action: ActionList}
-	ConsentCategoryRead   = Event{TargetType: TargetConsentCategory, Action: ActionRead, IDParam: "categoryId"}
 	ConsentCategoryUpdate = Event{TargetType: TargetConsentCategory, Action: ActionUpdate, IDParam: "categoryId"}
 	ConsentCategoryDelete = Event{TargetType: TargetConsentCategory, Action: ActionDelete, IDParam: "categoryId"}
 
 	// Admin configuration.
-	AdminConfigRead   = Event{TargetType: TargetAdminConfig, Action: ActionRead}
 	AdminConfigUpdate = Event{TargetType: TargetAdminConfig, Action: ActionUpdate}
 
 	// Identity resolution.
-	ReviewTaskList    = Event{TargetType: TargetReviewTask, Action: ActionList}
 	ReviewTaskResolve = Event{TargetType: TargetReviewTask, Action: ActionResolve, IDParam: "taskId"}
 
 	// Organizations.
 	OrganizationSync     = Event{TargetType: TargetOrganization, Action: ActionSync}
 	OrganizationTreeSync = Event{TargetType: TargetOrganizationTree, Action: ActionSync}
-	OrganizationTreeRead = Event{TargetType: TargetOrganizationTree, Action: ActionRead}
 
 	OrganizationAccessPolicyCreate = Event{TargetType: TargetOrganizationAccessPolicy, Action: ActionCreate}
-	OrganizationAccessPolicyList   = Event{TargetType: TargetOrganizationAccessPolicy, Action: ActionList}
-	OrganizationAccessPolicyRead   = Event{TargetType: TargetOrganizationAccessPolicy, Action: ActionRead,
-		IDParam: "orgPolicyId"}
 	OrganizationAccessPolicyUpdate = Event{TargetType: TargetOrganizationAccessPolicy, Action: ActionUpdate,
 		IDParam: "orgPolicyId"}
 	OrganizationAccessPolicyDelete = Event{TargetType: TargetOrganizationAccessPolicy, Action: ActionDelete,

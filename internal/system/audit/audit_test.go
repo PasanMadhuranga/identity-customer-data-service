@@ -36,25 +36,25 @@ import (
 
 // captureOutput sends the audit records to out and returns a function that restores the earlier
 // state.
-func captureOutput(out io.Writer, readEvents bool) (restore func()) {
+func captureOutput(out io.Writer) (restore func()) {
 	current.mu.Lock()
 	defer current.mu.Unlock()
-	prevOut, prevCloser, prevEnabled, prevRead := current.out, current.closer, current.enabled, current.readEvents
-	current.out, current.closer, current.enabled, current.readEvents = out, nil, true, readEvents
+	prevOut, prevCloser, prevEnabled := current.out, current.closer, current.enabled
+	current.out, current.closer, current.enabled = out, nil, true
 	return func() {
 		current.mu.Lock()
 		defer current.mu.Unlock()
-		current.out, current.closer, current.enabled, current.readEvents = prevOut, prevCloser, prevEnabled, prevRead
+		current.out, current.closer, current.enabled = prevOut, prevCloser, prevEnabled
 	}
 }
 
 // serve sends one request through the request context middleware and a route that Wrap audits.
 // It returns the audit records that the request wrote.
-func serve(t *testing.T, readEvents bool, method, pattern, target string, event Event,
+func serve(t *testing.T, method, pattern, target string, event Event,
 	handler http.HandlerFunc) []map[string]any {
 	t.Helper()
 	var out bytes.Buffer
-	defer captureOutput(&out, readEvents)()
+	defer captureOutput(&out)()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(method+" "+pattern, Wrap(event, handler))
@@ -83,7 +83,7 @@ func authenticated(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func TestWrapRecordsSucceededWrite(t *testing.T) {
-	records := serve(t, false, "DELETE", "/profiles/{profileId}", "/profiles/p-1?token=secret", ProfileDelete,
+	records := serve(t, "DELETE", "/profiles/{profileId}", "/profiles/p-1?token=secret", ProfileDelete,
 		authenticated(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
 
 	require.Len(t, records, 1)
@@ -104,7 +104,7 @@ func TestWrapRecordsSucceededWrite(t *testing.T) {
 }
 
 func TestWrapRecordsHandlerDetails(t *testing.T) {
-	records := serve(t, false, "POST", "/profile-schema/{scope}", "/profile-schema/traits",
+	records := serve(t, "POST", "/profile-schema/{scope}", "/profile-schema/traits",
 		ProfileSchemaAttributeCreate,
 		authenticated(func(w http.ResponseWriter, r *http.Request) {
 			SetTargetID(r.Context(), "attr-9")
@@ -137,7 +137,7 @@ func TestWrapRecordsDeniedAndFailedAttempts(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			records := serve(t, false, "PATCH", "/profiles/{profileId}", "/profiles/p-1", ProfileUpdate,
+			records := serve(t, "PATCH", "/profiles/{profileId}", "/profiles/p-1", ProfileUpdate,
 				func(w http.ResponseWriter, _ *http.Request) {
 					if test.errorCode != "" {
 						w.(interface{ RecordErrorCode(string) }).RecordErrorCode(test.errorCode)
@@ -152,21 +152,9 @@ func TestWrapRecordsDeniedAndFailedAttempts(t *testing.T) {
 	}
 }
 
-func TestReadEventRules(t *testing.T) {
-	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
-	denied := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) }
-
-	assert.Empty(t, serve(t, false, "GET", "/profiles/{profileId}", "/profiles/p-1", ProfileRead, ok),
-		"a read that succeeded is not recorded by default")
-	assert.Len(t, serve(t, true, "GET", "/profiles/{profileId}", "/profiles/p-1", ProfileRead, ok), 1,
-		"a read that succeeded is recorded when read events are on")
-	assert.Len(t, serve(t, false, "GET", "/profiles/{profileId}", "/profiles/p-1", ProfileRead, denied), 1,
-		"a denied read is always recorded")
-}
-
 func TestLogRecordsSystemOperation(t *testing.T) {
 	var out bytes.Buffer
-	defer captureOutput(&out, false)()
+	defer captureOutput(&out)()
 
 	Log(context.Background(), Entry{
 		Event:    ProfileMerge,
@@ -188,7 +176,7 @@ func TestLogRecordsSystemOperation(t *testing.T) {
 
 func TestDisabledAuditWritesNothing(t *testing.T) {
 	var out bytes.Buffer
-	defer captureOutput(&out, false)()
+	defer captureOutput(&out)()
 	current.mu.Lock()
 	current.enabled = false
 	current.mu.Unlock()
@@ -200,6 +188,5 @@ func TestDisabledAuditWritesNothing(t *testing.T) {
 
 func TestEventNamesFollowTheNamingRule(t *testing.T) {
 	assert.Equal(t, "profile_consent.update", ProfileConsentUpdate.Name())
-	assert.True(t, ProfileList.IsRead())
-	assert.False(t, ProfileSync.IsRead())
+	assert.Equal(t, "profile.sync", ProfileSync.Name())
 }

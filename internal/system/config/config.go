@@ -99,9 +99,6 @@ type AccessLogConfig struct {
 type AuditLogConfig struct {
 	// Enabled turns the audit log on. The default is true.
 	Enabled *bool `yaml:"enabled"`
-	// ReadEvents also records the read operations that succeeded. The default is false. A denied
-	// attempt is always recorded.
-	ReadEvents bool `yaml:"read_events"`
 	// Outputs overrides the default outputs. A format other than "json" is refused.
 	Outputs LogOutputsConfig `yaml:"outputs"`
 }

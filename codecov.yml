@@ -50,6 +50,7 @@ coverage:
 ignore:
   - "test/**"
   - "**/*_test.go"
+  - "internal/cli/**"
   - "api/**"
   - "docs/**"
   - "dbscripts/**"

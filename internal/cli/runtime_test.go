@@ -58,8 +58,8 @@ func TestAddressInUseIsDetected(t *testing.T) {
 	}
 }
 
-// The CLI looks for the certificates where the runtime does, or verify would
-// report on files the server never reads.
+// The CLI looks for the certificate where the runtime does, or the default
+// certificate warning would be about a file the server never reads.
 func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
 	home := "/opt/cdd"
 	cases := []struct {
@@ -80,16 +80,5 @@ func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
 				t.Errorf("serverCertificate = %q, want %q", got, c.want)
 			}
 		})
-	}
-
-	var config runtimeConfig
-	if got := config.trustStore(home); got != "" {
-		t.Errorf("with no trust_store configured, trustStore = %q, want none", got)
-	}
-	config.TLS.CertDir = "repository/resources/security"
-	config.TLS.TrustStore = "trust_store.pem"
-	want := filepath.FromSlash("/opt/cdd/repository/resources/security/trust_store.pem")
-	if got := config.trustStore(home); got != want {
-		t.Errorf("trustStore = %q, want %q", got, want)
 	}
 }

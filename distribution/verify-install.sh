@@ -162,8 +162,8 @@ check "the release was resolved from its declared Identity Server support" \
 check "the download was checked against its published checksum" \
   "grep -q 'checksum verified' '$WORK/install.log'"
 check "CDD_HOME holds the pack" "[ -x '$CDD_HOME/$PRODUCT' ]"
-check "the installed executable reports the built version" \
-  "[ \"\$('$CDD_HOME/$PRODUCT' version)\" = '$PACK_VERSION' ]"
+check "the installation carries the built version" \
+  "[ \"\$(tr -d '[:space:]' < '$CDD_HOME/version.txt')\" = 'v$PACK_VERSION' ]"
 check "the installer said how to switch CDD on in the Identity Server" \
   "grep -q 'customer_data_service' '$WORK/install.log'"
 check "nothing in the Identity Server was changed" \

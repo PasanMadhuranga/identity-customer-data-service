@@ -48,8 +48,6 @@ var errUsage = errors.New("invalid arguments")
 func commands() []command {
 	return []command{
 		{name: "start", summary: "Run CDD in the foreground; Ctrl+C stops it", run: runStart},
-		{name: "verify", summary: "Check CDD, its certificate and the Identity Server it calls", run: runVerify},
-		{name: "version", summary: "Print the CDD version", run: runVersion},
 	}
 }
 

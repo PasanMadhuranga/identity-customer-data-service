@@ -65,28 +65,19 @@ func runStart(args []string) error {
 		return err
 	}
 
+	// The pack's default certificate is Identity Server 7.3.0's own key pair, so
+	// a fresh installation and a default Identity Server on one host trust each
+	// other with no setup. Its private key is public, so it is said once, here.
+	if usingDefaultCertificate(cfg.serverCertificate(cdsHome)) {
+		warnf("CDD is using the default certificate the pack ships with. Its private key is in every " +
+			"Identity Server 7.3.0 download: replace it before this deployment carries real traffic. " +
+			"See repository/resources/security/README.md.")
+	}
+
 	stepf("Starting CDD at %s", cfg.localBase())
 	infof("Press Ctrl+C to stop.")
 	fmt.Println()
 	runtimeRun(cdsHome)
-	return nil
-}
-
-// runVersion prints the version of this pack.
-func runVersion(args []string) error {
-	flags := newFlagSet("version")
-	if err := parse(flags, args); err != nil {
-		return err
-	}
-	cdsHome, err := home()
-	if err != nil {
-		return err
-	}
-	version, err := productVersion(cdsHome)
-	if err != nil {
-		return err
-	}
-	fmt.Println(version)
 	return nil
 }
 

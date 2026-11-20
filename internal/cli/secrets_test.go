@@ -19,13 +19,8 @@
 package cli
 
 import (
-	"encoding/pem"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 )
 
@@ -66,51 +61,5 @@ func TestLoadSecretsWithoutAFile(t *testing.T) {
 	}
 	if len(secrets) != 0 {
 		t.Errorf("expected no secrets, got %d", len(secrets))
-	}
-}
-
-// verify trusts the Identity Server only through the trust store CDD itself
-// uses, so a certificate missing from it is reported, and found once added.
-func TestVerifyIdentityServerUsesTheTrustStore(t *testing.T) {
-	is := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer is.Close()
-	address, _ := url.Parse(is.URL)
-	port, _ := strconv.Atoi(address.Port())
-
-	cdsHome := t.TempDir()
-	var config runtimeConfig
-	config.AuthServer.Host = address.Hostname()
-	config.AuthServer.Port = port
-	config.TLS.CertDir = "certs"
-	config.TLS.TrustStore = "trust_store.pem"
-	if err := os.MkdirAll(filepath.Join(cdsHome, "certs"), 0o750); err != nil {
-		t.Fatalf("could not stage the certificate directory: %v", err)
-	}
-	trustStore := filepath.Join(cdsHome, "certs", "trust_store.pem")
-
-	// Every httptest server shares one certificate, so the untrusted one is
-	// generated rather than taken from a second server.
-	writeTestCertificate(t, trustStore, "localhost")
-	untrusted := &checks{}
-	verifyIdentityServer(untrusted, cdsHome, &config)
-	if untrusted.failed != 1 {
-		t.Error("an Identity Server whose certificate is not in the trust store was reported as trusted")
-	}
-
-	writePEM(t, trustStore, is.Certificate().Raw)
-	trusted := &checks{}
-	verifyIdentityServer(trusted, cdsHome, &config)
-	if trusted.failed != 0 || trusted.run != 1 {
-		t.Errorf("an Identity Server in the trust store was not trusted: %d of %d failed", trusted.failed,
-			trusted.run)
-	}
-}
-
-func writePEM(t *testing.T, path string, der []byte) {
-	t.Helper()
-	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
-		t.Fatalf("could not write %s: %v", path, err)
 	}
 }

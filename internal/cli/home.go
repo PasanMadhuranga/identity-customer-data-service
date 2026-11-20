@@ -31,7 +31,6 @@ const (
 	confDir     = "repository/conf"
 	configFile  = "repository/conf/deployment.yaml"
 	secretsFile = "repository/conf/secrets.env"
-	versionFile = "version.txt"
 )
 
 // home resolves CDD_HOME.
@@ -77,17 +76,6 @@ func home() (string, error) {
 // path joins one pack-relative path onto CDD_HOME.
 func path(cdsHome, rel string) string { return filepath.Join(cdsHome, filepath.FromSlash(rel)) }
 
-// productVersion reads version.txt from the pack, without its leading "v".
-// Packs always carry it; a source tree may not, which is why the error names
-// the file rather than failing silently.
-func productVersion(cdsHome string) (string, error) {
-	raw, err := os.ReadFile(path(cdsHome, versionFile))
-	if err != nil {
-		return "", fmt.Errorf("could not read %s: %w", versionFile, err)
-	}
-	return strings.TrimPrefix(strings.TrimSpace(string(raw)), "v"), nil
-}
-
 // ---------------------------------------------------------------------------
 // Terminal output
 //
@@ -111,11 +99,12 @@ func color(code, s string) string {
 	return "\033[" + code + "m" + s + "\033[0m"
 }
 
-func red(s string) string  { return color("31", s) }
-func bold(s string) string { return color("1", s) }
+func red(s string) string    { return color("31", s) }
+func yellow(s string) string { return color("33", s) }
+func bold(s string) string   { return color("1", s) }
 
 func stepf(format string, a ...any) { fmt.Printf("\n%s\n", bold(fmt.Sprintf(format, a...))) }
 func infof(format string, a ...any) { fmt.Printf("    %s\n", fmt.Sprintf(format, a...)) }
-func donef(format string, a ...any) {
-	fmt.Printf("    %s %s\n", color("32", "+"), fmt.Sprintf(format, a...))
+func warnf(format string, a ...any) {
+	fmt.Fprintf(os.Stderr, "\n%s %s\n", yellow("!"), fmt.Sprintf(format, a...))
 }

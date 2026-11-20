@@ -145,8 +145,6 @@ admin_username = "admin"
 admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDD>"
 \`\`\`
 
-\`./$PRODUCT verify\` checks the result.
-
 Starting from an Identity Server that is already installed, the bootstrap
 installer resolves the right pack for it:
 

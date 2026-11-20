@@ -300,7 +300,6 @@ unzip target/dist/cdd-linux-amd64-<version>.zip -d /opt
 cd /opt/cdd-linux-amd64-<version>
 
 ./start.sh       # runs in the foreground; Ctrl+C stops it
-./cdd verify     # in another terminal
 ```
 
 Then switch CDD on in the Identity Server with one `[customer_data_service]`

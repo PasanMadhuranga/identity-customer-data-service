@@ -159,24 +159,8 @@ see `repository/resources/security/README.md` in the pack.
 
 **Its private key is in every Identity Server 7.3.0 download.** Anyone holding
 it can present themselves as that CDD, or as that Identity Server. Replace it
-before a deployment carries real traffic; `cdd verify` counts the default as a
-failed check.
-
-## Verification
-
-```bash
-./cdd verify
-```
-
-It changes nothing, and reads nothing of the Identity Server's but what it
-serves over the network, so it answers the same wherever the Identity Server
-runs. It checks that:
-
-- CDD is ready at its configured address, with its datastore reachable
-- CDD presents a certificate issued for this deployment rather than the
-  pack's default, and one valid for the host in `server_url`
-- the Identity Server is reachable at `auth_server`, and its certificate is
-  trusted by the trust store CDD itself uses
+before a deployment carries real traffic; `cdd start` warns while the default is
+in use.
 
 ## Secrets
 
@@ -195,7 +179,7 @@ from there and needs no file.
 
 ```
 <CDD_HOME>/
-├── cds                             the runtime, and `verify`
+├── cdd                             the runtime
 ├── start.sh                        runs it in the foreground
 ├── repository/
 │   ├── conf/

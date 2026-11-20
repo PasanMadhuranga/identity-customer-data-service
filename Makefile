@@ -132,7 +132,7 @@ dist: clean-dist
 # Stage and zip one platform pack. Not meant to be called directly.
 #
 # Pack layout:
-#   $(PRODUCT_NAME)                  the runtime, and `verify`
+#   $(PRODUCT_NAME)                  the runtime
 #   start.sh                         runs it in the foreground
 #   repository/conf/                 deployment.yaml and compatibility.yaml
 #   repository/database/             where the inbuilt database is created

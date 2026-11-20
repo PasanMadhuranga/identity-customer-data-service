@@ -23,7 +23,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -65,26 +64,4 @@ func usingDefaultCertificate(path string) bool {
 		return false
 	}
 	return defaultCertificateFingerprints[sha256.Sum256(block.Bytes)]
-}
-
-// certificateCovers reports whether the certificate at path is valid for host,
-// which is what the Identity Server checks when it calls CDD at server_url.
-func certificateCovers(path, host string) (bool, error) {
-	certificate, err := readCertificate(path)
-	if err != nil {
-		return false, err
-	}
-	return certificate.VerifyHostname(host) == nil, nil
-}
-
-func readCertificate(path string) (*x509.Certificate, error) {
-	raw, err := os.ReadFile(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		return nil, fmt.Errorf("%s holds no PEM certificate", path)
-	}
-	return x509.ParseCertificate(block.Bytes)
 }

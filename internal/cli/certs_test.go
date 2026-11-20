@@ -66,29 +66,6 @@ func TestUsingDefaultCertificate(t *testing.T) {
 	}
 }
 
-// The default certificate is issued for localhost alone, which is why it only
-// serves while CDD and the Identity Server reach each other as localhost.
-func TestCertificateCovers(t *testing.T) {
-	for host, want := range map[string]bool{"localhost": true, "cdd.example.com": false} {
-		covers, err := certificateCovers(defaultCertificate, host)
-		if err != nil {
-			t.Fatalf("certificateCovers: %v", err)
-		}
-		if covers != want {
-			t.Errorf("the default certificate covers %s = %v, want %v", host, covers, want)
-		}
-	}
-
-	issued := filepath.Join(t.TempDir(), "issued.crt")
-	writeTestCertificate(t, issued, "cdd.example.com")
-	if covers, _ := certificateCovers(issued, "cdd.example.com"); !covers {
-		t.Error("a certificate issued for cdd.example.com does not cover it")
-	}
-	if _, err := certificateCovers(filepath.Join(t.TempDir(), "absent.crt"), "localhost"); err == nil {
-		t.Error("a missing certificate was not reported")
-	}
-}
-
 func writeTestCertificate(t *testing.T, path, host string) {
 	t.Helper()
 

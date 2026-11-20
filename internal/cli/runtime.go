@@ -19,14 +19,11 @@
 package cli
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -39,7 +36,7 @@ const loopback = "127.0.0.1"
 // where to reach the running server, and which Identity Server the runtime is
 // configured to call. The runtime itself loads the whole file; the CLI reads
 // only these fields so that an unresolved ${PLACEHOLDER} elsewhere in the file
-// — normal before the first start — cannot stop `verify` from answering.
+// — normal before the first start — cannot stop `start` from checking the address.
 type runtimeConfig struct {
 	Addr struct {
 		Host string `yaml:"host"`
@@ -86,15 +83,6 @@ func (c *runtimeConfig) serverCertificate(cdsHome string) string {
 	return filepath.Join(c.certDir(cdsHome), name)
 }
 
-// trustStore is the path of the Identity Server certificates CDD trusts, or ""
-// when the configuration names none and only the system roots apply.
-func (c *runtimeConfig) trustStore(cdsHome string) string {
-	if c.TLS.TrustStore == "" {
-		return ""
-	}
-	return filepath.Join(c.certDir(cdsHome), c.TLS.TrustStore)
-}
-
 // certDir resolves tls.cert_dir as the runtime does: relative to the CDD home,
 // and etc/certs under it when unset.
 func (c *runtimeConfig) certDir(cdsHome string) string {
@@ -138,32 +126,4 @@ func (c *runtimeConfig) addressInUse() bool {
 	}
 	_ = conn.Close()
 	return true
-}
-
-// localClient calls the CDD process over its own loopback address. CDD serves
-// HTTPS only, and packs are installed with a certificate issued for the
-// deployment's public name, which will not match 127.0.0.1. Verification is
-// therefore skipped for these local lifecycle probes only; nothing else in the
-// CLI reaches a remote host with this client.
-func localClient(timeout time.Duration) *http.Client {
-	return &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}, // #nosec G402
-		},
-	}
-}
-
-// probe reports the HTTP status of one CDD endpoint, or an error if the
-// process could not be reached at all.
-func probe(base, endpoint string, timeout time.Duration) (int, string, error) {
-	resp, err := localClient(timeout).Get(base + endpoint)
-	if err != nil {
-		return 0, "", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body := make([]byte, 512)
-	n, _ := resp.Body.Read(body)
-	return resp.StatusCode, strings.TrimSpace(string(body[:n])), nil
 }

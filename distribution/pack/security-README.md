@@ -30,8 +30,8 @@ name need the certificates below.
 
 **This key pair is a convenience for getting started, not a credential.** Its
 private key is in every Identity Server 7.3.0 download, so anyone can present
-themselves as this CDD — or as that Identity Server. `cdd verify` counts it
-as a failed check while it is in use.
+themselves as this CDD — or as that Identity Server. `cdd start` warns while
+it is in use.
 
 Replace it on both sides:
 

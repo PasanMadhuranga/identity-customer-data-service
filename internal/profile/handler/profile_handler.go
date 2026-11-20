@@ -843,6 +843,7 @@ func (ph *ProfileHandler) LinkProfile(w http.ResponseWriter, r *http.Request) {
 		utils.HandleError(w, err)
 		return
 	}
+	audit.SetTargetID(ctx, auditTargetOf(existingProfile))
 
 	if existingProfile.UserID != "" {
 		if existingProfile.UserID != userID {
@@ -1008,6 +1009,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 				}
 
 				// Save updated profile
+				audit.SetTargetID(ctx, auditTargetOf(existingProfile))
 				_, err = profilesService.UpdateProfile(ctx, existingProfile.ProfileID, org.ID, profileRequest)
 				if err != nil {
 					utils.HandleError(writer, err)
@@ -1177,7 +1179,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 						Traits:             anonymousProfile.Traits,
 						ApplicationData:    profileService.WideAppDataMap(anonymousProfile.ApplicationData),
 					}
-					audit.SetTargetID(ctx, anonymousProfile.ProfileID)
+					audit.SetTargetID(ctx, auditTargetOf(anonymousProfile))
 					_, err = profilesService.UpdateProfile(ctx, anonymousProfile.ProfileID, org.ID, profileRequest)
 					if err != nil {
 						utils.HandleError(writer, err)
@@ -1200,7 +1202,7 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 					ApplicationData:    profileService.WideAppDataMap(anonymousProfile.ApplicationData),
 				}
 
-				audit.SetTargetID(ctx, anonymousProfile.ProfileID)
+				audit.SetTargetID(ctx, auditTargetOf(anonymousProfile))
 				_, err = profilesService.UpdateProfile(ctx, anonymousProfile.ProfileID, org.ID, profileRequest)
 				if err != nil {
 					utils.HandleError(writer, err)
@@ -1428,6 +1430,15 @@ func extractClaimKeyFromLocalURI(localURI string) string {
 // isLinkedToAnotherUser reports whether the profile already belongs to a user other than userID.
 // For a merged (child) profile, GetProfile returns the user ID of the profile it is merged into, so this
 // also covers that profile.
+// auditTargetOf returns the ID of the profile that a change to profile writes. A profile that is
+// merged into another one is changed through its master profile.
+func auditTargetOf(profile *model.ProfileResponse) string {
+	if profile.MergedTo != nil && profile.MergedTo.ProfileID != "" {
+		return profile.MergedTo.ProfileID
+	}
+	return profile.ProfileID
+}
+
 func isLinkedToAnotherUser(profile *model.ProfileResponse, userID string) bool {
 	return profile != nil && profile.UserID != "" && profile.UserID != userID
 }

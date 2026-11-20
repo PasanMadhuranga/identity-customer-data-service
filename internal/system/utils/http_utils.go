@@ -66,6 +66,14 @@ func HandleError(w http.ResponseWriter, err error) {
 		})
 		return
 	}
+
+	// Any other error is a server error too. Without a response, the status would be 200, and the
+	// access log and the audit log would report a success.
+	log.GetLogger().Error(err.Error())
+	w.WriteHeader(http.StatusInternalServerError)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": "Internal server error",
+	})
 }
 
 // recordErrorCode gives the CDS error code of an error response to the response recorder, when

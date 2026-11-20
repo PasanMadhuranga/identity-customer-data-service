@@ -18,13 +18,17 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,8 +37,10 @@ import (
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
 	schemaStore "github.com/wso2/identity-customer-data-service/internal/profile_schema/store"
+	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
+	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
 const (
@@ -364,4 +370,72 @@ func TestAuthenticationSuccessDoesNotTakeTheProfileOfAnotherUser(t *testing.T) {
 	}
 	assert.Equal(t, "Galle", env.findUser(t, "u-other").Traits["city"])
 	assert.Nil(t, env.findUser(t, "u-without-profile"))
+}
+
+// syncAudited sends one sync event through the audit wrapper of the route, and returns the
+// response and the audit record.
+func (e *profileHandlerEnv) syncAudited(t *testing.T, event map[string]interface{}) (
+	*httptest.ResponseRecorder, map[string]any) {
+	t.Helper()
+	auditPath := filepath.Join(t.TempDir(), "audit.log")
+	require.NoError(t, audit.Init(audit.Options{
+		Enabled: true,
+		Output:  log.OutputOptions{File: log.FileOutput(auditPath)},
+	}))
+	defer func() { _ = audit.Init(audit.Options{}) }()
+
+	body, err := json.Marshal(event)
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodPost, "/t/"+e.handle+"/cds/api/v1/profiles/sync",
+		strings.NewReader(string(body)))
+	request = request.WithContext(context.WithValue(request.Context(), constants.TenantContextKey, e.handle))
+	request.Header.Set("Authorization", adminAuthorization())
+	recorder := httptest.NewRecorder()
+	audit.Wrap(audit.ProfileSync, e.h.SyncProfile)(recorder, request)
+
+	content, err := os.ReadFile(auditPath) // #nosec G304 -- the test reads a file in its temporary directory.
+	require.NoError(t, err)
+	lines := bytes.Split(bytes.TrimSpace(content), []byte("\n"))
+	require.Len(t, lines, 1)
+	var record map[string]any
+	require.NoError(t, json.Unmarshal(lines[0], &record))
+	return recorder, record
+}
+
+func TestSyncAuditNamesTheMasterOfAMergedCookieProfile(t *testing.T) {
+	env := newSyncEnv(t)
+	master := env.createUserProfile(t, "u-1", "Colombo")
+	childID := "child-of-" + master.ProfileID
+	now := time.Now().UTC()
+	require.NoError(t, profileStore.InsertProfile(env.ctx, env.orgID, model.Profile{
+		ProfileID: childID,
+		OrgID:     env.orgID,
+		CreatedAt: now,
+		UpdatedAt: now,
+		ProfileStatus: &model.ProfileStatus{
+			ReferenceProfileID: master.ProfileID,
+			ReferenceReason:    "email",
+		},
+	}))
+	cookieID := env.createCookie(t, childID, true)
+
+	recorder, record := env.syncAudited(t, env.event(constants.AddUserEvent, "u-1", map[string]interface{}{
+		"profileCookie": cookieID,
+		"claims":        map[string]interface{}{"http://wso2.org/claims/email": "a@b.c"},
+	}))
+
+	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+	assert.Equal(t, map[string]any{"type": "profile", "id": master.ProfileID}, record["target"],
+		"the update writes the master profile")
+}
+
+func TestSyncAuditRecordsAFailedProfileCreation(t *testing.T) {
+	env := newSyncEnv(t)
+
+	recorder, record := env.syncAudited(t, env.event(constants.UpdateUserClaimsEvent, "u-new",
+		map[string]interface{}{"claims": map[string]interface{}{"http://wso2.org/claims/email": 12345}}))
+
+	assert.GreaterOrEqual(t, recorder.Code, http.StatusBadRequest, recorder.Body.String())
+	outcome := record["outcome"].(map[string]any)
+	assert.Equal(t, "failed", outcome["result"])
 }

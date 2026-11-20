@@ -16,21 +16,14 @@
  * under the License.
  */
 
-// Package log is the logging framework of CDS. It gives every component the same structured
-// logger, the same field names, and the same output rules.
+// Package log is the structured logger of CDS, a wrapper around slog.
 //
-// CDS writes three log streams. Each record carries a log_type field that names its stream:
-//
-//   - app: the application log, written through GetLogger.
-//   - access: one record for each HTTP request, written by the access log middleware.
-//   - audit: one record for each audited operation, written by the audit package.
-//
-// A component gets its logger as follows:
+// Use it as follows:
 //
 //	logger := log.GetLogger().WithComponent("ProfileService")
 //	logger.WithContext(ctx).Info("Profile created.", log.String(log.KeyProfileID, id))
 //
-// WithContext adds the correlation ID and the organization of the request to the record.
+// WithContext adds the correlation ID and the organization of the request.
 package log
 
 import (

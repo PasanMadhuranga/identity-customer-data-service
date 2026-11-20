@@ -31,8 +31,8 @@
 //
 // An operation with no request, such as a merge in a worker, calls Log.
 //
-// An audit record never holds personal data. It names resources by ID, and it names attributes by
-// name, without their values.
+// An audit record holds no attribute values, user names, tokens, or request bodies. It still holds
+// IDs, the client IP address, and the user agent, which can identify a person. See the logging guide.
 package audit
 
 import (

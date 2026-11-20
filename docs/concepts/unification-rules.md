@@ -1,6 +1,6 @@
 # Unification Rules
 
-**Unification rules** tell CDS when two separate profiles should be recognised as the same person and merged. Each rule specifies a profile attribute to match on — if two profiles share the same value for that attribute, they are candidates for merging.
+**Unification rules** tell CDD when two separate profiles should be recognised as the same person and merged. Each rule specifies a profile attribute to match on — if two profiles share the same value for that attribute, they are candidates for merging.
 
 ---
 

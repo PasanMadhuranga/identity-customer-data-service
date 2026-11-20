@@ -95,6 +95,6 @@ func TestEnableKeepsCDSDisabledWhenThePrimaryOrganizationIsNotStored(t *testing.
 		t.Fatalf("GetAdminConfig: %v", err)
 	}
 	if stored != nil && stored.CDSEnabled {
-		t.Errorf("CDS is enabled after a failed enable, want disabled")
+		t.Errorf("CDD is enabled after a failed enable, want disabled")
 	}
 }

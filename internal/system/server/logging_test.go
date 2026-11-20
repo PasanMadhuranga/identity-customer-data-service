@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package main
+package server
 
 import (
 	"path/filepath"

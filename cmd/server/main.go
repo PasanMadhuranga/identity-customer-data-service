@@ -16,297 +16,46 @@
  * under the License.
  */
 
-// Package main starts the customer data service: it loads the configuration, sets up the database and
-// the workers, and serves the HTTP API until it is told to shut down.
+// Command server runs the CDS runtime in the foreground.
+//
+// It is the entry point used by the container image, where the process is the
+// deployment and the orchestrator owns the lifecycle. Installed packs ship
+// cds instead, which adds the lifecycle and Identity Server
+// integration commands around this same runtime.
 package main
 
 import (
-	"context"
-	"crypto/tls"
 	"flag"
-	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
-	"path/filepath"
-	"syscall"
-	"time"
 
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
-
-	adminConfigProvider "github.com/wso2/identity-customer-data-service/internal/admin_config/provider"
-	"github.com/wso2/identity-customer-data-service/internal/system/config"
-	"github.com/wso2/identity-customer-data-service/internal/system/cors"
-	"github.com/wso2/identity-customer-data-service/internal/system/database"
-	"github.com/wso2/identity-customer-data-service/internal/system/database/provider"
-	"github.com/wso2/identity-customer-data-service/internal/system/idp"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
-	"github.com/wso2/identity-customer-data-service/internal/system/managers"
-	_ "github.com/wso2/identity-customer-data-service/internal/system/queue/activemq" // registers the ActiveMQ queue provider
-	"github.com/wso2/identity-customer-data-service/internal/system/servicecreds"
-	"github.com/wso2/identity-customer-data-service/internal/system/utils"
-	"github.com/wso2/identity-customer-data-service/internal/system/workers"
-
-	irWorker "github.com/wso2/identity-customer-data-service/internal/identity_resolution/worker"
+	"github.com/wso2/identity-customer-data-service/internal/system/server"
 )
 
-func initDatabaseFromConfig(cdsConfig *config.Config) error {
-	if err := provider.ValidateDataSource(cdsConfig.DataSource); err != nil {
-		return err
-	}
-
-	if err := provider.EnsureDatabase(); err != nil {
-		return err
-	}
-
-	ds := cdsConfig.DataSource
-	if database.ResolveType(ds.Type) != database.TypeSQLite {
-		log.GetLogger().Info(fmt.Sprintf("Database initialized successfully for configurations - db name:%s, "+
-			"db host:%s, db port:%d", ds.Name, ds.Hostname, ds.Port))
-	}
-
-	return nil
-}
-
 func main() {
-	cdsHome := resolveCDSHome()
-	utils.SetCDSHome(cdsHome)
-	const configFile = "/repository/conf/deployment.yaml"
-
-	envFiles, err := filepath.Glob("config/*.env")
-	if err != nil || len(envFiles) == 0 {
-		log.GetLogger().Info("No .env files found in config directory.", log.Error(err))
-	}
-	_ = godotenv.Load(envFiles...)
-
-	// Load the configuration file
-	cdsConfig, err := config.LoadConfig(cdsHome, configFile)
-	if err != nil {
-		log.GetLogger().Error("Failed to load the configuration.", log.Error(err))
-		os.Exit(1)
-	}
-
-	// Initialize runtime configurations
-	if err := config.InitializeCDSRuntime(cdsHome, cdsConfig); err != nil {
-		log.GetLogger().Error("Failed to initialize the CDS runtime.", log.Error(err))
-		os.Exit(1)
-	}
-
-	// Initialize the application log, the access log, and the audit log.
-	logStreams, err := setupLogging(cdsHome, cdsConfig.Log)
-	if err != nil {
-		log.GetLogger().Error("Failed to initialize logging.", log.Error(err))
-		os.Exit(1)
-	}
-	defer logStreams.close()
-
-	// Create the adapter of the identity provider.
-	adapter, err := idp.NewAdapter(cdsConfig.IDP.Type)
-	if err != nil {
-		log.GetLogger().Error("Invalid identity provider configuration.", log.Error(err))
-		os.Exit(1)
-	}
-	idp.SetAdapter(adapter)
-
-	// A key that cannot seal the service credentials, or that the identity
-	// provider has no use for, stops the server here rather than at the first
-	// organization that sends credentials.
-	_, credentialsSupported := adapter.(idp.ServiceCredentialsVerifier)
-	if err := servicecreds.ValidateConfig(*cdsConfig, credentialsSupported); err != nil {
-		log.GetLogger().Error("Invalid service credentials configuration.", log.Error(err))
-		os.Exit(1)
-	}
-
-	// Resolve the shutdown deadline at start, so a refused value stops the
-	// server before anything runs.
-	shutdownGrace, err := config.ResolveShutdownGracePeriod(cdsConfig.Shutdown)
-	if err != nil {
-		log.GetLogger().Error("Invalid shutdown configuration.", log.Error(err))
-		os.Exit(1)
-	}
-	log.GetLogger().Info(fmt.Sprintf("Shutdown grace period is %s", shutdownGrace))
-
-	// Initialize database. This creates and initializes the inbuilt database when
-	// one is configured, and must happen before the workers start since they
-	// query the database.
-	if err := initDatabaseFromConfig(cdsConfig); err != nil {
-		log.GetLogger().Error("Failed to initialize the database.", log.Error(err))
-		os.Exit(1)
-	}
-
-	if servicecreds.Enabled() {
-		if err := servicecreds.CheckStore(context.Background()); err != nil {
-			log.GetLogger().Error("Invalid service credentials configuration.", log.Error(err))
-			os.Exit(1)
-		}
-	}
-
-	// Initialize Profile worker
-	if err := workers.StartProfileWorker(); err != nil {
-		log.GetLogger().Error("Failed to start the profile worker.", log.Error(err))
-		os.Exit(1)
-	}
-	workers.RegisterFuzzyResolveFunc(irWorker.ResolveProfileAsync)
-	workers.RegisterReindexAfterMergeFunc(irWorker.ReindexAfterMerge)
-
-	// Initialize Schema Sync worker
-	if err := workers.StartSchemaSyncWorker(); err != nil {
-		log.GetLogger().Error("Failed to start the schema sync worker.", log.Error(err))
-		os.Exit(1)
-	}
-
-	// Initialize Cookie Cleanup worker
-	if cdsConfig.Cleanup.Cookie.Enabled {
-		workers.StartCookieCleanupWorker(cdsConfig.Cleanup.Cookie)
-	}
-
-	// Initialize the temporary profile cleanup worker
-	workers.StartTemporaryProfileCleanupWorker()
-
-	serverAddr := fmt.Sprintf("%s:%d", cdsConfig.Addr.Host, cdsConfig.Addr.Port)
-	mux := logStreams.wrap(newCORSMiddleware(initMultiplexer()))
-
-	logger := log.GetLogger()
-	logger.Info(fmt.Sprintf("WSO2 CDS starting securely on: https://%s", serverAddr))
-
-	certDir := cdsConfig.TLS.CertDir
-	if certDir == "" {
-		certDir = filepath.Join(cdsHome, "etc", "certs")
-	}
-
-	if cdsConfig.TLS.CDSPublicCert == "" || cdsConfig.TLS.CDSPrivateKey == "" {
-		logger.Error("TLS configuration is missing server certificate or key.")
-		os.Exit(1)
-	}
-
-	serverCertPath := filepath.Join(certDir, cdsConfig.TLS.CDSPublicCert)
-	serverKeyPath := filepath.Join(certDir, cdsConfig.TLS.CDSPrivateKey)
-
-	// Check cert files before starting
-	if _, err := os.Stat(serverCertPath); err != nil {
-		if os.IsNotExist(err) {
-			logger.Error(fmt.Sprintf("Server certificate not found at %s", serverCertPath))
-		} else {
-			logger.Error(fmt.Sprintf("Error accessing server certificate at %s: %v", serverCertPath, err))
-		}
-		os.Exit(1)
-	}
-	if _, err := os.Stat(serverKeyPath); err != nil {
-		if os.IsNotExist(err) {
-			logger.Error(fmt.Sprintf("Server key not found at %s", serverKeyPath))
-		} else {
-			logger.Error(fmt.Sprintf("Error accessing server key at %s: %v", serverKeyPath, err))
-		}
-		os.Exit(1)
-	}
-
-	server := &http.Server{
-		Addr:    serverAddr,
-		Handler: mux,
-		// explicit TLS settings and HTTP timeouts
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ErrorLog:          newServerErrorLog(),
-		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
-		},
-	}
-
-	// Listen for OS shutdown signals
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	// Start the server in a goroutine so we can listen for signals
-	go func() {
-		logger.Info(fmt.Sprintf("HTTPS server listening on %s", serverAddr))
-		if err := server.ListenAndServeTLS(serverCertPath, serverKeyPath); err != nil && err != http.ErrServerClosed {
-			logger.Error("Failed to start HTTPS server.", log.Error(err))
-			os.Exit(1)
-		}
-	}()
-
-	// Block until a signal is received
-	<-quit
-	logger.Info("Shutdown signal received, stopping the server gracefully...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
-	defer cancel()
-
-	workerList := []namedWorker{
-		{name: "profile", stop: workers.StopProfileWorker},
-		{name: "schema sync", stop: workers.StopSchemaSyncWorker},
-		{name: "cookie cleanup", stop: workers.StopCookieCleanupWorker},
-		{name: "temporary profile cleanup", stop: workers.StopTemporaryProfileCleanupWorker},
-	}
-
-	if err := shutdown(ctx, logger, server.Shutdown, workerList, provider.CloseDB); err != nil {
-		logger.Error("Shutdown completed with unfinished work.", log.Error(err))
-		return
-	}
-
-	logger.Info("Shutdown complete")
+	server.Run(resolveCDSHome())
 }
 
-// initMultiplexer initializes the HTTP multiplexer and registers the services.
-func initMultiplexer() *http.ServeMux {
-	mux := http.NewServeMux()
-	serviceManager := managers.NewServiceManager(mux)
-	logger := log.GetLogger()
-
-	// Register the services.
-	if err := serviceManager.RegisterServices(); err != nil {
-		logger.Error("Failed to register the services. ", log.Error(err))
-	}
-
-	return mux
-}
-
-// newCORSMiddleware wraps handler with the organization-aware CORS middleware. Origins are
-// resolved per organization from the admin configuration, falling back to the
-// deployment-wide auth.cors_allowed_origins list.
-func newCORSMiddleware(handler http.Handler) http.Handler {
-	adminConfigService := adminConfigProvider.NewAdminConfigProvider().GetAdminConfigService()
-
-	return cors.Middleware(handler,
-		func(ctx context.Context, org cors.Org) ([]string, error) {
-			// A handle CDS has no organization for has configured no origins.
-			orgID, found, err := adminConfigService.LookupCORSOrgID(ctx, org.Handle)
-			if err != nil || !found {
-				return nil, err
-			}
-			return adminConfigService.GetCORSAllowedOrigins(ctx, orgID, org.SubOrgID)
-		},
-		func() []string { return config.GetCDSRuntime().Config.Auth.CORSAllowedOrigins },
-	)
-}
-
-// resolveCDSHome parses flags and determines the CDS home directory.
+// resolveCDSHome determines the CDS home directory from the -cdsHome flag, the
+// CDS_HOME environment variable, or the working directory, in that order.
 func resolveCDSHome() string {
-	// Define the flag locally
-	cdsHomeFlag := flag.String("cdsHome", "", "Path to customer data service home directory")
+	cdsHomeFlag := flag.String("cdsHome", "", "Path to the CDD home directory")
 
-	// Parse flags once (only if not already parsed)
 	if !flag.Parsed() {
 		flag.Parse()
 	}
 
-	// Determine the directory
 	if *cdsHomeFlag != "" {
-		log.GetLogger().Info("Using the CDS home from the command line argument.", log.String("cds_home", *cdsHomeFlag))
+		log.GetLogger().Info("Using the CDD home from the command line argument.", log.String("cds_home", *cdsHomeFlag))
 		return *cdsHomeFlag
 	}
 
-	// Fallback to environment variable
 	if envHome := os.Getenv("CDS_HOME"); envHome != "" {
-		log.GetLogger().Info("Using the CDS home from the CDS_HOME environment variable.",
+		log.GetLogger().Info("Using the CDD home from the CDS_HOME environment variable.",
 			log.String("cds_home", envHome))
 		return envHome
 	}
 
-	// Fallback to working directory
 	dir, err := os.Getwd()
 	if err != nil {
 		log.GetLogger().Error("Failed to get the current working directory.", log.Error(err))

@@ -126,7 +126,7 @@ func setUp(t *testing.T, fake *fakeIDP) context.Context {
 	}
 	if _, err := testDB.DB.Exec(`INSERT INTO cds_config (org_id, config, value) VALUES (?, 'cds_enabled', 'true')`,
 		primaryID); err != nil {
-		t.Fatalf("failed to enable CDS: %v", err)
+		t.Fatalf("failed to enable CDD: %v", err)
 	}
 	return context.Background()
 }

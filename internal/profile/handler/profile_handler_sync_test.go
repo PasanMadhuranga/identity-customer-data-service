@@ -139,7 +139,7 @@ func TestSyncRefusals(t *testing.T) {
 	_, err := env.db.Exec(`DELETE FROM cds_config WHERE org_id = ?`, env.orgID)
 	require.NoError(t, err)
 	disabled := env.sync(t, adminAuthorization(), env.event(constants.AddUserEvent, "u-1", nil))
-	assert.Equal(t, http.StatusBadRequest, disabled.Code, "CDS has to be enabled for the organization")
+	assert.Equal(t, http.StatusBadRequest, disabled.Code, "CDD has to be enabled for the organization")
 }
 
 func TestAddUserCreatesAProfileFromTheClaims(t *testing.T) {

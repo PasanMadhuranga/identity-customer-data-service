@@ -5,7 +5,7 @@ date: 2026-02-27
 
 # 🔌 Extending the Message Queue — Adding a New Provider
 
-This guide explains how to add a new message queue provider to the CDS
+This guide explains how to add a new message queue provider to the CDD
 pluggable queue architecture (e.g. RabbitMQ, Kafka, Amazon SQS, etc.).
 
 ---

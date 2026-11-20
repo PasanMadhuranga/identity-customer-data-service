@@ -1,26 +1,26 @@
 # Local Development Setup
 
-`scripts/local-setup/script.sh` sets up CDS with a WSO2 Identity Server for
+`scripts/local-setup/script.sh` sets up CDD with an Identity Server for
 local development.
 
-A stock IS pack has no CDS configuration, so the script does the wiring: it
-builds CDS and the IS extension bundles, generates and exchanges the TLS
-certificates, writes both configurations, registers the OAuth applications CDS
-needs, enables CDS for the organization, starts both servers and runs smoke
+A stock IS pack has no CDD configuration, so the script does the wiring: it
+builds CDD and the IS extension bundles, generates and exchanges the TLS
+certificates, writes both configurations, registers the OAuth applications CDD
+needs, enables CDD for the organization, starts both servers and runs smoke
 tests in both directions.
 
 ```bash
 # Inbuilt SQLite database, no external dependencies
 ./scripts/local-setup/script.sh up
 
-# CDS on PostgreSQL, started as a Docker container
+# CDD on PostgreSQL, started as a Docker container
 ./scripts/local-setup/script.sh up --db postgres
 ```
 
-It prints the Console URL, the CDS URL and the log locations; the client IDs and
+It prints the Console URL, the CDD URL and the log locations; the client IDs and
 secrets it created are in `<work-dir>/state.env`. The **Customer Data** section
 in the Console at `https://localhost:9443/console` (`admin` / `admin`) reads live
-data from CDS.
+data from CDD.
 
 ```bash
 ./scripts/local-setup/script.sh status         # what is running
@@ -45,7 +45,7 @@ reuses them:
 
 `start` builds nothing, clones nothing, runs no Maven and calls no management
 API. It starts the PostgreSQL container if the datasource needs one, starts both
-servers, checks that CDS is still enabled for the organization and prints the
+servers, checks that CDD is still enabled for the organization and prints the
 same summary.
 
 It needs no options either: `up` records the datasource, ports, offset and
@@ -53,8 +53,8 @@ tenant it ran with, and `start`, `restart`, `down`, `status` and `logs` reuse
 them. Options on the command line still win.
 
 The smoke tests do not run, since they create and delete an IS user; `--tests`
-runs them. To pick up a CDS code change, re-run `up` — it rebuilds the binary,
-restarts CDS and leaves the Identity Server alone.
+runs them. To pick up a CDD code change, re-run `up` — it rebuilds the binary,
+restarts CDD and leaves the Identity Server alone.
 
 ---
 
@@ -82,11 +82,11 @@ modified.
   src/product-is/                 checkout the IS pack is built from
   src/identity-customer-data-service-extensions/
   is/wso2is-<version>/            the extracted pack, used as IS_HOME
-  bin/cds                         the CDS binary
+  bin/cds                         the CDD binary
   cds-home/
-    repository/conf/deployment.yaml     generated CDS configuration
+    repository/conf/deployment.yaml     generated CDD configuration
     repository/database/cds.db          inbuilt database, with --db sqlite
-    etc/certs/                          CDS key pair and the IS certificate
+    etc/certs/                          CDD key pair and the IS certificate
   logs/{cds,is,is-build}.log
   run/{cds,is}.pid
   state.env                       client IDs, secrets and the settings of the
@@ -95,7 +95,7 @@ modified.
 
 `state.env` holds the client secrets and is written `0600`. It is outside the
 repository and is not meant to be committed. The generated `deployment.yaml`
-carries no secrets - CDS reads those from the environment instead.
+carries no secrets - CDD reads those from the environment instead.
 
 Use a separate `--work-dir` per setup to keep several side by side;
 `down --purge` deletes one.
@@ -132,7 +132,7 @@ left its pack in `<work-dir>/src/product-is/modules/distribution/target/`.
 
 | | Default | Option |
 |---|---|---|
-| CDS (HTTPS) | 8900 | `--cds-port` |
+| CDD (HTTPS) | 8900 | `--cds-port` |
 | IS (HTTPS / HTTP) | 9443 / 9763 | `--is-offset N` |
 | PostgreSQL | 5432 | `--pg-port` |
 
@@ -149,25 +149,25 @@ and `--pg-container`.
   jars in `repository/components/dropins`, with the `[[event_handler]]`
   subscriptions they need: `AbstractEventHandler.canHandle()` returns false
   without a module config, so a deployed bundle receives no events.
-- **The CDS API resources and their scopes**, seeded through `deployment.toml`.
+- **The CDD API resources and their scopes**, seeded through `deployment.toml`.
   IS reserves the `internal_` prefix and rejects it over REST, so the
   `internal_cds_*` scopes cannot be created through the management API.
-- **`[console.extensions] cds_host`**, which makes the Console call CDS directly
-  instead of building CDS URLs off the IS origin. Those cross-origin calls are
-  allowed by the CDS `auth.cors_allowed_origins`, which applies to every
+- **`[console.extensions] cds_host`**, which makes the Console call CDD directly
+  instead of building CDD URLs off the IS origin. Those cross-origin calls are
+  allowed by the CDD `auth.cors_allowed_origins`, which applies to every
   organisation whatever `cors_allowed_origins` it adds through the admin
   configuration API.
-- **Certificates in both directions.** The CDS certificate into the IS
-  `client-truststore.p12`, the IS certificate into the CDS trust store. CDS does
+- **Certificates in both directions.** The CDD certificate into the IS
+  `client-truststore.p12`, the IS certificate into the CDD trust store. CDD does
   not start with an unreadable `tls.trust_store`, and neither self-signed
   certificate is in the system roots.
 - **The `http://wso2.org/claims/cdsProfile` local claim** and its SCIM2 mapping.
   Without it, user events carry no profile cookie.
-- **A relaxed policy on `/oauth2/introspect`**, so CDS introspects the tokens it
+- **A relaxed policy on `/oauth2/introspect`**, so CDD introspects the tokens it
   receives with its own client credentials instead of admin-user Basic auth.
-- **Two OAuth applications**: a system app for the calls CDS makes into IS, and
-  a client app with `aud=iam-cds`, the audience CDS requires, for calling the
-  CDS APIs. The Console is handled separately because it issues opaque tokens.
+- **Two OAuth applications**: one whose client credentials CDD calls IS with
+  (see [Service Credentials](service-credentials.md)), and a client app with `aud=iam-cds`, the audience CDD requires, for calling the
+  CDD APIs. The Console is handled separately because it issues opaque tokens.
 - **`cds_enabled` for the organization.** Every profile, schema and rule
   endpoint returns `400` until it is set. Setting it also runs the initial
   profile-schema sync and seeds the default consent category.
@@ -184,18 +184,18 @@ it generates is kept in `templates/` next to it, one file per artifact:
 | `is-deployment.toml` | appended to the pack's `repository/conf/deployment.toml`, between `# BEGIN/END cds-local-dev` markers so that a re-run replaces it |
 | `cds-deployment.yaml` | copied to `<work-dir>/cds-home/repository/conf/deployment.yaml`, followed by the `required_scopes` block read out of `config/repository/conf/deployment.yaml` and one of the `datasource-*.yaml` fragments |
 | `datasource-sqlite.yaml`, `datasource-postgres.yaml` | the `datasource` section, selected by `--db` |
-| `openssl.cnf` | the request the CDS certificate is generated from |
+| `openssl.cnf` | the request the CDD certificate is generated from |
 
 Change what the setup configures by editing a template, not the script.
 
 `is-deployment.toml` and `openssl.cnf` use `${NAME}` placeholders that the
-script fills in; a placeholder with no value is an error. The CDS configuration
-is different: its `${NAME}` placeholders are left in place, and CDS expands them
+script fills in; a placeholder with no value is an error. The CDD configuration
+is different: its `${NAME}` placeholders are left in place, and CDD expands them
 from the environment when it loads the file, so no client secret or password is
 ever written to disk there. `script.sh` exports those values when it starts the
 binary.
 
-Because the CDS template is a full configuration rather than an overlay, a
+Because the CDD template is a full configuration rather than an overlay, a
 section added to `config/repository/conf/deployment.yaml` upstream would be
 missed. `up` compares the two and warns when that happens.
 
@@ -206,14 +206,14 @@ missed. `up` compares the two and warns when that happens.
 `up` ends by checking the integration in both directions. `--skip-tests` skips
 them.
 
-1. `GET /cds/api/v1/ready` returns 200 — CDS is up and its database is reachable
+1. `GET /cds/api/v1/ready` returns 200 — CDD is up and its database is reachable
 2. a client-credentials token carries `aud=iam-cds`
 3. the same token carries the expected `org_handle`
-4. CDS reports the organization as enabled
+4. CDD reports the organization as enabled
 5. `GET /profiles` returns 200 — introspection and scope mapping work
-6. `GET /profile-schema` returns 200 — CDS reached the IS claim APIs
-7. a user created in IS appears as a profile in CDS — dropins, event handlers
-   and the IS to CDS sync path work
+6. `GET /profile-schema` returns 200 — CDD reached the IS claim APIs
+7. a user created in IS appears as a profile in CDD — dropins, event handlers
+   and the IS to CDD sync path work
 
 Test 7 creates a user and deletes it again; `--keep-test-user` keeps it.
 
@@ -221,21 +221,21 @@ Test 7 creates a user and deletes it again; `--keep-test-user` keeps it.
 
 ## Troubleshooting
 
-**No Customer Data section in the Console.** The pack predates CDS support in
+**No Customer Data section in the Console.** The pack predates CDD support in
 the Console. Its configuration template and its web app ship together, so an
 older pack cannot be configured into working; build a current one with
 `--is-rebuild`. `up` reports `bundled Console supports [console.extensions]
 cds_host` when the pack is recent enough.
 
-**Every CDS endpoint returns 400.** CDS is not enabled for the organization.
-`logs/cds.log` shows `CDS is not enabled for organization`; re-running `up`
+**Every CDD endpoint returns 400.** CDD is not enabled for the organization.
+`logs/cds.log` shows `CDD is not enabled for organization`; re-running `up`
 fixes it.
 
-**`GET /profile-schema` returns 400.** CDS could not reach the IS claim APIs,
-usually the trust store or the system application. `logs/cds.log` has the error.
+**`GET /profile-schema` returns 400.** CDD could not reach the IS claim APIs,
+usually the trust store or the credentials CDD calls IS with. `logs/cds.log` has the error.
 
-**A user in IS never appears in CDS.** Check that the four bundles are in
-`repository/components/dropins` and that `logs/is.log` shows the CDS handlers
+**A user in IS never appears in CDD.** Check that the four bundles are in
+`repository/components/dropins` and that `logs/is.log` shows the CDD handlers
 registering; an unresolved dropin is otherwise silent.
 
 **The build fails.** `logs/is-build.log` has the Maven output.
@@ -251,9 +251,9 @@ next `up` clears the rest.
 This is a development setup, not a deployment reference.
 
 - Only the super tenant, `carbon.super`, is supported.
-- Only the CDS datasource is configurable. The Identity Server keeps its default
+- Only the CDD datasource is configurable. The Identity Server keeps its default
   H2 databases.
-- CDS runs with the in-memory queue. See
+- CDD runs with the in-memory queue. See
   [Extending Queue Providers](extending-queue-providers.md) for ActiveMQ and
   other brokers.
 - The certificates are self-signed and the Identity Server keeps its default

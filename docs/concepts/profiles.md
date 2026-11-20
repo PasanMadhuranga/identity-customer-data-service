@@ -1,6 +1,6 @@
 # Profiles
 
-A **profile** is the central entity in CDS. It represents a single person's collected data — their identity attributes, behavioural traits, and per-application data — unified across all interactions.
+A **profile** is the central entity in CDD. It represents a single person's collected data — their identity attributes, behavioural traits, and per-application data — unified across all interactions.
 
 ---
 
@@ -9,7 +9,7 @@ A **profile** is the central entity in CDS. It represents a single person's coll
 | Field | Description |
 |---|---|
 | `profile_id` | System-generated UUID. Immutable. |
-| `user_id` | The user's ID from WSO2 Identity Server. Empty on anonymous profiles. Write-once once set. |
+| `user_id` | The user's ID from Identity Server. Empty on anonymous profiles. Write-once once set. |
 | `identity_attributes` | Attributes sourced from the identity system (e.g. email, phone, name). Keyed by attribute name. |
 | `traits` | Behavioural or preference data (e.g. preferred language, segment tags). |
 | `application_data` | Per-application data, keyed by application identifier. |
@@ -17,6 +17,27 @@ A **profile** is the central entity in CDS. It represents a single person's coll
 | `meta.updated_at` | When the profile was last modified. Read-only. |
 | `merged_from` | References to profiles that were unified into this one via unification rules. |
 | `merged_to` | Set on child profiles — points to the master profile they were merged into. |
+
+---
+
+## Application data
+
+Each application keeps its own data on a profile, under its application
+identifier, and **one application never sees another's**.
+
+`GET /profiles/{profileId}` returns application data only when asked, with
+`includeApplicationData=true`, and then returns only the calling application's
+own entry. The caller is the application the access token was issued to,
+identified as `application_identifier_type` in `deployment.yaml` says — the
+Identity Server application ID (`app_id`, the default) or its OAuth client ID.
+
+Applications an organization lists in `system_applications`, in its
+configuration (`PATCH /config`), are trusted to read across applications: they
+get every application's data, or the ones named with `application_identifier`
+(`*` for all). They also read profiles without consent filtering — see
+[Consent](consent.md#consent-scoped-profile-fetch).
+
+`GET /profiles` applies the same rules to every profile it lists.
 
 ---
 

@@ -147,7 +147,7 @@ func Get(ctx context.Context, orgHandle string) (Credentials, bool, error) {
 		// pair still serves the tenant it belongs to, and turning CDS off and on
 		// for the organization sends credentials sealed under the new key.
 		logger.Error(fmt.Sprintf("The service credentials of organization %s cannot be read with the configured "+
-			"key, so the configured client is used. Turn CDS off and on for the organization to send them again.",
+			"key, so the configured client is used. Turn CDD off and on for the organization to send them again.",
 			orgHandle), log.Error(err))
 		return Credentials{}, false, nil
 	}

@@ -1,0 +1,3 @@
+# cmd.exe parses a batch file with LF-only line endings unreliably, so the
+# Windows launcher keeps CRLF whatever the platform it is checked out on.
+*.bat text eol=crlf

@@ -7,14 +7,14 @@ Lightweight, extensible Customer Data Server built to power personalized experie
 
 - Go 1.26+
 - cURL
-- Docker — only if you run CDS on PostgreSQL or ActiveMQ. The inbuilt database
+- Docker — only if you run CDD on PostgreSQL or ActiveMQ. The inbuilt database
   and the in-memory queue need nothing extra.
 
 ---
 ### 🛠️ Configuration Steps
 
 1. Register an M2M Application
-    - Go to WSO2 Identity Server Console.
+    - Go to Identity Server Console.
     - Create a Machine-to-Machine application.
     - Under **Api Resources** section:
         - Subscribe to Claim Management APIs.
@@ -24,7 +24,7 @@ Lightweight, extensible Customer Data Server built to power personalized experie
         - Add "iam-cds" to the Audience.
 
 2. Create an Admin user
-    - Go to WSO2 Identity Server Console .
+    - Go to Identity Server Console .
     - Navigate to User Management section --> Users.
     - Create the user. Copy username and password
     - Navigate to Console Settings
@@ -42,10 +42,10 @@ Lightweight, extensible Customer Data Server built to power personalized experie
    > A single application serves a single tenant, because an Identity Server OAuth
    > client can only authenticate at the token endpoint of the tenant it belongs to.
    > To have the Identity Server create one per organization instead, as each enables
-   > CDS, see [Service Credentials](docs/guides/service-credentials.md).
+   > CDD, see [Service Credentials](docs/guides/service-credentials.md).
 
 4. Create Application that you want to use to access these APIs from
-    - Register applications you want to integrate with the CDS.
+    - Register applications you want to integrate with the CDD.
     - Subscribe to required APIs from **API Resources** section:
         - Profiles
         - Profile Schema
@@ -94,7 +94,7 @@ Lightweight, extensible Customer Data Server built to power personalized experie
 
 ## 📨 Message Queue
 
-By default CDS uses an **in-memory queue** — no extra setup needed. For production or multi-instance deployments, switch to ActiveMQ for durable message delivery.
+By default CDD uses an **in-memory queue** — no extra setup needed. For production or multi-instance deployments, switch to ActiveMQ for durable message delivery.
 
 ### Using ActiveMQ
 
@@ -124,7 +124,7 @@ To plug in a different broker (Kafka, RabbitMQ, SQS, etc.) see [docs/guides/exte
 
 ## 🗄 Database
 
-CDS runs on any of four datasources, selected by `datasource.type` in
+CDD runs on any of four datasources, selected by `datasource.type` in
 `repository/conf/deployment.yaml`.
 
 | | Option A — inbuilt (SQLite) | Option B — PostgreSQL | Option C — MySQL | Option D — SQL Server |
@@ -146,13 +146,13 @@ datasource:
 Leaving `datasource.type` out selects the inbuilt database as well. The shipped
 `deployment.yaml` sets `postgres` explicitly, so edit it to switch.
 
-The database lives at `repository/database/cds.db`, relative to the CDS home
+The database lives at `repository/database/cds.db`, relative to the CDD home
 directory. Set `datasource.sqlite.path` to put it elsewhere.
 
 The inbuilt database is a single file written by a single process. Use PostgreSQL
 instead when you need any of the following:
 
-- More than one CDS instance against the same data. SQLite is not shared storage,
+- More than one CDD instance against the same data. SQLite is not shared storage,
   so the Helm chart's default of two replicas requires PostgreSQL.
 - Trigram-accelerated `co` (contains) and `sw` (starts with) profile filters.
   These work on the inbuilt database but scan the table, since SQLite has no
@@ -265,7 +265,7 @@ datasource:
 
 The behaviors that differ from PostgreSQL are the ones listed for MySQL: matching is
 case-sensitive, and `blocking_keys` is not partitioned. Two more apply to SQL Server.
-It allows 2100 parameters in a statement, so CDS splits its large inserts into smaller
+It allows 2100 parameters in a statement, so CDD splits its large inserts into smaller
 ones. And it rejects two cascading foreign keys from `review_tasks` to `profiles`, so
 deleting a profile also deletes the review tasks that name it as a candidate, in the
 same statement.
@@ -274,21 +274,44 @@ same statement.
 
 ## 🏗 Build and Run
 
-### 🛠 Step 1: Build the Product
+### 🛠 Step 1: Build the distribution
 
 ```bash
-make all
+make dist
 ```
+
+This produces one pack per supported platform in `target/dist/`, with their
+checksums and the release compatibility metadata:
+
+```
+cdd-linux-amd64-<version>.zip
+cdd-linux-arm64-<version>.zip
+cdd-darwin-amd64-<version>.zip
+cdd-darwin-arm64-<version>.zip
+cdd-windows-amd64-<version>.zip
+```
+
+`make build` compiles the binary for the host platform alone, which is faster
+when all you want is a compile check.
 
 ---
 
-### ▶️ Step 2: Run the Product
+### ▶️ Step 2: Install and run
 
 ```bash
-cd target
-unzip cds-1.0.0-m1-SNAPSHOT.zip
-cd cds-1.0.0-m1-SNAPSHOT
-./cds
+unzip target/dist/cdd-linux-amd64-<version>.zip -d /opt
+cd /opt/cdd-linux-amd64-<version>
+
+./start.sh       # runs in the foreground; Ctrl+C stops it
 ```
+
+On Windows, run `start.bat` from the extracted folder instead.
+
+Then switch CDD on in the Identity Server with one `[customer_data_service]`
+block in its `deployment.toml`.
+
+See [On-Prem Installation](docs/guides/on-prem-installation.md) for both
+onboarding paths, configuring CDD, switching it on in the Identity Server,
+running it as a service, and certificates.
 
 ---

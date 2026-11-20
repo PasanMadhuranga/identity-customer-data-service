@@ -103,7 +103,7 @@ func (h *ServiceCredentialsHandler) SyncServiceCredentials(w http.ResponseWriter
 		return
 	}
 	if known && ref.ID != org.ID {
-		utils.HandleError(w, badRequest(fmt.Sprintf("CDS knows the organization %s under another ID.", orgHandle)))
+		utils.HandleError(w, badRequest(fmt.Sprintf("CDD knows the organization %s under another ID.", orgHandle)))
 		return
 	}
 	if !known {

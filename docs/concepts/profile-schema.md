@@ -91,6 +91,6 @@ The following attributes are built into every profile regardless of the org sche
 
 ## Schema synchronisation with IS
 
-When a claim is added, updated, or deleted in WSO2 Identity Server, CDS receives a schema sync event and reconciles its local schema accordingly. This keeps `identity_attributes` in CDS aligned with IS claim dialects.
+When a claim is added, updated, or deleted in Identity Server, CDD receives a schema sync event and reconciles its local schema accordingly. This keeps `identity_attributes` in CDD aligned with IS claim dialects.
 
 See [guides/schema-sync.md](../guides/schema-sync.md) for the full sync flow.

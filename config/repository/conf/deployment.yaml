@@ -53,6 +53,12 @@ addr:
 
 server_url: "https://localhost:8900" # Public-facing base URL used for constructing Location headers
 
+# How CDS identifies an application, in system_applications and in application data:
+# "app_id" is the Identity Server application ID, "client_id" its OAuth client ID.
+# The Console has to use the same, so it must match cds_application_identifier_type
+# in the Identity Server's Console configuration.
+application_identifier_type: "app_id"
+
 # The identity provider of this deployment: wso2is (default). One CDS deployment works with one
 # identity provider.
 idp:

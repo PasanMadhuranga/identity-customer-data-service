@@ -30,7 +30,7 @@ Profile created / updated
 
 ## Step 1 — System userId match
 
-If the incoming profile has a non-empty `userId`, CDS searches for a master profile with the same user ID in the organization. If one is found, the profiles are merged without evaluating unification rules.
+If the incoming profile has a non-empty `userId`, CDD searches for a master profile with the same user ID in the organization. If one is found, the profiles are merged without evaluating unification rules.
 
 This is a system-level invariant. It fires before any rules are evaluated and cannot be disabled.
 
@@ -312,7 +312,7 @@ Treated the same as both-temporary — existing becomes master, new becomes chil
 
 ### Both permanent (different userIds)
 
-**Not merged.** CDS logs a warning and returns without action.
+**Not merged.** CDD logs a warning and returns without action.
 
 ---
 

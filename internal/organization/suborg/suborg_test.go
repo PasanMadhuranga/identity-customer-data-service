@@ -67,7 +67,7 @@ func TestRejectWrite(t *testing.T) {
 		t.Fatalf("a primary org must write, got %v", err)
 	}
 	if err := RejectWrite(ctx, "unknown"); err != nil {
-		t.Fatalf("an org that CDS does not know must write, got %v", err)
+		t.Fatalf("an org that CDD does not know must write, got %v", err)
 	}
 	err := RejectWrite(ctx, "sub-id")
 	var clientErr *errors.ClientError

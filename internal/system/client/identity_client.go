@@ -103,11 +103,9 @@ func newOutboundHTTPClient(tlsCfg config.TLSConfig) (*http.Client, error) {
 	cdsHome := utils.GetCDSHome()
 	if certDir == "" {
 		certDir = filepath.Join(cdsHome, "etc", "certs")
-	}
-	if !filepath.IsAbs(certDir) {
-		if abs, err := filepath.Abs(certDir); err == nil {
-			certDir = abs
-		}
+	} else if !filepath.IsAbs(certDir) {
+		// Relative to the home, as the server resolves it.
+		certDir = filepath.Join(cdsHome, certDir)
 	}
 
 	// Root CAs: start with system roots, then append trust store if provided.

@@ -1,6 +1,6 @@
 # IS Sync — Identity Server Event Integration
 
-CDS receives lifecycle events from WSO2 Identity Server (IS) via a webhook-style HTTP endpoint. These events keep CDS profiles and schema in sync with identity data as users are created, updated, authenticated, and deleted.
+CDD receives lifecycle events from Identity Server (IS) via a webhook-style HTTP endpoint. These events keep CDD profiles and schema in sync with identity data as users are created, updated, authenticated, and deleted.
 
 ---
 
@@ -11,7 +11,7 @@ POST /cds/api/profiles/sync
 Authorization: Basic <admin credentials>
 ```
 
-All events use the same endpoint. The `event` field in the request body determines how CDS handles the payload.
+All events use the same endpoint. The `event` field in the request body determines how CDD handles the payload.
 
 ---
 
@@ -50,7 +50,7 @@ Fired on every successful login.
 Fired when one or more claims are updated for a user in IS.
 
 1. Looks up the permanent profile by `userId`
-2. Translates IS claim URIs to CDS attribute key paths
+2. Translates IS claim URIs to CDD attribute key paths
 3. Merges the new values into `identity_attributes`
 4. Saves the updated profile
 

@@ -288,7 +288,7 @@ func TestOrganizationHandlersRequireAuthenticationAndCDS(t *testing.T) {
 	_, err := env.db.Exec(`DELETE FROM cds_config WHERE org_id = ?`, env.orgID)
 	require.NoError(t, err)
 	for _, tc := range calls {
-		t.Run(tc.name+" without CDS", func(t *testing.T) {
+		t.Run(tc.name+" without CDD", func(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, env.call(t, tc.handler, tc.method, env.bearer(), tc.body, ids).Code)
 		})
 	}

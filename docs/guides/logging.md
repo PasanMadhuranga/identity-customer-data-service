@@ -1,6 +1,6 @@
 # Logging
 
-CDS writes three log streams. Each record has a `log_type` field that names its stream.
+CDD writes three log streams. Each record has a `log_type` field that names its stream.
 
 | Stream | `log_type` | Content | File |
 |---|---|---|---|
@@ -47,7 +47,7 @@ log:
         name: "audit.log"
 ```
 
-CDS finds the value of an output key in this sequence:
+CDD finds the value of an output key in this sequence:
 
 1. The block of the log type, for example `log.audit.outputs.file.enabled`.
 2. The default block, `log.outputs.file.enabled`.
@@ -67,8 +67,8 @@ CDS finds the value of an output key in this sequence:
 Rules:
 
 - The level applies only to the application log. The access log and the audit log have no level: use `enabled`.
-- The audit log is always JSON. CDS does not start if `log.audit.outputs.<output>.format` is not `json`.
-- CDS does not start if `log.outputs.file.name` is set, or if a file name is a path.
+- The audit log is always JSON. CDD does not start if `log.audit.outputs.<output>.format` is not `json`.
+- CDD does not start if `log.outputs.file.name` is set, or if a file name is a path.
 - `log.log_level` stays valid for existing deployment files. `log.app.level` takes precedence.
 - A rotated file has the date of its content and a sequence number, for example `cds-2026-11-11.1.log`.
 - If a log type has no output enabled, it writes to the console. A configuration error cannot silence the logs.
@@ -100,10 +100,10 @@ log:
 
 Each request has a correlation ID. All three streams report it as `correlation_id`.
 
-- Send the ID in the `X-Correlation-ID` header (or `X-Request-ID`). CDS accepts 1 to 64 characters from
+- Send the ID in the `X-Correlation-ID` header (or `X-Request-ID`). CDD accepts 1 to 64 characters from
   `A-Z a-z 0-9 . _ -`.
-- If the request has no valid ID, CDS creates a UUID.
-- CDS returns the ID in the `X-Correlation-ID` response header.
+- If the request has no valid ID, CDD creates a UUID.
+- CDD returns the ID in the `X-Correlation-ID` response header.
 
 ## Application log
 
@@ -125,9 +125,9 @@ JSON format:
 {"time":"2026-11-11T09:30:15.141Z","level":"INFO","msg":"request","log_type":"access","method":"PATCH","path":"/t/carbon.super/cds/api/v1/profiles/3f6c2a1e","protocol":"HTTP/1.1","status":200,"bytes":512,"duration_ms":18,"client_ip":"10.0.0.7","user_agent":"curl/8.7.1","correlation_id":"8fa8f0b5","org":"carbon.super"}
 ```
 
-- `error_code` is present when the response is a CDS error.
+- `error_code` is present when the response is a CDD error.
 - The query string is not logged, because it can hold personal data.
-- `client_ip` is the address of the TCP peer. CDS does not use `X-Forwarded-For`.
+- `client_ip` is the address of the TCP peer. CDD does not use `X-Forwarded-For`.
 - A health or readiness request that succeeds has no record.
 
 ## Audit log
@@ -157,12 +157,12 @@ Each audit record is one JSON line.
 | `event` | `<target.type>.<action>` |
 | `action` | `create`, `update`, `delete`, `sync`, `link`, `merge`, `resolve` |
 | `org` | Organization of the request: `handle`, and `id` for a sub organization path or a worker operation. |
-| `actor.type` | `user`, `application`, `service` (the deployment credentials), `system` (CDS itself), `anonymous` |
+| `actor.type` | `user`, `application`, `service` (the deployment credentials), `system` (CDD itself), `anonymous` |
 | `actor.id` | Token subject (`user`), client ID (`application`), `admin_credentials` (`service`), or `cds` (`system`). Absent for `anonymous`, and for a `user` whose token has no subject. Never a user name. |
 | `actor.client_id` | Only for a `user` actor: the OAuth client (application) that the user acted through. |
 | `target` | Resource type, and the resource ID when the operation has one target. |
 | `outcome.result` | `succeeded`, `denied` (authentication or authorization refused it), `failed` |
-| `outcome.reason` | Stable code: `unauthenticated`, `forbidden`, the CDS error code of the response, `client_error`, or `server_error`. Absent on success. |
+| `outcome.reason` | Stable code: `unauthenticated`, `forbidden`, the CDD error code of the response, `client_error`, or `server_error`. Absent on success. |
 | `outcome.status` | HTTP status. Absent for an operation with no request. |
 | `client` | `ip` and `user_agent` of the request. |
 | `details` | Data of the event. See the event tables. |
@@ -178,7 +178,7 @@ Treat the audit log as personal data: limit access to it, and set a retention pe
 
 ### Recording rules
 
-1. CDS audits only the operations that change data. A read or list operation has no audit record, also when it is
+1. CDD audits only the operations that change data. A read or list operation has no audit record, also when it is
    denied. The access log records every request, reads included.
 2. An audited operation is recorded for every outcome: succeeded, denied, or failed.
 

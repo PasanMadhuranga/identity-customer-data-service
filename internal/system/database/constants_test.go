@@ -46,7 +46,7 @@ func Test_unsupportedTypeIsRejected(t *testing.T) {
 	}
 	for _, unsupported := range []string{"oracle", ""} {
 		if IsSupportedType(unsupported) {
-			t.Errorf("%q is not a datasource CDS can run on and must not be reported as supported", unsupported)
+			t.Errorf("%q is not a datasource CDD can run on and must not be reported as supported", unsupported)
 		}
 	}
 	for _, supported := range []string{TypePostgres, TypeSQLite, TypeMySQL, TypeMSSQL} {

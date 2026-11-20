@@ -67,12 +67,6 @@ jobs:
       - name: Check the pack contents
         run: distribution/check-pack.sh target/dist
 
-      # The Identity-Server-first path is the first thing a customer runs, and
-      # nothing else exercises it. This stands a release up locally and drives
-      # the real installer against the packs this run just built.
-      - name: Verify the bootstrap installation
-        run: distribution/verify-install.sh target/dist
-
       - name: Summarise the artifacts
         if: always()
         run: distribution/artifact-summary.sh target/dist >> "$GITHUB_STEP_SUMMARY"

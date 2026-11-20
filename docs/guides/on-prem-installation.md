@@ -9,9 +9,9 @@ configuration they need — switched on in its own `deployment.toml`.
 So there is no step that reaches from one installation into the other, which
 is also what lets either one run from an image or a read-only mount.
 
-## Path A — CDD first
+## Installing
 
-Use this when you start from the CDD download page. Extracting the zip *is*
+Download the zip for your platform from the release page. Extracting it *is*
 the installation; there is nothing to run to complete it.
 
 ```bash
@@ -29,24 +29,6 @@ it defaults to the inbuilt database and needs no database server to start.
 Switch `datasource` in `repository/conf/deployment.yaml` to PostgreSQL, MySQL
 or SQL Server for a production deployment — see the
 [README](../../README.md#-database) for which to choose.
-
-## Path B — Identity Server first
-
-Use this when the Identity Server is already installed and CDD is being added.
-The CDD executable does not exist yet, so acquisition starts from a bootstrap
-installer:
-
-```bash
-./install_cdd.sh --is-home /opt/identity-server
-```
-
-It reads the installed Identity Server version, resolves a CDD release that
-declares support for it, detects the platform, downloads and verifies the
-matching zip, presents the licence, and extracts it. It does not touch the
-Identity Server. It ends by printing the next two steps, which are the ones
-below.
-
-Both paths end at the same `CDD_HOME`.
 
 ## Configuring CDD
 
@@ -199,12 +181,5 @@ from there and needs no file.
 ## Air-gapped installations
 
 A pack needs no network access to install or run beyond the Identity Server it
-calls. The bootstrap installer fetches the release, so point it at an internal
-mirror of the releases, laid out as the releases are — `<tag>/<file>`:
-
-```bash
-./install_cdd.sh --is-home /opt/identity-server --mirror https://mirror.example.com/cds
-```
-
-It resolves the release and verifies the checksum exactly as it does against
-the public releases; only where the bytes come from changes.
+calls: copy the zip onto the machine, check it against its `.sha256`, and
+extract it.

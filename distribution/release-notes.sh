@@ -118,16 +118,14 @@ else
   echo "claiming a compatibility that has not been tested."
 fi
 echo
-echo "\`$PRODUCT-$PACK_VERSION-release-metadata.yaml\` carries the full statement, and is what"
-echo "the bootstrap installer reads to resolve a release for an installed Identity Server."
+echo "\`$PRODUCT-$PACK_VERSION-release-metadata.yaml\` carries the full statement."
 echo
 
 # --- Installing ----------------------------------------------------------- #
 cat <<NOTES
 ## Installing
 
-Starting from CDD — extraction is the installation, there is nothing to run
-first:
+Extracting the zip is the installation; there is nothing to run first:
 
 \`\`\`bash
 unzip $PRODUCT-linux-amd64-$PACK_VERSION.zip -d /opt
@@ -145,15 +143,7 @@ admin_username = "admin"
 admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDD>"
 \`\`\`
 
-Starting from an Identity Server that is already installed, the bootstrap
-installer resolves the right pack for it:
-
-\`\`\`bash
-./install_cdd.sh --is-home /opt/identity-server
-\`\`\`
-
-Both paths end at the same installation. See
-the [installation guide](https://github.com/$REPO/blob/$VERSION/docs/guides/on-prem-installation.md).
+See the [installation guide](https://github.com/$REPO/blob/$VERSION/docs/guides/on-prem-installation.md).
 
 The Identity Server's side of the integration — the CDD extension bundles and
 the CDD Console — is delivered with the Identity Server rather than with this

@@ -210,12 +210,6 @@ jobs:
       - name: Check the pack contents
         run: distribution/check-pack.sh target/dist
 
-      # The last point at which a broken acquisition path can be caught, and
-      # it is caught by driving the real installer against the artifacts this
-      # run is about to publish.
-      - name: Verify the bootstrap installation
-        run: distribution/verify-install.sh target/dist
-
       - name: Summarise the artifacts
         run: distribution/artifact-summary.sh target/dist >> "$GITHUB_STEP_SUMMARY"
 
@@ -277,9 +271,7 @@ jobs:
           # placed deliberately, so the action must not append a second one.
           body_path: target/release-notes.md
           generate_release_notes: false
-          # The zips, their checksums, and the compatibility metadata the
-          # bootstrap installer reads to resolve a release for an Identity
-          # Server version.
+          # The zips, their checksums, and the compatibility metadata.
           files: |
             target/dist/*.zip
             target/dist/*.sha256

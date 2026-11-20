@@ -16,9 +16,10 @@
  * under the License.
  */
 
-// Package cors decides which browser origins may call the service. The allowed set is
-// per organisation, so it is resolved from the organisation in the request path rather
-// than from a single deployment-wide list.
+// Package cors decides which browser origins may call the service. The deployment-wide list
+// holds the browser apps every organization uses, such as the Console, and applies to every
+// request. An organization adds the origins of its own apps, which apply to its requests only,
+// so they are resolved from the organization in the request path.
 package cors
 
 import (
@@ -29,34 +30,31 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
-// Org is the organisation a request is addressed to, as its path names it. A sub organisation
+// Org is the organization a request is addressed to, as its path names it. A sub organization
 // is addressed as /t/{primary_handle}/o/{org_id}/..., so it is named by the handle of its
-// primary organisation and its own ID.
+// primary organization and its own ID.
 type Org struct {
-	// Handle is the organisation segment of the path, which for a sub organisation is the
-	// handle of its primary organisation.
+	// Handle is the organization segment of the path, which for a sub organization is the
+	// handle of its primary organization.
 	Handle string
-	// SubOrgId is the ID of the sub organisation the path addresses, empty for a primary
-	// organisation. It comes from an unauthenticated request, so a lookup must treat it as a
+	// SubOrgID is the ID of the sub organization the path addresses, empty for a primary
+	// organization. It comes from an unauthenticated request, so a lookup must treat it as a
 	// key to match and nothing more.
-	SubOrgId string
+	SubOrgID string
 }
 
-// OriginsLookup returns the origins an organisation allows. An empty result means the
-// organisation has configured none, and the deployment-wide fallback applies. An error means
-// the origins could not be read, and no origin is allowed.
+// OriginsLookup returns the origins an organization has added to the deployment-wide list. An
+// error means they could not be read, and only the deployment-wide list applies.
 type OriginsLookup func(ctx context.Context, org Org) ([]string, error)
 
-// Middleware answers cross-origin requests for UI/SDK clients. For a request addressed to
-// an organisation it matches the Origin header against that organisation's configured
-// origins; for one that carries no organisation, such as the health check, and for an
-// organisation that has configured none, it falls back to deploymentOrigins.
+// Middleware answers cross-origin requests for UI/SDK clients. It allows the origins in
+// deploymentOrigins on every request and, for a request addressed to an organization, the
+// origins that organization has added as well.
 func Middleware(next http.Handler, lookup OriginsLookup, deploymentOrigins func() []string) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		// The allowed set depends on the Origin header and on the organisation in the
+		// The allowed set depends on the Origin header and on the organization in the
 		// path, so a cache must not serve one origin's response to another.
 		w.Header().Add("Vary", "Origin")
 
@@ -84,30 +82,32 @@ func Middleware(next http.Handler, lookup OriginsLookup, deploymentOrigins func(
 // origin is among them.
 func isOriginAllowed(r *http.Request, origin string, lookup OriginsLookup,
 	deploymentOrigins func() []string) bool {
-
-	var allowed []string
-
-	if org := ExtractOrgFromPath(r.URL.Path); org.Handle != "" && lookup != nil {
-		origins, err := lookup(r.Context(), org)
-		if err != nil {
-			// Falling back to the deployment-wide list here would widen what an organisation
-			// with origins of its own allows whenever they cannot be read.
-			log.GetLogger().Debug("Failed to read the CORS allowed origins of the organization. "+
-				"Allowing no origin.", log.String("orgHandle", org.Handle), log.Error(err))
-			return false
-		}
-		allowed = origins
-	}
-
-	// No organisation in the path, or none configured for it: the deployment-wide list
-	// applies, which is what every deployment relied on before origins became per
-	// organisation.
-	if len(allowed) == 0 && deploymentOrigins != nil {
-		allowed = deploymentOrigins()
-	}
-
 	normalizedOrigin := normalizeOrigin(origin)
-	for _, candidate := range allowed {
+
+	// The deployment-wide list applies to every request, so an origin in it, such as the
+	// Console's, needs no lookup of the organization.
+	if deploymentOrigins != nil && containsOrigin(deploymentOrigins(), normalizedOrigin) {
+		return true
+	}
+
+	org := ExtractOrgFromPath(r.URL.Path)
+	if org.Handle == "" || lookup == nil {
+		return false
+	}
+	origins, err := lookup(r.Context(), org)
+	if err != nil {
+		// The deployment-wide list still applies, so the apps every organization uses keep
+		// working while the origins of this one cannot be read.
+		log.GetLogger().Debug("Failed to read the CORS allowed origins of the organization. "+
+			"Allowing the deployment-wide origins only.", log.String("orgHandle", org.Handle), log.Error(err))
+		return false
+	}
+	return containsOrigin(origins, normalizedOrigin)
+}
+
+// containsOrigin reports whether normalizedOrigin is among origins.
+func containsOrigin(origins []string, normalizedOrigin string) bool {
+	for _, candidate := range origins {
 		if normalizeOrigin(candidate) == normalizedOrigin {
 			return true
 		}
@@ -115,21 +115,20 @@ func isOriginAllowed(r *http.Request, origin string, lookup OriginsLookup,
 	return false
 }
 
-// ExtractOrgFromPath returns the organisation a /t/{tenant}/... or
+// ExtractOrgFromPath returns the organization a /t/{tenant}/... or
 // /t/{primary_handle}/o/{org_id}/... path addresses, matching how the request is dispatched
 // further down. It returns an empty Org for any other path, such as the health check. The
-// middleware runs before dispatch, so the organisation cannot yet be read from the request
+// middleware runs before dispatch, so the organization cannot yet be read from the request
 // context.
 func ExtractOrgFromPath(path string) Org {
-
 	remainder, found := strings.CutPrefix(path, "/t/")
 	if !found {
 		return Org{}
 	}
 	handle, rest, _ := strings.Cut(remainder, "/")
 	if subOrgPath, isSubOrg := strings.CutPrefix(rest, "o/"); isSubOrg {
-		subOrgId, _, _ := strings.Cut(subOrgPath, "/")
-		return Org{Handle: handle, SubOrgId: subOrgId}
+		subOrgID, _, _ := strings.Cut(subOrgPath, "/")
+		return Org{Handle: handle, SubOrgID: subOrgID}
 	}
 	return Org{Handle: handle}
 }
@@ -137,7 +136,6 @@ func ExtractOrgFromPath(path string) Org {
 // normalizeOrigin lower-cases the scheme and host so that a configured origin compares
 // equal to the browser-supplied Origin header, which is already normalized that way.
 func normalizeOrigin(origin string) string {
-
 	trimmed := strings.TrimSpace(origin)
 	scheme, rest, found := strings.Cut(trimmed, "://")
 	if !found {

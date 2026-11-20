@@ -122,8 +122,8 @@ Profiles:
 |---|---|---|
 | `profile.create` | `POST /profiles` | |
 | `profile.list` | `GET /profiles` | |
-| `profile.read` | `GET /profiles/{profileId}`, `GET /profiles/Me` | |
-| `profile.update` | `PATCH /profiles/{profileId}`, `PATCH /profiles/Me` | |
+| `profile.read` | `GET /profiles/{profileId}` | |
+| `profile.update` | `PATCH /profiles/{profileId}` | |
 | `profile.delete` | `DELETE /profiles/{profileId}` | |
 | `profile.sync` | `POST /profiles/sync` | `sync_event` |
 | `profile.link` | `POST /profiles/link` | `user_id` |
@@ -174,6 +174,7 @@ Consent, configuration, identity resolution, and organizations:
 | `organization_tree.sync` | `POST /organizations/sync` | |
 | `organization_tree.read` | `GET /organizations/sync-status` | |
 | `organization_access_policy.<action>` | `/organizations/access-policies` | |
+| `service_credentials.sync` | `POST /service-credentials/sync` | |
 
 ## For developers
 

@@ -50,6 +50,7 @@ const (
 	TargetOrganization                 = "organization"
 	TargetOrganizationTree             = "organization_tree"
 	TargetOrganizationAccessPolicy     = "organization_access_policy"
+	TargetServiceCredentials           = "service_credentials"
 )
 
 // Event describes one audited operation. Its name is always "<target type>.<action>", so the name
@@ -168,4 +169,7 @@ var (
 		IDParam: "orgPolicyId"}
 	OrganizationAccessPolicyDelete = Event{TargetType: TargetOrganizationAccessPolicy, Action: ActionDelete,
 		IDParam: "orgPolicyId"}
+
+	// Service credentials.
+	ServiceCredentialsSync = Event{TargetType: TargetServiceCredentials, Action: ActionSync}
 )

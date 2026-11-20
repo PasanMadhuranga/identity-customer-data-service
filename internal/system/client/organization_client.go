@@ -34,12 +34,12 @@ import (
 
 // ISOrganization is an organization from the IS organization management API.
 type ISOrganization struct {
-	Id        string `json:"id"`
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	OrgHandle string `json:"orgHandle"`
 	Status    string `json:"status"`
 	Parent    *struct {
-		Id string `json:"id"`
+		ID string `json:"id"`
 	} `json:"parent,omitempty"`
 }
 
@@ -54,10 +54,19 @@ type isOrganizationList struct {
 // GetSelfOrganization returns the organization that primaryHandle names. The bool is false when the
 // organization does not exist.
 func (c *IdentityClient) GetSelfOrganization(orgHandle string) (ISOrganization, bool, error) {
+	token, err := c.FetchToken(orgHandle)
+	if err != nil {
+		return ISOrganization{}, false, err
+	}
+	return c.GetSelfOrganizationWithToken(orgHandle, token)
+}
 
+// GetSelfOrganizationWithToken reads the organization of orgHandle with the given
+// token, as a token of a client that is not stored yet.
+func (c *IdentityClient) GetSelfOrganizationWithToken(orgHandle, token string) (ISOrganization, bool, error) {
 	var org ISOrganization
 	endpoint := fmt.Sprintf("https://%s/t/%s/api/server/v1/organizations/self", c.BaseURL, url.PathEscape(orgHandle))
-	status, err := c.getJSON(endpoint, orgHandle, &org)
+	status, err := c.getJSONWithToken(endpoint, token, &org)
 	if status == http.StatusNotFound {
 		return org, false, nil
 	}
@@ -69,11 +78,10 @@ func (c *IdentityClient) GetSelfOrganization(orgHandle string) (ISOrganization, 
 
 // GetOrganization returns a descendant organization of the primary organization. The bool is false
 // when the organization does not exist.
-func (c *IdentityClient) GetOrganization(primaryHandle, orgId string) (ISOrganization, bool, error) {
-
+func (c *IdentityClient) GetOrganization(primaryHandle, orgID string) (ISOrganization, bool, error) {
 	var org ISOrganization
 	endpoint := fmt.Sprintf("https://%s/t/%s/api/server/v1/organizations/%s", c.BaseURL,
-		url.PathEscape(primaryHandle), url.PathEscape(orgId))
+		url.PathEscape(primaryHandle), url.PathEscape(orgID))
 	status, err := c.getJSON(endpoint, primaryHandle, &org)
 	if status == http.StatusNotFound {
 		return org, false, nil
@@ -86,7 +94,6 @@ func (c *IdentityClient) GetOrganization(primaryHandle, orgId string) (ISOrganiz
 
 // ListDescendantOrganizations returns all organizations below the primary organization.
 func (c *IdentityClient) ListDescendantOrganizations(primaryHandle string) ([]ISOrganization, error) {
-
 	next := fmt.Sprintf("https://%s/t/%s/api/server/v1/organizations?recursive=true&limit=100", c.BaseURL,
 		url.PathEscape(primaryHandle))
 	var all []ISOrganization
@@ -116,19 +123,22 @@ func (c *IdentityClient) ListDescendantOrganizations(primaryHandle string) ([]IS
 // getJSON sends a GET request with a token for the organization, and decodes a 200 response into
 // out. It returns the HTTP status.
 func (c *IdentityClient) getJSON(endpoint, orgHandle string, out interface{}) (int, error) {
-
-	failed := func(desc string, cause error) error {
-		return errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.ORGANIZATION_SYNC.Code,
-			Message:     errors2.ORGANIZATION_SYNC.Message,
-			Description: desc,
-		}, cause)
-	}
-
 	token, err := c.FetchToken(orgHandle)
 	if err != nil {
 		return 0, err
 	}
+	return c.getJSONWithToken(endpoint, token, out)
+}
+
+func (c *IdentityClient) getJSONWithToken(endpoint, token string, out interface{}) (int, error) {
+	failed := func(desc string, cause error) error {
+		return errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.OrganizationSync.Code,
+			Message:     errors2.OrganizationSync.Message,
+			Description: desc,
+		}, cause)
+	}
+
 	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
 		return 0, failed("Failed to create the request: "+endpoint, err)
@@ -144,7 +154,7 @@ func (c *IdentityClient) getJSON(endpoint, orgHandle string, out interface{}) (i
 	if err != nil {
 		return 0, failed("Failed to call: "+endpoint, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

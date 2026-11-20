@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package main starts the customer data service: it loads the configuration, sets up the database and
+// the workers, and serves the HTTP API until it is told to shut down.
 package main
 
 import (
@@ -32,6 +34,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+
 	adminConfigProvider "github.com/wso2/identity-customer-data-service/internal/admin_config/provider"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/cors"
@@ -41,6 +44,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/managers"
 	_ "github.com/wso2/identity-customer-data-service/internal/system/queue/activemq" // registers the ActiveMQ queue provider
+	"github.com/wso2/identity-customer-data-service/internal/system/servicecreds"
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 	"github.com/wso2/identity-customer-data-service/internal/system/workers"
 
@@ -48,7 +52,6 @@ import (
 )
 
 func initDatabaseFromConfig(cdsConfig *config.Config) error {
-
 	if err := provider.ValidateDataSource(cdsConfig.DataSource); err != nil {
 		return err
 	}
@@ -67,7 +70,6 @@ func initDatabaseFromConfig(cdsConfig *config.Config) error {
 }
 
 func main() {
-
 	cdsHome := resolveCDSHome()
 	utils.SetCDSHome(cdsHome)
 	const configFile = "/repository/conf/deployment.yaml"
@@ -100,12 +102,21 @@ func main() {
 	defer logStreams.close()
 
 	// Create the adapter of the identity provider.
-	adapter, err := idp.NewAdapter(cdsConfig.IdP.Type)
+	adapter, err := idp.NewAdapter(cdsConfig.IDP.Type)
 	if err != nil {
 		log.GetLogger().Error("Invalid identity provider configuration.", log.Error(err))
 		os.Exit(1)
 	}
 	idp.SetAdapter(adapter)
+
+	// A key that cannot seal the service credentials, or that the identity
+	// provider has no use for, stops the server here rather than at the first
+	// organization that sends credentials.
+	_, credentialsSupported := adapter.(idp.ServiceCredentialsVerifier)
+	if err := servicecreds.ValidateConfig(*cdsConfig, credentialsSupported); err != nil {
+		log.GetLogger().Error("Invalid service credentials configuration.", log.Error(err))
+		os.Exit(1)
+	}
 
 	// Resolve the shutdown deadline at start, so a refused value stops the
 	// server before anything runs.
@@ -122,6 +133,13 @@ func main() {
 	if err := initDatabaseFromConfig(cdsConfig); err != nil {
 		log.GetLogger().Error("Failed to initialize the database.", log.Error(err))
 		os.Exit(1)
+	}
+
+	if servicecreds.Enabled() {
+		if err := servicecreds.CheckStore(context.Background()); err != nil {
+			log.GetLogger().Error("Invalid service credentials configuration.", log.Error(err))
+			os.Exit(1)
+		}
 	}
 
 	// Initialize Profile worker
@@ -142,6 +160,9 @@ func main() {
 	if cdsConfig.Cleanup.Cookie.Enabled {
 		workers.StartCookieCleanupWorker(cdsConfig.Cleanup.Cookie)
 	}
+
+	// Initialize the temporary profile cleanup worker
+	workers.StartTemporaryProfileCleanupWorker()
 
 	serverAddr := fmt.Sprintf("%s:%d", cdsConfig.Addr.Host, cdsConfig.Addr.Port)
 	mux := logStreams.wrap(newCORSMiddleware(initMultiplexer()))
@@ -218,6 +239,7 @@ func main() {
 		{name: "profile", stop: workers.StopProfileWorker},
 		{name: "schema sync", stop: workers.StopSchemaSyncWorker},
 		{name: "cookie cleanup", stop: workers.StopCookieCleanupWorker},
+		{name: "temporary profile cleanup", stop: workers.StopTemporaryProfileCleanupWorker},
 	}
 
 	if err := shutdown(ctx, logger, server.Shutdown, workerList, provider.CloseDB); err != nil {
@@ -230,7 +252,6 @@ func main() {
 
 // initMultiplexer initializes the HTTP multiplexer and registers the services.
 func initMultiplexer() *http.ServeMux {
-
 	mux := http.NewServeMux()
 	serviceManager := managers.NewServiceManager(mux)
 	logger := log.GetLogger()
@@ -243,21 +264,20 @@ func initMultiplexer() *http.ServeMux {
 	return mux
 }
 
-// newCORSMiddleware wraps handler with the organisation-aware CORS middleware. Origins are
-// resolved per organisation from the admin configuration, falling back to the
+// newCORSMiddleware wraps handler with the organization-aware CORS middleware. Origins are
+// resolved per organization from the admin configuration, falling back to the
 // deployment-wide auth.cors_allowed_origins list.
 func newCORSMiddleware(handler http.Handler) http.Handler {
-
 	adminConfigService := adminConfigProvider.NewAdminConfigProvider().GetAdminConfigService()
 
 	return cors.Middleware(handler,
 		func(ctx context.Context, org cors.Org) ([]string, error) {
 			// A handle CDS has no organization for has configured no origins.
-			orgId, found, err := adminConfigService.LookupCORSOrgId(ctx, org.Handle)
+			orgID, found, err := adminConfigService.LookupCORSOrgID(ctx, org.Handle)
 			if err != nil || !found {
 				return nil, err
 			}
-			return adminConfigService.GetCORSAllowedOrigins(ctx, orgId, org.SubOrgId)
+			return adminConfigService.GetCORSAllowedOrigins(ctx, orgID, org.SubOrgID)
 		},
 		func() []string { return config.GetCDSRuntime().Config.Auth.CORSAllowedOrigins },
 	)

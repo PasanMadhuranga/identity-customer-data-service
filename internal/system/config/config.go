@@ -16,8 +16,10 @@
  * under the License.
  */
 
+// Package config defines the CDS configuration and holds the configuration of the running server.
 package config
 
+// AddrConfig is the address the server listens on.
 type AddrConfig struct {
 	Port int    `yaml:"port"`
 	Host string `yaml:"host"`
@@ -70,10 +72,13 @@ type AuditLogConfig struct {
 	ReadEvents bool `yaml:"read_events"`
 }
 
+// AuthConfig holds the settings for cross-origin requests.
 type AuthConfig struct {
 	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
+// AuthServerConfig holds the identity server endpoints and credentials CDS uses, and the scopes each
+// operation requires.
 type AuthServerConfig struct {
 	Host                      string              `yaml:"host"`
 	Port                      string              `yaml:"port"`
@@ -85,7 +90,7 @@ type AuthServerConfig struct {
 	ClaimEndpoint             string              `yaml:"claim_endpoint"`
 	ClientID                  string              `yaml:"client_id"`
 	ClientSecret              string              `yaml:"client_secret"`
-	IntrospectionClientId     string              `yaml:"introspection_client_id"`
+	IntrospectionClientID     string              `yaml:"introspection_client_id"`
 	IntrospectionClientSecret string              `yaml:"introspection_client_secret"`
 	AdminUsername             string              `yaml:"admin_username"`
 	AdminPassword             string              `yaml:"admin_password"`
@@ -131,11 +136,31 @@ type PostgresConfig struct {
 	ConnectTimeoutSeconds int `yaml:"connect_timeout_seconds"`
 }
 
+// MySQLConfig holds the connection pool settings for MySQL. The fields mean the
+// same as the fields of PostgresConfig, and zero takes the application default.
+type MySQLConfig struct {
+	MaxOpenConns           int `yaml:"max_open_conns"`
+	MaxIdleConns           int `yaml:"max_idle_conns"`
+	ConnMaxLifetimeSeconds int `yaml:"conn_max_lifetime_seconds"`
+	ConnMaxIdleTimeSeconds int `yaml:"conn_max_idle_time_seconds"`
+	ConnectTimeoutSeconds  int `yaml:"connect_timeout_seconds"`
+}
+
+// MSSQLConfig holds the connection pool settings for Microsoft SQL Server. The
+// fields mean the same as the fields of PostgresConfig, and zero takes the
+// application default.
+type MSSQLConfig struct {
+	MaxOpenConns           int `yaml:"max_open_conns"`
+	MaxIdleConns           int `yaml:"max_idle_conns"`
+	ConnMaxLifetimeSeconds int `yaml:"conn_max_lifetime_seconds"`
+	ConnMaxIdleTimeSeconds int `yaml:"conn_max_idle_time_seconds"`
+	ConnectTimeoutSeconds  int `yaml:"connect_timeout_seconds"`
+}
+
 // DataSourceConfig selects and configures the database.
 type DataSourceConfig struct {
-	Type string `yaml:"type"` // "sqlite" (inbuilt, the default) or "postgres"
+	Type string `yaml:"type"` // "sqlite" (inbuilt, the default), "postgres", "mysql" or "mssql"
 
-	// PostgreSQL settings. Read only when Type is "postgres".
 	Hostname string `yaml:"hostname"`
 	Port     int    `yaml:"port"`
 	Name     string `yaml:"name"`
@@ -145,6 +170,12 @@ type DataSourceConfig struct {
 
 	// PostgreSQL connection pool settings. Read only when Type is "postgres".
 	Postgres PostgresConfig `yaml:"postgres"`
+
+	// MySQL connection pool settings. Read only when Type is "mysql".
+	MySQL MySQLConfig `yaml:"mysql"`
+
+	// MSSQL connection pool settings. Read only when Type is "mssql".
+	MSSQL MSSQLConfig `yaml:"mssql"`
 
 	// SQLite settings. Read only when Type is "sqlite".
 	SQLite SQLiteConfig `yaml:"sqlite"`
@@ -187,13 +218,14 @@ const (
 	ApplicationIdentifierTypeAppID    = "app_id"
 )
 
+// Config is the server configuration read from the deployment file.
 type Config struct {
 	Addr         AddrConfig         `yaml:"addr"`
 	ServerURL    string             `yaml:"server_url"`
 	Log          LogConfig          `yaml:"log"`
 	Auth         AuthConfig         `yaml:"auth"`
 	AuthServer   AuthServerConfig   `yaml:"auth_server"`
-	IdP          IdPConfig          `yaml:"idp"`
+	IDP          IDPConfig          `yaml:"idp"`
 	DataSource   DataSourceConfig   `yaml:"datasource"`
 	TLS          TLSConfig          `yaml:"tls"`
 	Cleanup      CleanupConfig      `yaml:"cleanup"`
@@ -207,10 +239,37 @@ type Config struct {
 	IdentityResolution IdentityResolutionConfig `yaml:"identity_resolution"`
 }
 
-// IdPConfig selects the identity provider of the deployment.
-type IdPConfig struct {
+// IDPConfig selects the identity provider of the deployment.
+type IDPConfig struct {
 	// Type is "wso2is", the default when it is empty.
 	Type string `yaml:"type"`
+	// ServiceCredentials governs the credentials CDS calls the identity
+	// provider with, which the identity provider sends per organization.
+	ServiceCredentials ServiceCredentialsConfig `yaml:"service_credentials"`
+}
+
+// ServiceCredentialsConfig governs the service-to-service credentials CDS calls
+// the identity provider's management APIs with, one pair per organization.
+//
+// auth_server.client_id/client_secret belong to one tenant and can only
+// authenticate at that tenant's token endpoint. Where CDS serves more than one
+// organization, the identity provider sends a pair for each organization as it
+// enables CDS, to POST /service-credentials/sync (WSO2 Identity Server creates
+// an application per organization for it). CDS keeps them in its database and
+// uses them in place of the configured pair.
+type ServiceCredentialsConfig struct {
+	// EncryptionKey seals the client secrets at rest: 32 bytes, base64
+	// encoded, as `openssl rand -base64 32` prints. Leaving it empty turns the
+	// feature off: CDS stores no credentials and uses the configured pair for
+	// every organization. A key that is set but not usable stops the server.
+	//
+	// Only an identity provider whose adapter verifies service credentials
+	// sends them, which today is wso2is. A key with any other identity
+	// provider stops the server.
+	//
+	// The secret cannot be hashed instead. CDS presents it to the token
+	// endpoint on every token request, and a hash cannot be presented.
+	EncryptionKey string `yaml:"encryption_key"`
 }
 
 // OrganizationManagementConfig enables organization management. The organization tables must exist
@@ -236,7 +295,7 @@ type IdentityResolutionConfig struct {
 	//
 	// Off by default, including for a deployment.yaml written before the key existed. An
 	// upgrade therefore keeps matching exactly as it did, and an operator turns tolerant
-	// matching on when the organisation is ready for it rather than finding that an
+	// matching on when the organization is ready for it rather than finding that an
 	// upgrade changed which profiles get unified.
 	//
 	// While off, new fuzzy rules are refused, the options endpoint stops offering the
@@ -261,6 +320,7 @@ func (c Config) UsesAppIDIdentifier() bool {
 	return c.ApplicationIdentifierType == ApplicationIdentifierTypeAppID
 }
 
+// TLSConfig holds the certificates of the server and whether mutual TLS is on.
 type TLSConfig struct {
 	MTLSEnabled             bool   `yaml:"mtls_enabled"`
 	CertDir                 string `yaml:"cert_dir"`
@@ -270,10 +330,12 @@ type TLSConfig struct {
 	TrustStore              string `yaml:"trust_store"`
 }
 
+// CleanupConfig holds the settings of the background cleanup jobs.
 type CleanupConfig struct {
 	Cookie CookieCleanupConfig `yaml:"cookie"`
 }
 
+// CookieCleanupConfig controls the job that deletes inactive cookies. Interval is in seconds.
 type CookieCleanupConfig struct {
 	Enabled   bool `yaml:"enabled"`
 	Interval  int  `yaml:"interval"` // in seconds

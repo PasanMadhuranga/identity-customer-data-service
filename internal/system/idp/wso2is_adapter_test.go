@@ -34,7 +34,6 @@ import (
 // An organization that answers the self call on its own tenant path is the primary organization,
 // with or without a parent.
 func TestGetPrimaryOrganizationAcceptsAnyParent(t *testing.T) {
-
 	if err := log.Init("ERROR"); err != nil {
 		t.Fatalf("failed to set up the logger: %v", err)
 	}
@@ -68,9 +67,37 @@ func TestGetPrimaryOrganizationAcceptsAnyParent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("GetPrimaryOrganization: %v", err)
 			}
-			if org.Id != "acme-id" || org.Name != "Acme" || org.ParentId != "" {
+			if org.ID != "acme-id" || org.Name != "Acme" || org.ParentID != "" {
 				t.Errorf("got %+v, want the organization acme-id with no parent", org)
 			}
 		})
+	}
+}
+
+// With system app grant enabled, a sub organization without service credentials has its tokens
+// introspected at the introspection endpoint of its primary organization.
+func TestIntrospectTokenOfASubOrganizationAtThePrimaryOrganization(t *testing.T) {
+	if err := log.Init("ERROR"); err != nil {
+		t.Fatalf("failed to set up the logger: %v", err)
+	}
+	var paths []string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		_, _ = fmt.Fprint(w, `{"active":true}`)
+	}))
+	defer server.Close()
+	host := strings.TrimPrefix(server.URL, "https://")
+	config.OverrideCDSRuntime(config.Config{AuthServer: config.AuthServerConfig{
+		ADUISHostname:           host,
+		IntrospectionEndPoint:   "/oauth2/introspect",
+		IsSystemAppGrantEnabled: true,
+	}})
+	adapter := &WSO2ISAdapter{client: &client.IdentityClient{BaseURL: host, HTTPClient: server.Client()}}
+
+	if _, err := adapter.IntrospectToken(context.Background(), "a-token", "region1", "acme"); err != nil {
+		t.Fatalf("IntrospectToken: %v", err)
+	}
+	if len(paths) != 1 || paths[0] != "/t/acme/oauth2/introspect" {
+		t.Errorf("got the introspection paths %v, want [/t/acme/oauth2/introspect]", paths)
 	}
 }

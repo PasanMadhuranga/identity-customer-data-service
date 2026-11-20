@@ -16,9 +16,14 @@
  * under the License.
  */
 
+// Package scripts declares every SQL statement CDS runs, and the dialect-specific
+// fragments the stores assemble at runtime.
 package scripts
 
-import "github.com/wso2/identity-customer-data-service/internal/system/database/model"
+import (
+	"github.com/wso2/identity-customer-data-service/internal/system/database"
+	"github.com/wso2/identity-customer-data-service/internal/system/database/model"
+)
 
 // newQuery declares a statement.
 //
@@ -32,6 +37,7 @@ import "github.com/wso2/identity-customer-data-service/internal/system/database/
 //	CDS-CON  consent_categories, consent_category_attributes, profile_consents
 //	CDS-CKI  profile_cookies
 //	CDS-CFG  cds_config
+//	CDS-SVC  org_service_credentials
 //	CDS-IDR  blocking_keys, review_tasks, rejection_pairs
 //	CDS-SYS  statements bound to no table
 //
@@ -40,15 +46,30 @@ import "github.com/wso2/identity-customer-data-service/internal/system/database/
 //
 // base is the PostgreSQL statement, and is used for every other datasource
 // unless an override is supplied. Most statements need no override; pass one
-// only where the dialects differ.
+// only where the dialects differ. The SQLite text is passed here, and the text
+// for each server datasource is listed by statement id in queries_mysql.go and
+// queries_mssql.go.
 func newQuery(id, base string, sqliteOverride ...string) model.DBQuery {
-
 	query := model.DBQuery{
 		ID:    id,
 		Query: base,
 	}
 	if len(sqliteOverride) > 0 {
-		query.SQLiteQuery = sqliteOverride[0]
+		query.Overrides = map[string]string{database.TypeSQLite: sqliteOverride[0]}
+	}
+	for dbType, statements := range serverStatements {
+		if text, ok := statements[id]; ok {
+			if query.Overrides == nil {
+				query.Overrides = map[string]string{}
+			}
+			query.Overrides[dbType] = text
+		}
 	}
 	return query
+}
+
+// serverStatements maps each server datasource to the statements written for it.
+var serverStatements = map[string]map[string]string{
+	database.TypeMySQL: mysqlStatements,
+	database.TypeMSSQL: mssqlStatements,
 }

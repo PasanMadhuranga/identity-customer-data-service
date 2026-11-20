@@ -28,10 +28,10 @@ import (
 
 // Organization holds the details of an organization that the identity provider returns.
 type Organization struct {
-	Id       string
+	ID       string
 	Handle   string
 	Name     string
-	ParentId string // Empty for a primary organization.
+	ParentID string // Empty for a primary organization.
 	Status   string
 }
 
@@ -44,10 +44,31 @@ type Adapter interface {
 	ListDescendants(ctx context.Context, primaryHandle string) ([]Organization, error)
 	// GetOrganization returns one organization below the primary organization. It returns nil when
 	// the organization does not exist.
-	GetOrganization(ctx context.Context, primaryHandle, orgId string) (*Organization, error)
+	GetOrganization(ctx context.Context, primaryHandle, orgID string) (*Organization, error)
 	// IdentityAttributeSourceHandle returns the handle of the organization that holds the identity
 	// attributes of a sub organization.
 	IdentityAttributeSourceHandle(orgHandle, primaryHandle string) string
+}
+
+// ServiceCredentialsVerifier is implemented by the adapter of an identity provider that sends CDS
+// the service credentials CDS calls it with, one pair per primary organization. CDS stores a pair
+// only after the adapter verifies it, and refuses an encryption key for any other adapter.
+type ServiceCredentialsVerifier interface {
+	// VerifyServiceCredentials returns the primary organization that the identity provider issues
+	// a token for to the client, read with that token, and a client error when it refuses the
+	// client. CDS keys the credentials by the ID of that organization.
+	VerifyServiceCredentials(ctx context.Context, orgHandle, clientID, clientSecret string) (Organization,
+		error)
+}
+
+// TokenIntrospector is implemented by the adapter of an identity provider that
+// introspects tokens itself, as with the service credentials of the
+// organization. CDS introspects tokens through it when the adapter implements it.
+type TokenIntrospector interface {
+	// IntrospectToken returns the introspection response of the token, for the
+	// organization of the request path orgHandle. primaryHandle is the primary
+	// organization of that path.
+	IntrospectToken(ctx context.Context, token, orgHandle, primaryHandle string) (map[string]interface{}, error)
 }
 
 var (
@@ -57,7 +78,6 @@ var (
 
 // GetAdapter returns the configured adapter.
 func GetAdapter() Adapter {
-
 	adapterMu.RLock()
 	a := adapter
 	adapterMu.RUnlock()
@@ -75,7 +95,6 @@ const (
 // NewAdapter returns the adapter of the identity provider type. An empty type selects the default
 // adapter.
 func NewAdapter(idpType string) (Adapter, error) {
-
 	switch strings.ToLower(strings.TrimSpace(idpType)) {
 	case "", TypeWSO2IS:
 		return NewWSO2ISAdapter(), nil
@@ -86,7 +105,6 @@ func NewAdapter(idpType string) (Adapter, error) {
 
 // SetAdapter replaces the adapter.
 func SetAdapter(a Adapter) {
-
 	adapterMu.Lock()
 	adapter = a
 	adapterMu.Unlock()

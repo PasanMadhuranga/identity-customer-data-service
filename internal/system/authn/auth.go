@@ -16,18 +16,22 @@
  * under the License.
  */
 
+// Package authn validates the bearer tokens of incoming requests against the identity server.
 package authn
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/wso2/identity-customer-data-service/internal/system/client"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
+	"github.com/wso2/identity-customer-data-service/internal/system/idp"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
@@ -37,14 +41,13 @@ var (
 
 // ValidateAuthenticationAndReturnClaims validates Authorization: Bearer token from the HTTP request
 func ValidateAuthenticationAndReturnClaims(token, orgHandle string) (map[string]interface{}, error) {
-	return ValidateTokenForOrg(token, orgHandle, "")
+	return ValidateTokenForOrg(token, orgHandle, orgHandle, "")
 }
 
-// ValidateTokenForOrg validates the token for the organization of the path. For a sub organization,
-// the org_id claim must match pathOrgId. For a primary organization, the org_handle claim must
-// match the path handle.
-func ValidateTokenForOrg(token, orgHandle, pathOrgId string) (map[string]interface{}, error) {
-
+// ValidateTokenForOrg validates the token for the organization of the path. It introspects the token
+// at the primary organization primaryHandle. For a sub organization, the org_id claim must match
+// pathOrgID. For a primary organization, the org_handle claim must match the path handle.
+func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map[string]interface{}, error) {
 	logger := log.GetLogger()
 	cfg := config.GetCDSRuntime().Config
 	identityClient := client.NewIdentityClient(cfg)
@@ -61,13 +64,13 @@ func ValidateTokenForOrg(token, orgHandle, pathOrgId string) (map[string]interfa
 		}
 
 		// Validate org claims against request org handle
-		if !validateClaims(orgHandle, pathOrgId, claims) {
+		if !validateClaims(orgHandle, pathOrgID, claims) {
 			logger.Debug("JWT claims validation failed")
 			return nil, unauthorizedError()
 		}
 
 		// Introspect to check if token is still active (not revoked)
-		introspectionClaims, err := identityClient.IntrospectToken(token, orgHandle)
+		introspectionClaims, err := introspect(identityClient, token, orgHandle, primaryHandle)
 		if err != nil {
 			logger.Error(fmt.Sprintf("JWT token introspection failed for organization: '%s'", orgHandle),
 				log.Error(err))
@@ -88,7 +91,7 @@ func ValidateTokenForOrg(token, orgHandle, pathOrgId string) (map[string]interfa
 	logger.Debug(fmt.Sprintf("Token is identified as opaque. Validating opaque token for organization: '%s' "+
 		"using introspection", orgHandle))
 
-	introspectionClaims, err := identityClient.IntrospectToken(token, orgHandle)
+	introspectionClaims, err := introspect(identityClient, token, orgHandle, primaryHandle)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Opaque token introspection failed for organization: '%s'", orgHandle),
 			log.Error(err))
@@ -102,9 +105,9 @@ func ValidateTokenForOrg(token, orgHandle, pathOrgId string) (map[string]interfa
 	}
 
 	// The token must be issued for the organization of the path.
-	if pathOrgId != "" {
-		if tokenOrgId, _ := introspectionClaims[constants.OrgIdClaim].(string); tokenOrgId != pathOrgId {
-			logger.Debug(fmt.Sprintf("Opaque token is for organization '%s', not for '%s'", tokenOrgId, pathOrgId))
+	if pathOrgID != "" {
+		if tokenOrgID, _ := introspectionClaims[constants.OrgIDClaim].(string); tokenOrgID != pathOrgID {
+			logger.Debug(fmt.Sprintf("Opaque token is for organization '%s', not for '%s'", tokenOrgID, pathOrgID))
 			return nil, unauthorizedError()
 		}
 	} else if tokenOrg, ok := introspectionClaims[constants.OrgHandleClaim].(string); ok && tokenOrg != "" &&
@@ -113,13 +116,13 @@ func ValidateTokenForOrg(token, orgHandle, pathOrgId string) (map[string]interfa
 		return nil, unauthorizedError()
 	}
 
-	clientApp, ok := introspectionClaims[constants.ClientIdClaim].(string)
+	clientApp, ok := introspectionClaims[constants.ClientIDClaim].(string)
 	if !ok || clientApp == "" {
 		logger.Debug(fmt.Sprintf("Introspected token does not have a valid client_id claim for "+
 			"organization: '%s'", orgHandle))
 		return nil, unauthorizedError()
 	}
-	if clientApp != constants.CONSOLE_APP {
+	if clientApp != constants.ConsoleApp {
 		logger.Debug(fmt.Sprintf("Opaque token is allowed only for console app, "+
 			"but token is for client_id: '%s' for organization: '%s'", clientApp, orgHandle))
 		return nil, unauthorizedError()
@@ -137,7 +140,6 @@ func IsJWT(tokenString string) bool {
 
 // ParseJWTClaims parses claims from a JWT without verifying the signature
 func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
-
 	logger := log.GetLogger()
 	claims := jwt.MapClaims{}
 	_, _, err := new(jwt.Parser).ParseUnverified(tokenString, claims)
@@ -145,8 +147,8 @@ func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
 		errMsg := "Error occurred when parsing claims from JWT token."
 		logger.Debug(errMsg, log.Error(err))
 		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.PARSING_ERROR.Code,
-			Message:     errors2.PARSING_ERROR.Message,
+			Code:        errors2.ParsingError.Code,
+			Message:     errors2.ParsingError.Message,
 			Description: errMsg,
 		}, err)
 		return nil, serverError
@@ -155,11 +157,10 @@ func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
 }
 
 // validateClaims checks the organization, the expiry, and the audience of the token.
-func validateClaims(orgHandle, pathOrgId string, claims map[string]interface{}) bool {
-
+func validateClaims(orgHandle, pathOrgID string, claims map[string]interface{}) bool {
 	logger := log.GetLogger()
-	if pathOrgId != "" {
-		if orgIdInClaim, _ := claims[constants.OrgIdClaim].(string); orgIdInClaim != pathOrgId {
+	if pathOrgID != "" {
+		if orgIDInClaim, _ := claims[constants.OrgIDClaim].(string); orgIDInClaim != pathOrgID {
 			logger.Debug("Token does not have the org_id claim of the path.")
 			return false
 		}
@@ -214,8 +215,27 @@ func validateClaims(orgHandle, pathOrgId string, claims map[string]interface{}) 
 
 func unauthorizedError() error {
 	return errors2.NewClientError(errors2.ErrorMessage{
-		Code:        errors2.UN_AUTHORIZED.Code,
-		Message:     errors2.UN_AUTHORIZED.Message,
-		Description: errors2.UN_AUTHORIZED.Description,
+		Code:        errors2.Unauthorized.Code,
+		Message:     errors2.Unauthorized.Message,
+		Description: errors2.Unauthorized.Description,
 	}, http.StatusUnauthorized)
+}
+
+// IntrospectToken asks the identity provider about the token of a request in the
+// organization orgHandle, whose primary organization is primaryHandle, the same way
+// as the authentication of the request does.
+func IntrospectToken(token, orgHandle, primaryHandle string) (map[string]interface{}, error) {
+	return introspect(client.NewIdentityClient(config.GetCDSRuntime().Config), token, orgHandle, primaryHandle)
+}
+
+// introspect asks the identity provider whether the token is active. The adapter
+// of the identity provider introspects it when it can, as with the service
+// credentials of the organization. Otherwise the configured introspection client
+// introspects it for the primary organization primaryHandle.
+func introspect(identityClient *client.IdentityClient, token, orgHandle,
+	primaryHandle string) (map[string]interface{}, error) {
+	if introspector, ok := idp.GetAdapter().(idp.TokenIntrospector); ok {
+		return introspector.IntrospectToken(context.Background(), token, orgHandle, primaryHandle)
+	}
+	return identityClient.IntrospectToken(token, primaryHandle)
 }

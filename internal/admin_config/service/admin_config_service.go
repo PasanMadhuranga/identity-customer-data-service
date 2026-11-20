@@ -16,6 +16,8 @@
  * under the License.
  */
 
+// Package service reads and updates the admin configuration of an organization, including the CORS
+// origins it allows.
 package service
 
 import (
@@ -41,14 +43,14 @@ import (
 
 // AdminConfigServiceInterface defines the service interface.
 type AdminConfigServiceInterface interface {
-	GetAdminConfig(ctx context.Context, orgId string) (model.AdminConfig, error)
-	IsCDSEnabled(ctx context.Context, orgId string) bool
-	IsInitialSchemaSyncDone(ctx context.Context, orgId string) bool
-	IsSystemApplication(ctx context.Context, orgId string, appId string) (bool, error)
-	LookupCORSOrgId(ctx context.Context, orgHandle string) (orgId string, found bool, err error)
-	GetCORSAllowedOrigins(ctx context.Context, orgId, subOrgId string) ([]string, error)
+	GetAdminConfig(ctx context.Context, orgID string) (model.AdminConfig, error)
+	IsCDSEnabled(ctx context.Context, orgID string) bool
+	IsInitialSchemaSyncDone(ctx context.Context, orgID string) bool
+	IsSystemApplication(ctx context.Context, orgID string, appID string) (bool, error)
+	LookupCORSOrgID(ctx context.Context, orgHandle string) (orgID string, found bool, err error)
+	GetCORSAllowedOrigins(ctx context.Context, orgID, subOrgID string) ([]string, error)
 	UpdateAdminConfig(ctx context.Context, updatedConfig *model.AdminConfig, org orgModel.Ref) error
-	UpdateInitialSchemaSync(ctx context.Context, state bool, orgId string) error
+	UpdateInitialSchemaSync(ctx context.Context, state bool, orgID string) error
 }
 
 // AdminConfigService is the default implementation.
@@ -56,32 +58,36 @@ type AdminConfigService struct{}
 
 // IsCDSEnabled reports whether CDS is enabled for the organization. A sub organization is enabled
 // when its primary organization is enabled and the organization access includes it.
-func (a AdminConfigService) IsCDSEnabled(ctx context.Context, orgId string) bool {
-	config, err := store.GetAdminConfig(ctx, orgId)
+func (a AdminConfigService) IsCDSEnabled(ctx context.Context, orgID string) bool {
+	config, err := store.GetAdminConfig(ctx, orgID)
 	if err == nil && config != nil && config.CDSEnabled {
 		return true
 	}
-	primary, known := orgService.PrimaryOf(ctx, orgId)
-	if !known || primary.ID == orgId {
+	primary, known := orgService.PrimaryOf(ctx, orgID)
+	if !known || primary.ID == orgID {
 		return false
 	}
 	primaryConfig, err := store.GetAdminConfig(ctx, primary.ID)
 	if err != nil || primaryConfig == nil || !primaryConfig.CDSEnabled {
 		return false
 	}
-	return sharingService.IsSubOrgEnabled(ctx, orgId)
+	return sharingService.IsSubOrgEnabled(ctx, orgID)
 }
 
-func (a AdminConfigService) IsInitialSchemaSyncDone(ctx context.Context, orgId string) bool {
-	config, err := store.GetAdminConfig(ctx, orgId)
+// IsInitialSchemaSyncDone reports whether the initial schema sync of the organization has completed. It
+// returns false when the configuration cannot be read.
+func (a AdminConfigService) IsInitialSchemaSyncDone(ctx context.Context, orgID string) bool {
+	config, err := store.GetAdminConfig(ctx, orgID)
 	if err != nil || config == nil {
 		return false
 	}
 	return config.InitialSchemaSyncDone
 }
 
-func (a AdminConfigService) IsSystemApplication(ctx context.Context, orgId string, appId string) (bool, error) {
-	config, err := store.GetAdminConfig(ctx, orgId)
+// IsSystemApplication reports whether appID is one of the applications listed in the configuration of
+// the organization.
+func (a AdminConfigService) IsSystemApplication(ctx context.Context, orgID string, appID string) (bool, error) {
+	config, err := store.GetAdminConfig(ctx, orgID)
 	if err != nil {
 		return false, err
 	}
@@ -89,56 +95,57 @@ func (a AdminConfigService) IsSystemApplication(ctx context.Context, orgId strin
 		return false, nil
 	}
 	for _, sysApp := range config.SystemApplications {
-		if sysApp == appId {
+		if sysApp == appID {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-// LookupCORSOrgId returns the org ID of the handle in the path of a request, for the CORS
+// LookupCORSOrgID returns the org ID of the handle in the path of a request, for the CORS
 // middleware. found is false when CDS has no organization for the handle. It runs before the
 // request is authenticated, so it neither stores the organization nor asks the identity
 // provider, and a handle found unknown is answered without a read for a while.
-func (a AdminConfigService) LookupCORSOrgId(ctx context.Context, orgHandle string) (string, bool, error) {
-	return corsOrgIds.resolve(ctx, orgHandle)
+func (a AdminConfigService) LookupCORSOrgID(ctx context.Context, orgHandle string) (string, bool, error) {
+	return corsOrgIDs.resolve(ctx, orgHandle)
 }
 
-// GetCORSAllowedOrigins returns the browser origins the organisation allows. The CORS
-// middleware consults it on every request, preflight included, so the origins are cached per
-// organisation. An empty result means the organisation has configured none and the caller
-// should fall back to the deployment-wide list.
+// GetCORSAllowedOrigins returns the browser origins the organization has added to the
+// deployment-wide list. The CORS middleware consults it on requests from an origin outside that
+// list, preflight included, so the origins are cached per organization.
 //
-// subOrgId is the ID of the sub organisation a /t/{primary_handle}/o/{org_id}/... path
-// addresses, and empty otherwise. A sub organisation cannot configure origins of its own yet,
-// so it is answered with those of its primary organisation, orgId.
-func (a AdminConfigService) GetCORSAllowedOrigins(ctx context.Context, orgId, subOrgId string) ([]string, error) {
-	return corsOrigins.get(ctx, orgId)
+// subOrgId is the ID of the sub organization a /t/{primary_handle}/o/{org_id}/... path
+// addresses, and empty otherwise. A sub organization cannot configure origins of its own yet,
+// so it is answered with those of its primary organization, orgId.
+func (a AdminConfigService) GetCORSAllowedOrigins(ctx context.Context, orgID, subOrgID string) ([]string, error) {
+	return corsOrigins.get(ctx, orgID)
 }
 
-func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgId string) (model.AdminConfig, error) {
-
+// GetAdminConfig returns the configuration of the organization, with defaults for the settings it has
+// not stored. A sub organization takes the CDS enablement, the identity resolution settings and the CORS
+// origins of its primary organization.
+func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgID string) (model.AdminConfig, error) {
 	defaultConfig := model.AdminConfig{
-		OrgId:                 orgId,
+		OrgID:                 orgID,
 		CDSEnabled:            false,
 		InitialSchemaSyncDone: false,
 		SystemApplications:    []string{},
 		CORSAllowedOrigins:    []string{},
 	}
-	config, err := store.GetAdminConfig(ctx, orgId)
+	config, err := store.GetAdminConfig(ctx, orgID)
 	if err != nil {
 		return defaultConfig, err
 	}
 	if config == nil {
 		config = &defaultConfig
 	}
-	config.OrgId = orgId
+	config.OrgID = orgID
 	// A sub organization uses the enablement of its primary organization.
 	if !config.CDSEnabled {
-		config.CDSEnabled = a.IsCDSEnabled(ctx, orgId)
+		config.CDSEnabled = a.IsCDSEnabled(ctx, orgID)
 	}
 	// A sub organization uses the identity resolution settings of its primary organization.
-	if primary, known := orgService.PrimaryOf(ctx, orgId); known && primary.ID != orgId {
+	if primary, known := orgService.PrimaryOf(ctx, orgID); known && primary.ID != orgID {
 		primaryConfig, err := store.GetAdminConfig(ctx, primary.ID)
 		if err != nil {
 			return defaultConfig, err
@@ -148,6 +155,8 @@ func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgId string) (m
 			config.AutoMergeThreshold = primaryConfig.AutoMergeThreshold
 			config.ManualReviewThreshold = primaryConfig.ManualReviewThreshold
 			config.DeterministicMatchDecisive = primaryConfig.DeterministicMatchDecisive
+			config.TemporaryProfileRetentionDays = primaryConfig.TemporaryProfileRetentionDays
+			config.TemporaryProfileCleanupIntervalDays = primaryConfig.TemporaryProfileCleanupIntervalDays
 			// Its requests arrive under the path of the primary organization, so the CORS
 			// middleware answers them with the origins of the primary organization.
 			config.CORSAllowedOrigins = primaryConfig.CORSAllowedOrigins
@@ -170,7 +179,7 @@ func (a AdminConfigService) GetAdminConfig(ctx context.Context, orgId string) (m
 //     below the contradiction bar, scores the engine treats as near-noise start counting as
 //     agreements and can become the primary signal for a merge.
 //
-// Zero means the organisation has never set that threshold, so the shipped default is what
+// Zero means the organization has never set that threshold, so the shipped default is what
 // it is actually running and is what gets validated.
 // thresholdPrecision is the number of decimal places a score is expressed in, and so the
 // precision these comparisons are meaningful to.
@@ -182,12 +191,12 @@ func roundToThresholdPrecision(value float64) float64 {
 
 func validateThresholds(autoMerge, manualReview float64) error {
 	// A value outside the range a score is expressed in is not applied: the store reads it
-	// back as unset and the organisation keeps running on the shipped default. Accepting it
+	// back as unset and the organization keeps running on the shipped default. Accepting it
 	// would report a setting that has no effect.
 	if autoMerge < 0 || autoMerge > 1 {
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:    errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-			Message: errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+			Code:    errors.UpdateConfigBadRequest.Code,
+			Message: errors.UpdateConfigBadRequest.Message,
 			Description: fmt.Sprintf(
 				"auto_merge_threshold (%g) must be between 0 and 1, the range a match score is "+
 					"expressed in. To stop automatic merging, set auto_merge_enabled to false.",
@@ -196,8 +205,8 @@ func validateThresholds(autoMerge, manualReview float64) error {
 	}
 	if manualReview < 0 || manualReview > 1 {
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:    errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-			Message: errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+			Code:    errors.UpdateConfigBadRequest.Code,
+			Message: errors.UpdateConfigBadRequest.Message,
 			Description: fmt.Sprintf(
 				"manual_review_threshold (%g) must be between 0 and 1, the range a match score is "+
 					"expressed in.", manualReview),
@@ -213,8 +222,8 @@ func validateThresholds(autoMerge, manualReview float64) error {
 
 	if manualReview <= constants.ScoreContradictionThreshold {
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:    errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-			Message: errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+			Code:    errors.UpdateConfigBadRequest.Code,
+			Message: errors.UpdateConfigBadRequest.Message,
 			Description: fmt.Sprintf(
 				"manual_review_threshold must be greater than %g. It is also the score at which a rule "+
 					"counts as agreeing, so a lower value lets near-unrelated values count as evidence.",
@@ -228,8 +237,8 @@ func validateThresholds(autoMerge, manualReview float64) error {
 	// for being a ten-thousandth of a percent too high, which no caller can act on.
 	if highest := roundToThresholdPrecision(autoMerge - constants.ScorePenaltyOffset); manualReview > highest {
 		return errors.NewClientError(errors.ErrorMessage{
-			Code:    errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-			Message: errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+			Code:    errors.UpdateConfigBadRequest.Code,
+			Message: errors.UpdateConfigBadRequest.Message,
 			Description: fmt.Sprintf(
 				"manual_review_threshold (%g) must be at most %g, which is auto_merge_threshold (%g) "+
 					"less %g. A match held back from an automatic merge is scored just under "+
@@ -239,6 +248,32 @@ func validateThresholds(autoMerge, manualReview float64) error {
 	}
 
 	return nil
+}
+
+// validateCleanupSetting accepts 0 (not set) or a value of the named setting within its range.
+func validateCleanupSetting(name string, value, minimum, maximum int) error {
+	if value == 0 {
+		return nil
+	}
+	if value < minimum || value > maximum {
+		return errors.NewClientError(errors.ErrorMessage{
+			Code:        errors.UpdateConfigBadRequest.Code,
+			Message:     errors.UpdateConfigBadRequest.Message,
+			Description: fmt.Sprintf("%s (%d) must be between %d and %d.", name, value, minimum, maximum),
+		}, http.StatusBadRequest)
+	}
+	return nil
+}
+
+// validateTemporaryProfileCleanup checks the cleanup settings of temporary profiles.
+func validateTemporaryProfileCleanup(config *model.AdminConfig) error {
+	if err := validateCleanupSetting("temporary_profile_retention_days", config.TemporaryProfileRetentionDays,
+		constants.MinTemporaryProfileRetentionDays, constants.MaxTemporaryProfileRetentionDays); err != nil {
+		return err
+	}
+	return validateCleanupSetting("temporary_profile_cleanup_interval_days",
+		config.TemporaryProfileCleanupIntervalDays, constants.MinTemporaryProfileCleanupIntervalDays,
+		constants.MaxTemporaryProfileCleanupIntervalDays)
 }
 
 // UpdateAdminConfig validates and stores the organisation's configuration. It normalizes
@@ -253,6 +288,9 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	logger := log.GetLogger()
 
 	if err := validateThresholds(updatedConfig.AutoMergeThreshold, updatedConfig.ManualReviewThreshold); err != nil {
+		return err
+	}
+	if err := validateTemporaryProfileCleanup(updatedConfig); err != nil {
 		return err
 	}
 	validatedOrigins, err := validateCORSOrigins(updatedConfig.CORSAllowedOrigins)
@@ -301,8 +339,8 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 			}
 			if !exists {
 				return errors.NewClientError(errors.ErrorMessage{
-					Code:        errors.UPDATE_CONFIG_BAD_REQUEST.Code,
-					Message:     errors.UPDATE_CONFIG_BAD_REQUEST.Message,
+					Code:        errors.UpdateConfigBadRequest.Code,
+					Message:     errors.UpdateConfigBadRequest.Message,
 					Description: fmt.Sprintf("System application '%s' does not exist in the identity server.", appID),
 				}, http.StatusBadRequest)
 			}
@@ -316,7 +354,7 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	// Drop the cached origins so this process serves the new list at once. Other replicas
 	// pick it up once their cached entry expires.
 	corsOrigins.invalidate(org.ID)
-	corsOrgIds.forget(org.Handle)
+	corsOrgIDs.forget(org.Handle)
 
 	if !sysconfig.OrganizationManagementEnabled() {
 		return nil
@@ -331,9 +369,9 @@ func (a AdminConfigService) UpdateAdminConfig(ctx context.Context,
 	return nil
 }
 
-func (a AdminConfigService) UpdateInitialSchemaSync(ctx context.Context, state bool, orgId string) error {
-
-	return store.UpdateInitialSchemaSyncConfig(ctx, state, orgId)
+// UpdateInitialSchemaSync records whether the initial schema sync of the organization has completed.
+func (a AdminConfigService) UpdateInitialSchemaSync(ctx context.Context, state bool, orgID string) error {
+	return store.UpdateInitialSchemaSyncConfig(ctx, state, orgID)
 }
 
 // GetAdminConfigService returns a new instance.

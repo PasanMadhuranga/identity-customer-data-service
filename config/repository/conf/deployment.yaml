@@ -30,10 +30,9 @@ cache:
 
 
 auth:
-  # Fallback browser origins, applied to requests that carry no organisation in the path
-  # and to organisations that have configured none of their own. An organisation sets its
-  # own origins through cors_allowed_origins in the admin configuration API, and those
-  # replace this list for its requests.
+  # Browser origins allowed on every request, for the apps every organisation uses, such as
+  # the Console and My Account. An organisation adds the origins of its own apps through
+  # cors_allowed_origins in the admin configuration API, and those apply to its requests only.
   cors_allowed_origins:
     - "http://localhost:3000"
     - "http://localhost:3001"
@@ -50,6 +49,19 @@ server_url: "https://localhost:8900" # Public-facing base URL used for construct
 # identity provider.
 idp:
   type: "wso2is"
+  # The service-to-service credentials CDS calls the identity provider with, one
+  # pair per organization. auth_server.client_id/client_secret belong to one
+  # tenant, so where CDS serves more than one organization the Identity Server
+  # creates an application for each organization as it enables CDS and sends
+  # the credentials to CDS, which keeps them in its database.
+  #
+  # encryption_key seals those client secrets at rest. Leave it empty to keep
+  # the configured pair for every organization. Generate one with
+  # `openssl rand -base64 32`; a key that is set but not usable stops the server.
+  # Only for an identity provider that sends service credentials (wso2is); a key
+  # for any other stops the server.
+  service_credentials:
+    encryption_key: "${SERVICE_CREDENTIALS_ENCRYPTION_KEY}"
 
 # Organization management: the organization tree, sub organization paths, and sharing with child
 # organizations. Create the organization tables before you enable it.
@@ -193,7 +205,7 @@ message_queue:
 
 # Datasource configuration.
 # Use "sqlite" for the inbuilt database, which needs no external server, and
-# "postgres" for production. An unset type means "sqlite".
+# "postgres", "mysql" or "mssql" for production. An unset type means "sqlite".
 datasource:
   type: "postgres"
   hostname: "localhost"
@@ -211,6 +223,22 @@ datasource:
   #   conn_max_lifetime_seconds: 1800 # retire a connection at this age
   #   conn_max_idle_time_seconds: 300 # close a connection unused this long
   #   connect_timeout_seconds: 10     # bound one connection attempt, handshake included
+  # Applies only when type is "mysql". The same settings as postgres, with the
+  # same defaults. For mysql, sslmode is disable, require, verify-ca or verify-full.
+  # mysql:
+  #   max_open_conns: 100
+  #   max_idle_conns: 25
+  #   conn_max_lifetime_seconds: 1800
+  #   conn_max_idle_time_seconds: 300
+  #   connect_timeout_seconds: 10
+  # Applies only when type is "mssql". The same settings as postgres, with the
+  # same defaults. For mssql, sslmode is disable, require, verify-ca or verify-full.
+  # mssql:
+  #   max_open_conns: 100
+  #   max_idle_conns: 25
+  #   conn_max_lifetime_seconds: 1800
+  #   conn_max_idle_time_seconds: 300
+  #   connect_timeout_seconds: 10
   # Applies only when type is "sqlite". Zero means the application default.
   # sqlite:
   #   path: "repository/database/cds.db" # Relative to the CDS home directory

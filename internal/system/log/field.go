@@ -47,13 +47,11 @@ type Field struct {
 
 // String creates a Field with a string value.
 func String(key, value string) Field {
-
 	return Field{Key: key, Value: value}
 }
 
 // Int creates a Field with an integer value.
 func Int(key string, value int) Field {
-
 	return Field{Key: key, Value: value}
 }
 
@@ -65,27 +63,23 @@ func Bool(key string, value bool) Field {
 
 // Any creates a Field with any value.
 func Any(key string, value interface{}) Field {
-
 	return Field{Key: key, Value: value}
 }
 
-// Error creates a Field with an error value.
+// Error creates a Field with an error value under the key "error".
 func Error(value error) Field {
-
 	return Field{Key: KeyError, Value: value}
 }
 
 // MaskedString creates a Field with a masked value. Use it for personal data, such as an email
 // address, when the record must show that a value was present.
 func MaskedString(key, value string) Field {
-
 	return Field{Key: key, Value: Mask(value)}
 }
 
 // Mask hides all characters of value except the first and the last. It hides a short value
 // completely.
 func Mask(value string) string {
-
 	runes := []rune(value)
 	if len(runes) <= 3 {
 		return strings.Repeat("*", len(runes))

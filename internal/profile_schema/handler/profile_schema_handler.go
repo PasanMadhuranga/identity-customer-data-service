@@ -16,6 +16,7 @@
  * under the License.
  */
 
+// Package handler serves the profile schema REST API endpoints.
 package handler
 
 import (
@@ -31,6 +32,7 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/workers"
 
 	"github.com/google/uuid"
+
 	orgService "github.com/wso2/identity-customer-data-service/internal/organization/service"
 	"github.com/wso2/identity-customer-data-service/internal/profile_schema/identitysource"
 	"github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -43,13 +45,14 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
 
+// ProfileSchemaHandler handles HTTP requests for the profile schema.
 type ProfileSchemaHandler struct {
 	store map[string]model.ProfileSchemaAttribute
 	mu    *sync.RWMutex
 }
 
+// NewProfileSchemaHandler creates a ProfileSchemaHandler.
 func NewProfileSchemaHandler() *ProfileSchemaHandler {
-
 	return &ProfileSchemaHandler{
 		store: make(map[string]model.ProfileSchemaAttribute),
 		mu:    &sync.RWMutex{},
@@ -58,7 +61,6 @@ func NewProfileSchemaHandler() *ProfileSchemaHandler {
 
 // AddProfileSchemaAttributesForScope handles adding a new profile schema attribute.
 func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	scope := r.PathValue("scope")
@@ -74,9 +76,9 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -87,8 +89,8 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&schemaAttributes); err != nil {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: utils.HandleDecodeError(err, "profile schema attributes"),
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -97,8 +99,8 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	// Validate the scope
 	if scope == constants.IdentityAttributes {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:    errors2.ATTRIBUTE_UPATE_NOT_SUPPORTED.Code,
-			Message: errors2.ATTRIBUTE_UPATE_NOT_SUPPORTED.Message,
+			Code:    errors2.AttributeUpdateNotSupported.Code,
+			Message: errors2.AttributeUpdateNotSupported.Message,
 			Description: "Identity attributes cannot be created. " +
 				"Use Identity Provider to define and manage identity attributes.",
 		}, http.StatusBadRequest)
@@ -107,8 +109,8 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	}
 	if !constants.AllowedAttributesScope[scope] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "Invalid scope for profile schema attribute: " + scope,
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -118,8 +120,8 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 		for _, attr := range schemaAttributes {
 			if attr.ApplicationIdentifier != "" {
 				clientError := errors2.NewClientError(errors2.ErrorMessage{
-					Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-					Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+					Code:        errors2.ProfileSchemaAddBadRequest.Code,
+					Message:     errors2.ProfileSchemaAddBadRequest.Message,
 					Description: "Application identifier is allowed for application data attributes only.",
 				}, http.StatusBadRequest)
 				utils.WriteErrorResponse(w, clientError)
@@ -129,8 +131,8 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	}
 	if len(schemaAttributes) == 0 {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "No attributes provided in the request body.",
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -138,13 +140,13 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	}
 	// Generate a new UUID for each attribute if not provided
 	for i := range schemaAttributes {
-		if schemaAttributes[i].AttributeId == "" {
-			schemaAttributes[i].AttributeId = uuid.New().String()
+		if schemaAttributes[i].AttributeID == "" {
+			schemaAttributes[i].AttributeID = uuid.New().String()
 		}
 		if schemaAttributes[i].Mutability == "" {
 			schemaAttributes[i].Mutability = constants.MutabilityReadWrite
 		}
-		schemaAttributes[i].OrgId = org.ID
+		schemaAttributes[i].OrgID = org.ID
 	}
 
 	schemaProvider := provider.NewProfileSchemaProvider()
@@ -156,14 +158,13 @@ func (psh *ProfileSchemaHandler) AddProfileSchemaAttributesForScope(w http.Respo
 	}
 	schemaAttributesNew := addedAttributes
 	for i := range schemaAttributesNew {
-		schemaAttributesNew[i].OrgId = ""
+		schemaAttributesNew[i].OrgID = ""
 	}
 	utils.RespondJSON(w, http.StatusCreated, schemaAttributesNew, constants.SchemaAttribute)
 }
 
 // GetProfileSchema handles fetching the entire profile schema.
 func (psh *ProfileSchemaHandler) GetProfileSchema(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile_schema:view")
@@ -178,9 +179,9 @@ func (psh *ProfileSchemaHandler) GetProfileSchema(w http.ResponseWriter, r *http
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -196,13 +197,12 @@ func (psh *ProfileSchemaHandler) GetProfileSchema(w http.ResponseWriter, r *http
 	utils.RespondJSON(w, http.StatusOK, profileSchema, constants.SchemaAttribute)
 }
 
-// GetProfileSchemaAttributeById handles fetching the entire profile schema.
-func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeById(w http.ResponseWriter, r *http.Request) {
-
+// GetProfileSchemaAttributeByID handles fetching the entire profile schema.
+func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	scope := r.PathValue("scope")
-	attributeId := r.PathValue("attrID")
+	attributeID := r.PathValue("attrID")
 	err := security.AuthnAndAuthz(r, "profile_schema:view")
 	if err != nil {
 		utils.HandleError(w, err)
@@ -215,9 +215,9 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeById(w http.ResponseWr
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -227,15 +227,15 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeById(w http.ResponseWr
 
 	if !constants.AllowedAttributesScope[scope] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "Invalid scope for profile schema attribute: " + scope,
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
 	}
 
-	attribute, err := schemaService.GetProfileSchemaAttributeById(ctx, org.ID, attributeId)
+	attribute, err := schemaService.GetProfileSchemaAttributeByID(ctx, org.ID, attributeID)
 
 	if err != nil {
 		utils.HandleError(w, err)
@@ -246,7 +246,6 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeById(w http.ResponseWr
 
 // GetProfileSchemaAttributeForScope handles fetching the entire profile schema for the scope.
 func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeForScope(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	scope := r.PathValue("scope")
@@ -262,9 +261,9 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeForScope(w http.Respon
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -272,8 +271,8 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeForScope(w http.Respon
 
 	if !constants.AllowedAttributesScope[scope] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "Invalid scope for profile schema attribute: " + scope,
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -313,12 +312,11 @@ func (psh *ProfileSchemaHandler) GetProfileSchemaAttributeForScope(w http.Respon
 	utils.RespondJSON(w, http.StatusOK, attributes, constants.SchemaAttribute)
 }
 
-// PatchProfileSchemaAttributeById updates a profile schema attribute.
-func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.ResponseWriter, r *http.Request) {
-
+// PatchProfileSchemaAttributeByID updates a profile schema attribute.
+func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	attributeId := r.PathValue("attrID")
+	attributeID := r.PathValue("attrID")
 	err := security.AuthnAndAuthz(r, "profile_schema:update")
 	if err != nil {
 		utils.HandleError(w, err)
@@ -331,9 +329,9 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.Response
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -341,8 +339,8 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.Response
 	scope := r.PathValue("scope")
 	if !constants.AllowedAttributesScope[scope] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "Invalid scope for profile schema attribute: " + scope,
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -350,9 +348,10 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.Response
 	}
 	if scope == constants.IdentityAttributes {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.ATTRIBUTE_UPATE_NOT_SUPPORTED.Code,
-			Message:     errors2.ATTRIBUTE_UPATE_NOT_SUPPORTED.Message,
-			Description: "Identity attributes cannot be created or modified. Please update through the Identity Provider.",
+			Code:    errors2.AttributeUpdateNotSupported.Code,
+			Message: errors2.AttributeUpdateNotSupported.Message,
+			Description: "Identity attributes cannot be created or modified. " +
+				"Please update through the Identity Provider.",
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
 		return
@@ -364,13 +363,13 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.Response
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	err = schemaService.UpdateProfileSchemaAttributeById(ctx, org.ID, attributeId, updates, scope)
+	err = schemaService.UpdateProfileSchemaAttributeByID(ctx, org.ID, attributeID, updates, scope)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
 
-	attribute, err := schemaService.GetProfileSchemaAttributeById(ctx, org.ID, attributeId)
+	attribute, err := schemaService.GetProfileSchemaAttributeByID(ctx, org.ID, attributeID)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
@@ -382,7 +381,6 @@ func (psh *ProfileSchemaHandler) PatchProfileSchemaAttributeById(w http.Response
 
 // DeleteProfileSchema removes the entire profile schema.
 func (psh *ProfileSchemaHandler) DeleteProfileSchema(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile_schema:delete")
@@ -397,9 +395,9 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchema(w http.ResponseWriter, r *h
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -417,12 +415,11 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchema(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// DeleteProfileSchemaAttributeById removes a profile schema attribute.
-func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.ResponseWriter, r *http.Request) {
-
+// DeleteProfileSchemaAttributeByID removes a profile schema attribute.
+func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	attributeId := r.PathValue("attrID")
+	attributeID := r.PathValue("attrID")
 	err := security.AuthnAndAuthz(r, "profile_schema:delete")
 	if err != nil {
 		utils.HandleError(w, err)
@@ -435,9 +432,9 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.Respons
 	}
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -445,8 +442,8 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.Respons
 	scope := r.PathValue("scope")
 	if !constants.AllowedAttributesScope[scope] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "Invalid scope for profile schema attribute: " + scope,
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -455,7 +452,7 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.Respons
 	schemaProvider := provider.NewProfileSchemaProvider()
 	schemaService := schemaProvider.GetProfileSchemaService()
 
-	err = schemaService.DeleteProfileSchemaAttributeById(ctx, org.ID, attributeId)
+	err = schemaService.DeleteProfileSchemaAttributeByID(ctx, org.ID, attributeID)
 
 	if err != nil {
 		utils.HandleError(w, err)
@@ -465,8 +462,9 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeById(w http.Respons
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// DeleteProfileSchemaAttributeForScope deletes all schema attributes in the scope given in the path. Identity
+// attributes cannot be deleted through it.
 func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnAndAuthz(r, "profile_schema:delete")
@@ -482,9 +480,9 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.Res
 
 	if !isCDSEnabled(ctx, org.ID) {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
-			Description: errors2.CDS_NOT_ENABLED.Description,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
+			Description: errors2.CDSNotEnabled.Description,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
 		return
@@ -492,8 +490,8 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.Res
 	scope := r.PathValue("scope")
 	if !constants.AllowedAttributesScope[scope] {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Code,
-			Message:     errors2.PROFILE_SCHEMA_ADD_BAD_REQUEST.Message,
+			Code:        errors2.ProfileSchemaAddBadRequest.Code,
+			Message:     errors2.ProfileSchemaAddBadRequest.Message,
 			Description: "Invalid scope for profile schema attribute: " + scope,
 		}, http.StatusBadRequest)
 		utils.WriteErrorResponse(w, clientError)
@@ -501,8 +499,8 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.Res
 	}
 	if scope == constants.IdentityAttributes {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.INVALID_ATTRIBUTE.Code,
-			Message:     errors2.INVALID_ATTRIBUTE.Message,
+			Code:        errors2.InvalidAttribute.Code,
+			Message:     errors2.InvalidAttribute.Message,
 			Description: "Identity attributes cannot be created or modified via this endpoint.",
 		}, http.StatusMethodNotAllowed)
 		utils.WriteErrorResponse(w, clientError)
@@ -521,8 +519,9 @@ func (psh *ProfileSchemaHandler) DeleteProfileSchemaAttributeForScope(w http.Res
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// SyncProfileSchema accepts an attribute change event from the identity server, authenticated with admin
+// credentials, and queues a sync of the organization's identity attributes.
 func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	err := security.AuthnWithAdminCredentials(r)
@@ -539,8 +538,8 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 	if orgHandle == "" {
 		errMsg := fmt.Sprintf("Organization handle cannot be empty in sync event: %s", schemaSync.Event)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.UPDATE_PROFILE.Code,
-			Message:     errors2.UPDATE_PROFILE.Message,
+			Code:        errors2.UpdateProfile.Code,
+			Message:     errors2.UpdateProfile.Message,
 			Description: errMsg,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -562,8 +561,8 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 		errMsg := "Unable to process profile sync event as CDS is not enabled for organization: " + orgLabel
 		logger.Info(errMsg)
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:        errors2.CDS_NOT_ENABLED.Code,
-			Message:     errors2.CDS_NOT_ENABLED.Message,
+			Code:        errors2.CDSNotEnabled.Code,
+			Message:     errors2.CDSNotEnabled.Message,
 			Description: errMsg,
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
@@ -572,8 +571,8 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 
 	if source, inherits := identitysource.IsInherited(ctx, org.ID); inherits {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
-			Code:    errors2.INHERITED_ATTRIBUTE_READ_ONLY.Code,
-			Message: errors2.INHERITED_ATTRIBUTE_READ_ONLY.Message,
+			Code:    errors2.InheritedAttributeReadOnly.Code,
+			Message: errors2.InheritedAttributeReadOnly.Message,
 			Description: fmt.Sprintf("The organization '%s' inherits the identity attributes from '%s'. "+
 				"Sync the identity attributes of '%s'.", org.ID, source, source),
 		}, http.StatusBadRequest)
@@ -589,11 +588,15 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 		// Enqueue the schema sync job for asynchronous processing
 		err := workers.EnqueueSchemaSyncJob(schemaSync)
 		if err != nil {
-			errMsg := fmt.Sprintf("Unable to process schema sync request for organization: %s. The system is currently at capacity. Please try again in a few moments.", org.ID)
+			errMsg := fmt.Sprintf(
+				"Unable to process schema sync request for organization: %s. The system is currently at capacity. "+
+					"Please try again in a few moments.",
+				org.ID,
+			)
 			logger.Error(errMsg)
 			serverError := errors2.NewServerError(errors2.ErrorMessage{
-				Code:        errors2.SYNC_PROFILE_SCHEMA.Code,
-				Message:     errors2.SYNC_PROFILE_SCHEMA.Message,
+				Code:        errors2.SyncProfileSchema.Code,
+				Message:     errors2.SyncProfileSchema.Message,
 				Description: errMsg,
 			}, fmt.Errorf("error enqueuing schema sync job"))
 			utils.HandleError(w, serverError)
@@ -604,24 +607,23 @@ func (psh *ProfileSchemaHandler) SyncProfileSchema(w http.ResponseWriter, r *htt
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{"message": "Profile schema sync request accepted for processing."})
+		_ = json.NewEncoder(w).
+			Encode(map[string]string{"message": "Profile schema sync request accepted for processing."})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNotFound)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "Unknown sync event."})
-
 }
 
 // isCDSEnabled checks if CDS is enabled for the given organization
-func isCDSEnabled(ctx context.Context, orgId string) bool {
-	return adminConfigService.GetAdminConfigService().IsCDSEnabled(ctx, orgId)
+func isCDSEnabled(ctx context.Context, orgID string) bool {
+	return adminConfigService.GetAdminConfigService().IsCDSEnabled(ctx, orgID)
 }
 
 // CreateSharingPolicy shares an attribute of the organization.
 func (h *ProfileSchemaHandler) CreateSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_update")
 	if !ok {
 		return
@@ -638,13 +640,12 @@ func (h *ProfileSchemaHandler) CreateSharingPolicy(w http.ResponseWriter, r *htt
 		utils.HandleError(w, err)
 		return
 	}
-	audit.SetTargetID(r.Context(), resp.Id)
+	audit.SetTargetID(r.Context(), resp.ID)
 	utils.RespondJSON(w, http.StatusCreated, resp, shareHandler.PolicyResource)
 }
 
 // ListSharingPolicies returns the sharing policies of an attribute of the organization.
 func (h *ProfileSchemaHandler) ListSharingPolicies(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_view")
 	if !ok {
 		return
@@ -662,7 +663,6 @@ func (h *ProfileSchemaHandler) ListSharingPolicies(w http.ResponseWriter, r *htt
 
 // GetSharingPolicy returns a sharing policy of an attribute of the organization.
 func (h *ProfileSchemaHandler) GetSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_view")
 	if !ok {
 		return
@@ -680,7 +680,6 @@ func (h *ProfileSchemaHandler) GetSharingPolicy(w http.ResponseWriter, r *http.R
 
 // UpdateSharingPolicy replaces a sharing policy of an attribute of the organization.
 func (h *ProfileSchemaHandler) UpdateSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_update")
 	if !ok {
 		return
@@ -702,7 +701,6 @@ func (h *ProfileSchemaHandler) UpdateSharingPolicy(w http.ResponseWriter, r *htt
 
 // DeleteSharingPolicy removes a sharing policy of an attribute of the organization.
 func (h *ProfileSchemaHandler) DeleteSharingPolicy(w http.ResponseWriter, r *http.Request) {
-
 	org, ok := shareHandler.InitiatorOf(w, r, "profile_schema:share_update")
 	if !ok {
 		return

@@ -31,10 +31,8 @@ import (
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 
-// introspectingServer is an identity server whose token endpoint of acme issues
-// token-1, token-2, and so on, and whose introspection endpoint of acme takes
-// only the bearer tokens in accepted, like the Identity Server: no client
-// authentication.
+// introspectingServer issues token-1, token-2, ... for acme, and its acme
+// introspection endpoint accepts only the bearer tokens in accepted.
 type introspectingServer struct {
 	*identityServer
 	issued      int
@@ -71,8 +69,7 @@ func newIntrospectingServer(t *testing.T) (*introspectingServer, *IdentityClient
 	return s, c
 }
 
-// The token of the service credentials is requested once, with the scope
-// internal_oauth2_introspect, and sent as a bearer token on each introspection.
+// The token is requested once and sent as a bearer token on each introspection.
 func TestIntrospectTokenAsOrgUsesACachedBearerToken(t *testing.T) {
 	s, c := newIntrospectingServer(t)
 	s.accepted["token-1"] = true
@@ -103,8 +100,7 @@ func TestIntrospectTokenAsOrgRenewsATokenBeforeItExpires(t *testing.T) {
 	assert.Equal(t, []string{"Bearer token-1", "Bearer token-2"}, s.authHeaders)
 }
 
-// When the endpoint refuses the cached token, as after the secret is renewed, a
-// new token is requested and the introspection is sent once more.
+// A refused cached token is replaced, and the introspection is sent once more.
 func TestIntrospectTokenAsOrgRetriesOnceWithANewToken(t *testing.T) {
 	s, c := newIntrospectingServer(t)
 	s.accepted["token-1"] = true
@@ -124,7 +120,7 @@ func TestIntrospectTokenAsOrgRetriesOnceWithANewToken(t *testing.T) {
 	assert.Equal(t, 2, s.issued)
 }
 
-// When the new token is refused too, the error is returned. There is no loop.
+// When the new token is refused too, the error is returned.
 func TestIntrospectTokenAsOrgReturnsTheErrorWhenTheNewTokenIsRefused(t *testing.T) {
 	s, c := newIntrospectingServer(t)
 
@@ -156,8 +152,7 @@ func TestUsableLifetime(t *testing.T) {
 	assert.Equal(t, 30*time.Second, usableLifetime(60), "a lifetime shorter than twice the skew is halved")
 }
 
-// With introspection_auth "client_secret_basic", the client ID and secret are sent
-// with HTTP Basic auth, and no token is requested.
+// With "client_secret_basic", the client ID and secret are sent, and no token is requested.
 func TestIntrospectTokenAsOrgWithClientSecretBasic(t *testing.T) {
 	is, c := newIdentityServer(t, false)
 	cfg := config.GetCDSRuntime().Config

@@ -77,8 +77,7 @@ func Enabled() bool {
 	return config.GetCDSRuntime().Config.IDP.ServiceCredentials.EncryptionKey != ""
 }
 
-// ValidateConfig reports whether introspection_auth has a known value and the
-// configured encryption key is usable.
+// ValidateConfig checks introspection_auth and the encryption key.
 // supported tells whether the adapter of the identity provider verifies service
 // credentials; a key is refused for one that does not, since nothing would send
 // credentials. It is called at start so that a deployment with a broken key

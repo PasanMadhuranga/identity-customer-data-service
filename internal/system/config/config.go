@@ -303,19 +303,11 @@ type ServiceCredentialsConfig struct {
 	// endpoint on every token request, and a hash cannot be presented.
 	EncryptionKey string `yaml:"encryption_key"`
 
-	// IntrospectionAuth is how CDS authenticates with the service credentials
-	// of an organization at the introspection endpoint of the identity provider:
-	//
-	//   - "bearer_token", the default when it is empty: CDS sends a token of the
-	//     client with the scope internal_oauth2_introspect, which the default
-	//     policy of WSO2 Identity Server accepts. The token is cached.
-	//   - "client_secret_basic": CDS sends the client ID and secret with HTTP
-	//     Basic auth, for an identity provider whose introspection endpoint takes
-	//     client authentication.
-	//
-	// It does not change the configured introspection client, which CDS uses,
-	// with HTTP Basic auth, for an organization that has no service credentials
-	// and whose primary organization has none either.
+	// IntrospectionAuth is how CDS uses the service credentials at the
+	// introspection endpoint: "bearer_token" (default) sends a token with the
+	// scope internal_oauth2_introspect; "client_secret_basic" sends the client
+	// ID and secret with HTTP Basic auth. The configured introspection client is
+	// not affected.
 	IntrospectionAuth string `yaml:"introspection_auth"`
 }
 

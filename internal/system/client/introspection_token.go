@@ -27,15 +27,13 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 )
 
-// introspectionScope is the scope the Identity Server requires of a bearer token
-// at its introspection endpoint.
+// introspectionScope is the scope that the introspection endpoint requires.
 const introspectionScope = "internal_oauth2_introspect"
 
 const (
-	// tokenExpirySkew is how long before its expiry a cached token is no longer used,
-	// so that a token does not expire on the way to the Identity Server.
+	// tokenExpirySkew: a cached token is not used in the last part of its lifetime.
 	tokenExpirySkew = 60 * time.Second
-	// defaultTokenLifetime is used when the token response has no expires_in.
+	// defaultTokenLifetime is used when the response has no expires_in.
 	defaultTokenLifetime = 5 * time.Minute
 )
 
@@ -47,10 +45,9 @@ type cachedToken struct {
 	expiresAt time.Time
 }
 
-// introspectionTokens holds the introspection token of each organization and
-// client. Every request authenticated with a token introspects it, so the token
-// is not requested again for each one. An IdentityClient is created for each
-// request, so the cache belongs to the package.
+// introspectionTokens caches the introspection token of each organization and
+// client. It is at package level because an IdentityClient is created for each
+// request.
 var introspectionTokens = struct {
 	sync.Mutex
 	tokens map[string]cachedToken
@@ -60,9 +57,8 @@ func introspectionTokenKey(orgHandle, clientID string) string {
 	return orgHandle + "\x00" + clientID
 }
 
-// introspectionToken returns a token of the client with the scope
-// internal_oauth2_introspect, from the token endpoint of orgHandle. A cached
-// token is used until tokenExpirySkew before it expires.
+// introspectionToken returns a cached or new token of the client with the scope
+// internal_oauth2_introspect, from the token endpoint of orgHandle.
 func (c *IdentityClient) introspectionToken(orgHandle, clientID, clientSecret string) (string, error) {
 	key := introspectionTokenKey(orgHandle, clientID)
 	introspectionTokens.Lock()
@@ -90,9 +86,8 @@ func (c *IdentityClient) introspectionToken(orgHandle, clientID, clientSecret st
 	return token, nil
 }
 
-// usableLifetime is how long a token that expires in expiresIn seconds is used:
-// its lifetime less tokenExpirySkew, or half of a lifetime shorter than twice
-// the skew.
+// usableLifetime is the lifetime less tokenExpirySkew, or half the lifetime when
+// it is shorter than twice the skew.
 func usableLifetime(expiresIn int64) time.Duration {
 	lifetime := time.Duration(expiresIn) * time.Second
 	if expiresIn <= 0 {
@@ -104,8 +99,7 @@ func usableLifetime(expiresIn int64) time.Duration {
 	return lifetime - tokenExpirySkew
 }
 
-// dropIntrospectionToken removes the cached token of the organization and client,
-// so that the next request gets a new one.
+// dropIntrospectionToken removes the cached token of the organization and client.
 func dropIntrospectionToken(orgHandle, clientID string) {
 	introspectionTokens.Lock()
 	delete(introspectionTokens.tokens, introspectionTokenKey(orgHandle, clientID))

@@ -75,8 +75,7 @@ func newFixture(t *testing.T, encryptionKey string) *fixture {
 	is := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, secret, ok := r.BasicAuth()
 		if r.URL.Path == "/t/acme/oauth2/introspect" {
-			// Like the Identity Server, the endpoint takes no client authentication, only a
-			// bearer token of its own tenant with the scope internal_oauth2_introspect.
+			// Like the Identity Server: a bearer token only, no client authentication.
 			if r.Header.Get("Authorization") != "Bearer "+introspectionToken {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
@@ -85,7 +84,7 @@ func newFixture(t *testing.T, encryptionKey string) *fixture {
 			return
 		}
 		if r.URL.Path == "/t/carbon.super/oauth2/introspect" {
-			// The configured introspection client, with a relaxed policy on the endpoint.
+			// The configured introspection client (relaxed policy).
 			if !ok || id != "introspection-client" || secret != "introspection-secret" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
@@ -384,9 +383,7 @@ func TestIntrospectsWithTheServiceCredentialsOfTheOrganization(t *testing.T) {
 	}
 }
 
-// A sub organization has no service credentials of its own. Its tokens are
-// introspected with the credentials of its primary organization, at the endpoint
-// of the primary organization.
+// A sub organization uses the credentials and the endpoint of its primary organization.
 func TestIntrospectsATokenOfASubOrganizationWithTheCredentialsOfItsPrimary(t *testing.T) {
 	f := newFixture(t, usableKey)
 	adapter := idp.NewWSO2ISAdapter()

@@ -75,13 +75,8 @@ idp:
   # Only for an identity provider that sends service credentials (wso2is); a key
   # for any other stops the server.
   #
-  # introspection_auth is how CDS authenticates with those credentials at the
-  # introspection endpoint: "bearer_token" (the default) sends a token of the
-  # client with the scope internal_oauth2_introspect, which the default policy of
-  # the Identity Server accepts; "client_secret_basic" sends the client ID and
-  # secret, for an Identity Server whose introspection endpoint takes client
-  # authentication. auth_server.introspection_client_id/secret stay the fallback
-  # for an organization without credentials.
+  # introspection_auth: "bearer_token" (default) or "client_secret_basic" (for an
+  # Identity Server that accepts client authentication at introspection).
   service_credentials:
     encryption_key: "${SERVICE_CREDENTIALS_ENCRYPTION_KEY}"
     introspection_auth: "bearer_token"

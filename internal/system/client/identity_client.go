@@ -324,8 +324,8 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 	return token, err
 }
 
-// requestTokenWithLifetime is requestToken that also returns expires_in of the
-// token response, in seconds. It is 0 when the response does not have it.
+// requestTokenWithLifetime is requestToken that also returns expires_in, in
+// seconds (0 when the response has none).
 func (c *IdentityClient) requestTokenWithLifetime(endpoint, clientID, clientSecret string,
 	form url.Values, orgID string,
 ) (string, int64, error) {
@@ -561,19 +561,14 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 }
 
 // IntrospectTokenAsOrg introspects the token at the introspection endpoint of
-// orgHandle with the service credentials of that organization. An Identity
-// Server client can only get a token at the endpoints of its own tenant.
+// orgHandle, with the service credentials of that organization.
 //
-// The Identity Server accepts no client authentication at its introspection
-// endpoint by default. It accepts a bearer token with the scope
-// internal_oauth2_introspect, so by default the request carries a token of the
-// client with that scope. The token is cached until shortly before it expires.
-// When the endpoint answers 401, as after the secret of the client is renewed,
-// the token is dropped, and the request is sent once more with a new token.
-//
-// With idp.service_credentials.introspection_auth "client_secret_basic", the
-// request carries the client ID and secret with HTTP Basic auth instead, for an
-// identity provider whose introspection endpoint takes client authentication.
+// By default it sends a cached bearer token with the scope
+// internal_oauth2_introspect, because the Identity Server does not accept client
+// authentication at this endpoint by default. On a 401 (for example, after the
+// secret is renewed) it gets a new token and tries once more. With
+// introspection_auth "client_secret_basic", it sends the client ID and secret
+// with HTTP Basic auth instead.
 func (c *IdentityClient) IntrospectTokenAsOrg(token, orgHandle, clientID, clientSecret string) (map[string]interface{},
 	error) {
 	authConfig := config.GetCDSRuntime().Config.AuthServer
@@ -620,7 +615,7 @@ func bearerAuth(token string) func(*http.Request) {
 	}
 }
 
-// isUnauthorized reports whether err is the introspection endpoint answering 401.
+// isUnauthorized reports whether the introspection endpoint answered 401.
 func isUnauthorized(err error) bool {
 	var clientErr *errors2.ClientError
 	return errors.As(err, &clientErr) && clientErr.StatusCode == http.StatusUnauthorized &&

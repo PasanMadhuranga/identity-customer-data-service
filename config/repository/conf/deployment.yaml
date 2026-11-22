@@ -273,7 +273,9 @@ identity_resolution:
   # to preview what a change would do to existing profiles.
   allow_evidence_strength_override: false
 
-  # Tolerant matching, server-wide. Off by default, including where this key is absent, so
-  # an upgrade keeps unifying profiles exactly as it did. Turn it on deliberately: while it
-  # is off new fuzzy rules are refused and any already stored are evaluated as exact.
-  fuzzy_matching_enabled: false
+  # Tolerant matching, server-wide. On in this shipped configuration, so a new deployment
+  # can create fuzzy rules and the Console's tolerant matching controls work out of the box.
+  # A deployment.yaml without this key keeps it off, so an upgrade that keeps its own
+  # configuration unifies profiles exactly as it did. While it is off new fuzzy rules are
+  # refused and any already stored are evaluated as exact.
+  fuzzy_matching_enabled: true

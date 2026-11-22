@@ -94,10 +94,11 @@ cloud:
           # than taking the values derived from its attribute_type. Off until operators have
           # a way to preview what a change would do to existing profiles.
           allowEvidenceStrengthOverride: false
-          # Tolerant matching, server-wide. Off by default so an upgrade keeps unifying
-          # profiles exactly as it did. While it is off new fuzzy rules are refused and any
-          # already stored are evaluated as exact.
-          fuzzyMatchingEnabled: false
+          # Tolerant matching, server-wide. On by default, so fuzzy rules can be created
+          # and the Console's tolerant matching controls work. Set it to false to keep
+          # unification exact; while it is off new fuzzy rules are refused and any already
+          # stored are evaluated as exact.
+          fuzzyMatchingEnabled: true
 
       tls:
         mtls_enabled: false

@@ -65,7 +65,7 @@ func normalizeServerArgs(args []interface{}) []interface{} {
 }
 
 // oracleMaxVarcharBytes is the longest text the driver binds as a VARCHAR2. A
-// longer one goes in as a CLOB, which is what the JSON columns hold.
+// longer one goes in as a CLOB, such as a long sub_attributes or score_breakdown.
 const oracleMaxVarcharBytes = 32000
 
 func normalizeOracleArgs(args []interface{}) []interface{} {
@@ -77,9 +77,9 @@ func normalizeOracleArgs(args []interface{}) []interface{} {
 	for i, arg := range args {
 		switch typed := arg.(type) {
 		case []byte:
-			normalized[i] = oracleText(string(typed))
+			normalized[i] = oracleJSON(typed)
 		case json.RawMessage:
-			normalized[i] = oracleText(string(typed))
+			normalized[i] = oracleJSON(typed)
 		case string:
 			normalized[i] = oracleText(typed)
 		case time.Time:
@@ -92,6 +92,14 @@ func normalizeOracleArgs(args []interface{}) []interface{} {
 	}
 
 	return normalized
+}
+
+// oracleJSON binds a marshaled JSON document as a BLOB, the type of the JSON
+// columns. The stores pass these documents as []byte and pass every other
+// value as a string. goora.Blob is the only form the driver writes in full
+// past 32 KB: a plain []byte of that size fails in a MERGE.
+func oracleJSON(document []byte) interface{} {
+	return goora.Blob{Data: document}
 }
 
 func oracleText(text string) interface{} {

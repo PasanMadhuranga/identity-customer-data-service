@@ -25,6 +25,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	goora "github.com/sijms/go-ora/v2"
 )
 
 func Test_Rebind_LeavesNumberedDatasourcesUnchanged(t *testing.T) {
@@ -439,7 +441,9 @@ func Test_NormalizeArgs_Oracle(t *testing.T) {
 		[]byte(`{"a":1}`), json.RawMessage(`[]`), moment, true, false, 7, nil, "text", long,
 	})
 
-	expected := []interface{}{`{"a":1}`, `[]`, moment.UTC(), int64(1), int64(0), 7, nil, "text"}
+	// Marshaled JSON goes in as a BLOB, the type of the JSON columns.
+	expected := []interface{}{goora.Blob{Data: []byte(`{"a":1}`)}, goora.Blob{Data: []byte(`[]`)},
+		moment.UTC(), int64(1), int64(0), 7, nil, "text"}
 	if !reflect.DeepEqual(got[:len(expected)], expected) {
 		t.Errorf("expected %#v, got %#v", expected, got[:len(expected)])
 	}

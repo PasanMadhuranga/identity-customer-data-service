@@ -200,6 +200,21 @@ func KeysetCondition(dbType, operator string, timestampArgID, idArgID int) (stri
 	}
 }
 
+// RowLimit builds the clause that ends an ordered statement and keeps the first
+// rows up to the number bound at argID.
+func RowLimit(dbType string, argID int) (string, error) {
+	switch dbType {
+	case database.TypePostgres, database.TypeSQLite, database.TypeMySQL:
+		return fmt.Sprintf("LIMIT $%d", argID), nil
+	case database.TypeMSSQL:
+		return fmt.Sprintf("OFFSET 0 ROWS FETCH NEXT $%d ROWS ONLY", argID), nil
+	case database.TypeOracle:
+		return fmt.Sprintf("FETCH FIRST $%d ROWS ONLY", argID), nil
+	default:
+		return "", unsupportedDatasource(dbType)
+	}
+}
+
 // EncodeStringArray prepares a list of strings for storage: a PostgreSQL array
 // or, for the datasources with no array type, a JSON array.
 func EncodeStringArray(dbType string, values []string) (interface{}, error) {

@@ -329,6 +329,29 @@ func Test_KeysetCondition(t *testing.T) {
 	})
 }
 
+func Test_RowLimit(t *testing.T) {
+	cases := map[string]string{
+		database.TypePostgres: "LIMIT $4",
+		database.TypeSQLite:   "LIMIT $4",
+		database.TypeMySQL:    "LIMIT $4",
+		database.TypeMSSQL:    "OFFSET 0 ROWS FETCH NEXT $4 ROWS ONLY",
+		database.TypeOracle:   "FETCH FIRST $4 ROWS ONLY",
+	}
+	for _, dbType := range supportedDatasources {
+		actual, err := RowLimit(dbType, 4)
+		if err != nil {
+			t.Fatalf("RowLimit(%q) failed: %v", dbType, err)
+		}
+		if actual != cases[dbType] {
+			t.Errorf("RowLimit(%q): expected %q, got %q", dbType, cases[dbType], actual)
+		}
+	}
+
+	if _, err := RowLimit("db2", 4); err == nil {
+		t.Error("expected an error for an unsupported datasource")
+	}
+}
+
 func Test_EncodeStringArray(t *testing.T) {
 	t.Run("the datasources without an array type store a JSON array", func(t *testing.T) {
 		for _, dbType := range []string{database.TypeSQLite, database.TypeMySQL, database.TypeMSSQL} {

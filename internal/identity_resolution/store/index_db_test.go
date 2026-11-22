@@ -19,6 +19,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -42,6 +43,7 @@ var indexOrgCounter atomic.Int64
 type indexEnv struct {
 	ctx   context.Context
 	orgID string
+	db    *sql.DB
 }
 
 func newIndexEnv(t *testing.T) *indexEnv {
@@ -56,7 +58,7 @@ func newIndexEnv(t *testing.T) *indexEnv {
 		testDB.Terminate()
 	})
 	org := setup.TestOrg(t, fmt.Sprintf("acme-%d", indexOrgCounter.Add(1)))
-	return &indexEnv{ctx: context.Background(), orgID: org.ID}
+	return &indexEnv{ctx: context.Background(), orgID: org.ID, db: testDB.DB}
 }
 
 // addProfile stores a master profile with a city and an email.
@@ -242,7 +244,7 @@ func TestARejectionIsMovedToTheMaster(t *testing.T) {
 	}
 }
 
-func TestReviewTasksAreListedByScoreAndKeepTheirExplanation(t *testing.T) {
+func TestReviewTasksAreListedNewestFirstAndKeepTheirExplanation(t *testing.T) {
 	env := newIndexEnv(t)
 	for _, id := range []string{"p-1", "p-2", "p-3"} {
 		env.addProfile(t, id, "Colombo", id+"@b.c")
@@ -255,10 +257,18 @@ func TestReviewTasksAreListedByScoreAndKeepTheirExplanation(t *testing.T) {
 	require.NoError(t, InsertReviewTask(env.ctx, env.orgID, low))
 	require.NoError(t, InsertReviewTask(env.ctx, env.orgID, high))
 
+	// created_at holds whole seconds here, so both tasks would tie. Backdating the
+	// stronger match makes the weaker one the newest: newest first and strongest
+	// first then give different answers.
+	_, err := env.db.ExecContext(env.ctx,
+		`UPDATE review_tasks SET created_at = datetime(created_at, '-1 hour') WHERE id = 'task-high'`)
+	require.NoError(t, err)
+
 	tasks, _, err := GetPendingReviewTasks(env.ctx, env.orgID, 10)
 	require.NoError(t, err)
 	require.Len(t, tasks, 2)
-	assert.Equal(t, "task-high", tasks[0].ID, "the strongest match comes first")
+	assert.Equal(t, []string{"task-low", "task-high"}, []string{tasks[0].ID, tasks[1].ID},
+		"the newest task comes first")
 
 	stored, err := GetReviewTaskByID(env.ctx, "task-high")
 	require.NoError(t, err)

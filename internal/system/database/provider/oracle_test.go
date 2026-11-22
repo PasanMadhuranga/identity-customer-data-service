@@ -59,7 +59,9 @@ func Test_getDBConfig_oracle(t *testing.T) {
 		t.Errorf("unexpected DSN %q", dbConfig.dsn)
 	}
 	query := parsed.Query()
-	for key, want := range map[string]string{"SSL": "true", "SSL VERIFY": "false", "CONNECTION TIMEOUT": "10"} {
+	for key, want := range map[string]string{
+		"SSL": "true", "SSL VERIFY": "false", "CONNECTION TIMEOUT": "10", "LOB FETCH": "STREAM",
+	} {
 		if query.Get(key) != want {
 			t.Errorf("%s is %q in the DSN, expected %q", key, query.Get(key), want)
 		}

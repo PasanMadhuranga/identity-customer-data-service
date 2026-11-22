@@ -61,10 +61,13 @@ func OracleDSN(ds config.DataSourceConfig, connectTimeout time.Duration) (string
 		port = defaultOraclePort
 	}
 
+	// LOB FETCH=STREAM reads a CLOB or BLOB in full. The driver's default, INLINE,
+	// cuts every LOB off at 32 KB without an error.
 	options := map[string]string{
 		"SSL":                ssl,
 		"SSL VERIFY":         verify,
 		"CONNECTION TIMEOUT": strconv.Itoa(int(connectTimeout.Seconds())),
+		"LOB FETCH":          "STREAM",
 	}
 
 	return goora.BuildUrl(ds.Hostname, port, ds.Name, ds.Username, ds.Password, options), nil

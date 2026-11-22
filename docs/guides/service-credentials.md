@@ -94,7 +94,14 @@ An organization without credentials, such as a sub organization, uses the
 credentials of its primary organization, at the introspection endpoint of the
 primary organization: that endpoint introspects the tokens of all its sub
 organizations. Only where neither has credentials does CDD use the configured
-introspection client, as before.
+introspection client (`auth_server.introspection_client_id` /
+`introspection_client_secret`), as before. Keep it configured as the fallback.
+
+Where the introspection endpoint of the Identity Server takes client
+authentication, set `introspection_auth: "client_secret_basic"`. CDD then sends
+the client ID and secret of the service credentials with HTTP Basic auth, and
+gets no token for introspection. The default is `"bearer_token"`. Any other value
+stops the server.
 
 ---
 
@@ -105,6 +112,8 @@ idp:
   type: "wso2is"
   service_credentials:
     encryption_key: "${SERVICE_CREDENTIALS_ENCRYPTION_KEY}"
+    # "bearer_token" (default) or "client_secret_basic"
+    introspection_auth: "bearer_token"
 ```
 
 ```bash

@@ -566,10 +566,14 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 //
 // The Identity Server accepts no client authentication at its introspection
 // endpoint by default. It accepts a bearer token with the scope
-// internal_oauth2_introspect, so the request carries a token of the client with
-// that scope. The token is cached until shortly before it expires. When the
-// endpoint answers 401, as after the secret of the client is renewed, the token
-// is dropped, and the request is sent once more with a new token.
+// internal_oauth2_introspect, so by default the request carries a token of the
+// client with that scope. The token is cached until shortly before it expires.
+// When the endpoint answers 401, as after the secret of the client is renewed,
+// the token is dropped, and the request is sent once more with a new token.
+//
+// With idp.service_credentials.introspection_auth "client_secret_basic", the
+// request carries the client ID and secret with HTTP Basic auth instead, for an
+// identity provider whose introspection endpoint takes client authentication.
 func (c *IdentityClient) IntrospectTokenAsOrg(token, orgHandle, clientID, clientSecret string) (map[string]interface{},
 	error) {
 	authConfig := config.GetCDSRuntime().Config.AuthServer
@@ -580,6 +584,11 @@ func (c *IdentityClient) IntrospectTokenAsOrg(token, orgHandle, clientID, client
 	}
 	form := url.Values{}
 	form.Set("token", token)
+
+	if config.GetCDSRuntime().Config.IDP.ServiceCredentials.IntrospectionAuth ==
+		config.IntrospectionAuthClientSecretBasic {
+		return c.introspect(introspectionEndpoint, clientID, clientSecret, form)
+	}
 
 	bearer, err := c.introspectionToken(orgHandle, clientID, clientSecret)
 	if err != nil {

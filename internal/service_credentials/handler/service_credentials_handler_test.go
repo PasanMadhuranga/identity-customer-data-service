@@ -53,8 +53,8 @@ const (
 	issuedToken = "issued-token"
 	// introspectionToken is what the token endpoint issues for the scope internal_oauth2_introspect.
 	introspectionToken = "introspection-token"
-	syncPath    = "/t/acme/cds/api/v1/service-credentials/sync"
-	acmeOrgID   = "acme-org-id"
+	syncPath           = "/t/acme/cds/api/v1/service-credentials/sync"
+	acmeOrgID          = "acme-org-id"
 )
 
 // fixture is a CDS with the service credentials sync endpoint mounted, the WSO2

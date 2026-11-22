@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 )
 
@@ -153,4 +154,26 @@ func TestUsableLifetime(t *testing.T) {
 	assert.Equal(t, time.Hour-tokenExpirySkew, usableLifetime(3600))
 	assert.Equal(t, defaultTokenLifetime-tokenExpirySkew, usableLifetime(0), "no expires_in")
 	assert.Equal(t, 30*time.Second, usableLifetime(60), "a lifetime shorter than twice the skew is halved")
+}
+
+// With introspection_auth "client_secret_basic", the client ID and secret are sent
+// with HTTP Basic auth, and no token is requested.
+func TestIntrospectTokenAsOrgWithClientSecretBasic(t *testing.T) {
+	is, c := newIdentityServer(t, false)
+	cfg := config.GetCDSRuntime().Config
+	cfg.IDP.ServiceCredentials.IntrospectionAuth = config.IntrospectionAuthClientSecretBasic
+	config.OverrideCDSRuntime(cfg)
+	var user, secret string
+	is.handle("/t/acme/oauth2/introspect", func(w http.ResponseWriter, r *http.Request) {
+		user, secret, _ = r.BasicAuth()
+		writeJSON(w, http.StatusOK, map[string]interface{}{"active": true})
+	})
+
+	claims, err := c.IntrospectTokenAsOrg("abc", "acme", "org-client", "org-secret")
+
+	require.NoError(t, err)
+	assert.Equal(t, true, claims["active"])
+	assert.Equal(t, "org-client", user)
+	assert.Equal(t, "org-secret", secret)
+	assert.Empty(t, is.tokenRequests, "no token is requested")
 }

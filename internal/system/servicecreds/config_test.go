@@ -95,3 +95,20 @@ func withKey(key, idpType string) config.Config {
 		},
 	}
 }
+
+func TestValidateConfigChecksTheIntrospectionAuth(t *testing.T) {
+	for _, auth := range []string{"", config.IntrospectionAuthBearerToken, config.IntrospectionAuthClientSecretBasic} {
+		cfg := withKey(usableKey, "wso2is")
+		cfg.IDP.ServiceCredentials.IntrospectionAuth = auth
+		if err := ValidateConfig(cfg, true); err != nil {
+			t.Fatalf("introspection_auth %q: %v", auth, err)
+		}
+	}
+
+	cfg := withKey(usableKey, "wso2is")
+	cfg.IDP.ServiceCredentials.IntrospectionAuth = "basic"
+	err := ValidateConfig(cfg, true)
+	if err == nil || !strings.Contains(err.Error(), "introspection_auth") {
+		t.Fatalf("an unknown introspection_auth: got %v, want an error that names the setting", err)
+	}
+}

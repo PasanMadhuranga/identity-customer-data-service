@@ -70,6 +70,21 @@ cloud:
         organizationManagement:
           enabled: false
 
+        # The identity provider of the deployment and the service credentials it sends for each
+        # organization as the organization enables CDS. They are on when
+        # secrets.serviceCredentialsEncryptionKey is set; with it empty, CDS uses the configured
+        # clients (secrets.authServerClient*, secrets.introspectionClient*) for every organization.
+        idp:
+          type: "wso2is"
+          serviceCredentials:
+            # How CDS authenticates with the service credentials at the introspection endpoint:
+            # "bearer_token" (default) sends a token with the scope internal_oauth2_introspect, which
+            # the default policy of the Identity Server accepts; "client_secret_basic" sends the
+            # client ID and secret, for an Identity Server whose introspection endpoint takes client
+            # authentication. The configured introspection client stays the fallback for an
+            # organization without service credentials.
+            introspectionAuth: "bearer_token"
+
         identityServer:
           host: localhost
           port: ""
@@ -116,6 +131,10 @@ cloud:
         databasePassword: "" # Add the database admin password
         introspectionClientId: ""
         introspectionClientSecret: "" # Add the introspection client secret
+        # Seals the service credentials at rest: 32 bytes, base64 encoded (openssl rand -base64 32).
+        # Leave it empty to keep the configured clients for every organization. Keep it the same
+        # across upgrades: credentials sealed with one key cannot be read with another.
+        serviceCredentialsEncryptionKey: ""
         activemqBrokerUsername: "" # Add the ActiveMQ broker username
         activemqBrokerPassword: "" # Add the ActiveMQ broker password
       replicas: 2

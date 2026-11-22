@@ -74,8 +74,12 @@ idp:
   # `openssl rand -base64 32`; a key that is set but not usable stops the server.
   # Only for an identity provider that sends service credentials (wso2is); a key
   # for any other stops the server.
+  #
+  # introspection_auth: "bearer_token" (default) or "client_secret_basic" (for an
+  # Identity Server that accepts client authentication at introspection).
   service_credentials:
     encryption_key: "${SERVICE_CREDENTIALS_ENCRYPTION_KEY}"
+    introspection_auth: "bearer_token"
 
 # Organization management: the organization tree, sub organization paths, and sharing with child
 # organizations. Create the organization tables before you enable it.

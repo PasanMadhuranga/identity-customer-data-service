@@ -320,13 +320,22 @@ func clientCredentialsForm(scope string) url.Values {
 func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 	form url.Values, orgID string,
 ) (string, error) {
+	token, _, err := c.requestTokenWithLifetime(endpoint, clientID, clientSecret, form, orgID)
+	return token, err
+}
+
+// requestTokenWithLifetime is requestToken that also returns expires_in, in
+// seconds (0 when the response has none).
+func (c *IdentityClient) requestTokenWithLifetime(endpoint, clientID, clientSecret string,
+	form url.Values, orgID string,
+) (string, int64, error) {
 	logger := log.GetLogger()
 
 	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to create token request for the organization:%s in system_app_grant", orgID)
 		logger.Debug(errorMsg, log.Error(err))
-		return "", errors2.NewServerError(errors2.ErrorMessage{
+		return "", 0, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.TokenFetchFailed.Code,
 			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
@@ -340,7 +349,7 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 		errorMsg := fmt.Sprintf("Failed to fetch token for the organization:%s in system_app_grant", orgID)
 		logger.Debug(err.Error())
 		// This is an internal communication. So for the clients of CDS, we treat this as a server error.
-		return "", errors2.NewServerError(errors2.ErrorMessage{
+		return "", 0, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.TokenFetchFailed.Code,
 			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
@@ -355,7 +364,7 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 			resp.StatusCode, orgID, endpoint, strings.TrimSpace(string(bodyBytes)),
 		)
 		logger.Debug(errorMsg)
-		return "", errors2.NewServerError(errors2.ErrorMessage{
+		return "", 0, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.TokenFetchFailed.Code,
 			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
@@ -364,11 +373,12 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 
 	var result struct {
 		AccessToken string `json:"access_token"`
+		ExpiresIn   int64  `json:"expires_in"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		errorMsg := fmt.Sprintf("Failed to parse token response for the organization:%s in system_app_grant", orgID)
 		logger.Debug(errorMsg, log.Error(err))
-		return "", errors2.NewServerError(errors2.ErrorMessage{
+		return "", 0, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.TokenFetchFailed.Code,
 			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
@@ -377,14 +387,14 @@ func (c *IdentityClient) requestToken(endpoint, clientID, clientSecret string,
 	if result.AccessToken == "" {
 		errorMsg := fmt.Sprintf("Failed to read token response for the organization:%s in system_app_grant", orgID)
 		logger.Debug(errorMsg)
-		return "", errors2.NewServerError(errors2.ErrorMessage{
+		return "", 0, errors2.NewServerError(errors2.ErrorMessage{
 			Code:        errors2.TokenFetchFailed.Code,
 			Message:     errors2.TokenFetchFailed.Message,
 			Description: errorMsg,
 		}, nil)
 	}
 
-	return result.AccessToken, nil
+	return result.AccessToken, result.ExpiresIn, nil
 }
 
 // FetchApplicationIdentifier fetches the application ID for a given application identifier (clientId or issuer)
@@ -551,8 +561,14 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 }
 
 // IntrospectTokenAsOrg introspects the token at the introspection endpoint of
-// orgHandle, authenticated as the client of that organization. An Identity
-// Server client can only authenticate at the endpoints of its own tenant.
+// orgHandle, with the service credentials of that organization.
+//
+// By default it sends a cached bearer token with the scope
+// internal_oauth2_introspect, because the Identity Server does not accept client
+// authentication at this endpoint by default. On a 401 (for example, after the
+// secret is renewed) it gets a new token and tries once more. With
+// introspection_auth "client_secret_basic", it sends the client ID and secret
+// with HTTP Basic auth instead.
 func (c *IdentityClient) IntrospectTokenAsOrg(token, orgHandle, clientID, clientSecret string) (map[string]interface{},
 	error) {
 	authConfig := config.GetCDSRuntime().Config.AuthServer
@@ -563,10 +579,50 @@ func (c *IdentityClient) IntrospectTokenAsOrg(token, orgHandle, clientID, client
 	}
 	form := url.Values{}
 	form.Set("token", token)
-	return c.introspect(introspectionEndpoint, clientID, clientSecret, form)
+
+	if config.GetCDSRuntime().Config.IDP.ServiceCredentials.IntrospectionAuth ==
+		config.IntrospectionAuthClientSecretBasic {
+		return c.introspect(introspectionEndpoint, clientID, clientSecret, form)
+	}
+
+	bearer, err := c.introspectionToken(orgHandle, clientID, clientSecret)
+	if err != nil {
+		return nil, err
+	}
+	result, err := c.introspectWith(introspectionEndpoint, bearerAuth(bearer), form)
+	if !isUnauthorized(err) {
+		return result, err
+	}
+	log.GetLogger().Debug(fmt.Sprintf("The introspection endpoint of the organization %s refused the cached "+
+		"token. Getting a new token.", orgHandle))
+	dropIntrospectionToken(orgHandle, clientID)
+	if bearer, err = c.introspectionToken(orgHandle, clientID, clientSecret); err != nil {
+		return nil, err
+	}
+	return c.introspectWith(introspectionEndpoint, bearerAuth(bearer), form)
 }
 
 func (c *IdentityClient) introspect(introspectionEndpoint, clientID, clientSecret string,
+	form url.Values) (map[string]interface{}, error) {
+	return c.introspectWith(introspectionEndpoint, func(req *http.Request) {
+		req.SetBasicAuth(clientID, clientSecret)
+	}, form)
+}
+
+func bearerAuth(token string) func(*http.Request) {
+	return func(req *http.Request) {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+}
+
+// isUnauthorized reports whether the introspection endpoint answered 401.
+func isUnauthorized(err error) bool {
+	var clientErr *errors2.ClientError
+	return errors.As(err, &clientErr) && clientErr.StatusCode == http.StatusUnauthorized &&
+		clientErr.ErrorMessage.Code == "TOKEN_INTROSPECTION_INVALID_RESPONSE"
+}
+
+func (c *IdentityClient) introspectWith(introspectionEndpoint string, authenticate func(*http.Request),
 	form url.Values) (map[string]interface{}, error) {
 	log.GetLogger().Info("Introspecting token at endpoint: " + introspectionEndpoint)
 	req, err := http.NewRequest("POST", introspectionEndpoint, strings.NewReader(form.Encode()))
@@ -574,7 +630,7 @@ func (c *IdentityClient) introspect(introspectionEndpoint, clientID, clientSecre
 		return nil, err
 	}
 
-	req.SetBasicAuth(clientID, clientSecret)
+	authenticate(req)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := c.HTTPClient.Do(req)

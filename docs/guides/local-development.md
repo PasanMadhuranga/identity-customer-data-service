@@ -165,6 +165,8 @@ and `--pg-container`.
   Without it, user events carry no profile cookie.
 - **A relaxed policy on `/oauth2/introspect`**, so CDD introspects the tokens it
   receives with its own client credentials instead of admin-user Basic auth.
+  Only the configured introspection client needs it: with service credentials,
+  CDD introspects with a bearer token, which the default policy accepts.
 - **Two OAuth applications**: one whose client credentials CDD calls IS with
   (see [Service Credentials](service-credentials.md)), and a client app with `aud=iam-cds`, the audience CDD requires, for calling the
   CDD APIs. The Console is handled separately because it issues opaque tokens.

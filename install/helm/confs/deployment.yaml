@@ -28,6 +28,12 @@ application_identifier_type: {{ .Values.cloud.deployment.cds.config.applicationI
 organization_management:
   enabled: {{ .Values.cloud.deployment.cds.config.organizationManagement.enabled }}
 
+idp:
+  type: {{ .Values.cloud.deployment.cds.config.idp.type | default "wso2is" | quote }}
+  service_credentials:
+    encryption_key: "${SERVICE_CREDENTIALS_ENCRYPTION_KEY}"
+    introspection_auth: {{ .Values.cloud.deployment.cds.config.idp.serviceCredentials.introspectionAuth | default "bearer_token" | quote }}
+
 auth_server:
   host: {{ .Values.cloud.deployment.cds.config.identityServer.host }}
   port : {{ .Values.cloud.deployment.cds.config.identityServer.port }}

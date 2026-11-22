@@ -302,7 +302,20 @@ type ServiceCredentialsConfig struct {
 	// The secret cannot be hashed instead. CDS presents it to the token
 	// endpoint on every token request, and a hash cannot be presented.
 	EncryptionKey string `yaml:"encryption_key"`
+
+	// IntrospectionAuth is how CDS uses the service credentials at the
+	// introspection endpoint: "bearer_token" (default) sends a token with the
+	// scope internal_oauth2_introspect; "client_secret_basic" sends the client
+	// ID and secret with HTTP Basic auth. The configured introspection client is
+	// not affected.
+	IntrospectionAuth string `yaml:"introspection_auth"`
 }
+
+// The values of idp.service_credentials.introspection_auth.
+const (
+	IntrospectionAuthBearerToken       = "bearer_token"
+	IntrospectionAuthClientSecretBasic = "client_secret_basic"
+)
 
 // OrganizationManagementConfig enables organization management. The organization tables must exist
 // before it is enabled.

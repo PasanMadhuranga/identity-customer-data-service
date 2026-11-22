@@ -51,6 +51,8 @@ const (
 	goodClient  = "acme-client"
 	goodSecret  = "acme-secret"
 	issuedToken = "issued-token"
+	// introspectionToken is what the token endpoint issues for the scope internal_oauth2_introspect.
+	introspectionToken = "introspection-token"
 	syncPath    = "/t/acme/cds/api/v1/service-credentials/sync"
 	acmeOrgID   = "acme-org-id"
 )
@@ -72,13 +74,19 @@ func newFixture(t *testing.T, encryptionKey string) *fixture {
 
 	is := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, secret, ok := r.BasicAuth()
-		if r.URL.Path == "/t/acme/oauth2/introspect" || r.URL.Path == "/t/carbon.super/oauth2/introspect" {
-			// Each endpoint takes only the client of its own tenant.
-			want := map[string][2]string{
-				"/t/acme/oauth2/introspect":         {goodClient, goodSecret},
-				"/t/carbon.super/oauth2/introspect": {"introspection-client", "introspection-secret"},
-			}[r.URL.Path]
-			if !ok || id != want[0] || secret != want[1] {
+		if r.URL.Path == "/t/acme/oauth2/introspect" {
+			// Like the Identity Server, the endpoint takes no client authentication, only a
+			// bearer token of its own tenant with the scope internal_oauth2_introspect.
+			if r.Header.Get("Authorization") != "Bearer "+introspectionToken {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"active": true, "introspected_at": r.URL.Path})
+			return
+		}
+		if r.URL.Path == "/t/carbon.super/oauth2/introspect" {
+			// The configured introspection client, with a relaxed policy on the endpoint.
+			if !ok || id != "introspection-client" || secret != "introspection-secret" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -97,6 +105,11 @@ func newFixture(t *testing.T, encryptionKey string) *fixture {
 		if r.URL.Path != "/t/acme/oauth2/token" || !ok || id != goodClient || secret != goodSecret {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte(`{"error":"invalid_client"}`))
+			return
+		}
+		if r.FormValue("scope") == "internal_oauth2_introspect" {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"access_token": introspectionToken,
+				"expires_in": 3600})
 			return
 		}
 		_ = json.NewEncoder(w).Encode(map[string]string{"access_token": issuedToken})
@@ -368,6 +381,28 @@ func TestIntrospectsWithTheServiceCredentialsOfTheOrganization(t *testing.T) {
 	claims, err = adapter.IntrospectToken(context.Background(), "a-token", "acme", "acme")
 	if err != nil || claims["introspected_at"] != "/t/acme/oauth2/introspect" {
 		t.Fatalf("after the sync: got %v, %v, want the credentials of acme at its own endpoint", claims, err)
+	}
+}
+
+// A sub organization has no service credentials of its own. Its tokens are
+// introspected with the credentials of its primary organization, at the endpoint
+// of the primary organization.
+func TestIntrospectsATokenOfASubOrganizationWithTheCredentialsOfItsPrimary(t *testing.T) {
+	f := newFixture(t, usableKey)
+	adapter := idp.NewWSO2ISAdapter()
+
+	claims, err := adapter.IntrospectToken(context.Background(), "a-token", "region1", "acme")
+	if err != nil || claims["introspected_at"] != "/t/carbon.super/oauth2/introspect" {
+		t.Fatalf("before the sync: got %v, %v, want the configured client at the super tenant", claims, err)
+	}
+
+	if rec := f.call(syncPath, credentials(goodClient, goodSecret), true); rec.Code !=
+		http.StatusNoContent {
+		t.Fatalf("sync: got %d %s, want 204", rec.Code, rec.Body.String())
+	}
+	claims, err = adapter.IntrospectToken(context.Background(), "a-token", "region1", "acme")
+	if err != nil || claims["introspected_at"] != "/t/acme/oauth2/introspect" {
+		t.Fatalf("after the sync: got %v, %v, want the credentials of acme at its endpoint", claims, err)
 	}
 }
 

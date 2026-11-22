@@ -81,8 +81,20 @@ CDD refuses an encryption key for it at start.
 Token introspection goes through the adapter as well, when it implements
 `idp.TokenIntrospector`. The WSO2 IS adapter introspects a token of an
 organization with that organization's credentials, at its own introspection
-endpoint (`/t/{org}/oauth2/introspect`). An organization without credentials,
-such as a sub organization, uses the configured introspection client, as before.
+endpoint (`/t/{org}/oauth2/introspect`). The Identity Server takes no client
+authentication at that endpoint by default, so CDD does not send the client ID
+and secret there. It gets a token of the client with the scope
+`internal_oauth2_introspect` and sends it as a bearer token. The extension
+authorizes the application for the OAuth2 Introspection API, which gives it that
+scope. CDD keeps the token until 60 seconds before it expires, and when the
+endpoint refuses it, as after the secret is renewed, CDD gets a new one and
+sends the introspection once more.
+
+An organization without credentials, such as a sub organization, uses the
+credentials of its primary organization, at the introspection endpoint of the
+primary organization: that endpoint introspects the tokens of all its sub
+organizations. Only where neither has credentials does CDD use the configured
+introspection client, as before.
 
 ---
 
@@ -150,7 +162,8 @@ on again for the organization. Turning it on renews the secret and sends it agai
 
 `FetchToken` uses the organization's own credentials where a row exists, and falls
 back to the configured `client_id` / `client_secret` where none does. Token
-introspection does the same with the configured introspection client (see
+introspection uses the organization's credentials, then those of its primary
+organization, and then the configured introspection client (see
 [Other identity providers](#other-identity-providers)). A deployment
 without an encryption key does not read the table at all, so its token path is
 unchanged.

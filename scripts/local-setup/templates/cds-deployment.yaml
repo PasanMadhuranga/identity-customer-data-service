@@ -97,6 +97,12 @@ organization_management:
 # is-deployment.toml.
 application_identifier_type: app_id
 
+# Same as the shipped configuration: tolerant matching on, so the Console's
+# fuzzy unification and review tasks can be tried locally.
+identity_resolution:
+  allow_evidence_strength_override: false
+  fuzzy_matching_enabled: true
+
 # required_scopes comes last so the block appended from the repository's own
 # configuration lands inside auth_server.
 auth_server:

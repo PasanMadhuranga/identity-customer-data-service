@@ -325,10 +325,10 @@ type IdentityResolutionConfig struct {
 
 	// FuzzyMatchingEnabled switches tolerant matching on for the whole server.
 	//
-	// Off by default, including for a deployment.yaml written before the key existed. An
-	// upgrade therefore keeps matching exactly as it did, and an operator turns tolerant
-	// matching on when the organization is ready for it rather than finding that an
-	// upgrade changed which profiles get unified.
+	// Off when the key is absent, so a deployment.yaml written before the key existed keeps
+	// matching exactly as it did after an upgrade, rather than finding that an upgrade
+	// changed which profiles get unified. The shipped deployment.yaml and the Helm chart set
+	// it to true, so a new deployment has tolerant matching available from the start.
 	//
 	// While off, new fuzzy rules are refused, the options endpoint stops offering the
 	// method, and a rule already stored as fuzzy is evaluated as an exact match. Switching

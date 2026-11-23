@@ -65,7 +65,7 @@ cloud:
 
         serverUrl : "http://localhost:8900"
 
-        applicationIdentifierType: "client_id" # Application identifier mode: "client_id" (default) or "app_id"
+        applicationIdentifierType: "app_id" # Application identifier mode: "app_id" (default) or "client_id"
 
         organizationManagement:
           enabled: true

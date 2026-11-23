@@ -71,6 +71,11 @@ on:
         required: false
         default: true
         type: boolean
+      run_testgrid:
+        description: 'Run TestGrid on every database first, and stop the release if any fails'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -79,7 +84,18 @@ env:
   RELEASE_BRANCH: ${{ inputs.branch || 'main' }}
 
 jobs:
+  testgrid:
+    name: TestGrid
+    if: ${{ inputs.run_testgrid }}
+    uses: ./.github/workflows/testgrid.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ inputs.branch || 'main' }}
+
   build-and-release:
+    needs: testgrid
+    if: ${{ !cancelled() && (needs.testgrid.result == 'success' || needs.testgrid.result == 'skipped') }}
     runs-on: ubuntu-latest
 
     steps:

@@ -68,7 +68,7 @@ cloud:
         applicationIdentifierType: "client_id" # Application identifier mode: "client_id" (default) or "app_id"
 
         organizationManagement:
-          enabled: false
+          enabled: true
 
         # Service credentials are on when secrets.serviceCredentialsEncryptionKey is set.
         idp:

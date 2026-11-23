@@ -1667,10 +1667,10 @@ func (ps *ProfilesService) PatchProfile(ctx context.Context,
 		}
 	}
 
-	// Now apply top-level scalar fields
+	// Now apply top-level scalar fields. The user ID cannot be changed through a patch, so the stored one is kept.
 	for k, v := range patch {
-		if k == "traits" || k == "identity_attributes" || k == "application_data" {
-			continue // already handled
+		if k == "traits" || k == "identity_attributes" || k == "application_data" || k == "user_id" {
+			continue
 		}
 		merged[k] = v
 	}

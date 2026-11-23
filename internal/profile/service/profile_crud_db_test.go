@@ -330,17 +330,26 @@ func TestPatchProfileMergesIntoTheExistingData(t *testing.T) {
 	assert.Equal(t, "u-1", patched.UserID)
 }
 
-func TestPatchProfileCanPatchIdentityAttributesAndTheUserId(t *testing.T) {
+func TestPatchProfilePatchesIdentityAttributesAndIgnoresTheUserId(t *testing.T) {
 	env := newProfileEnv(t)
-	created := env.createWithCity(t, "Colombo")
+	created := env.create(t, profileModel.ProfileRequest{
+		UserID: "u-1",
+		Traits: map[string]interface{}{"city": "Colombo"},
+	})
+	anonymous := env.createWithCity(t, "Colombo")
 
 	patched, err := env.svc.PatchProfile(env.ctx, created.ProfileID, env.orgID, map[string]interface{}{
 		"user_id":             "u-9",
 		"identity_attributes": map[string]interface{}{"email": "new@b.c"},
 	})
-
 	require.NoError(t, err)
-	assert.Equal(t, "u-9", patched.UserID)
+	patchedAnonymous, err := env.svc.PatchProfile(env.ctx, anonymous.ProfileID, env.orgID, map[string]interface{}{
+		"user_id": "u-9",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "u-1", patched.UserID, "a patch cannot change the user ID")
+	assert.Empty(t, patchedAnonymous.UserID, "a patch cannot set the user ID")
 	assert.Equal(t, "new@b.c", patched.IdentityAttributes["email"])
 	assert.Equal(t, "Colombo", patched.Traits["city"])
 }

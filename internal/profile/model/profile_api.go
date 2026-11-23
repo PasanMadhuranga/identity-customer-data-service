@@ -63,7 +63,24 @@ type Meta struct {
 	Location  string    `json:"location" bson:"location"`
 }
 
-// ProfileRequest is the request body for creating or updating a profile.
+// ProfileCreateRequest is the request body of POST /profiles.
+type ProfileCreateRequest struct {
+	IdentityAttributes map[string]any `json:"identity_attributes,omitempty"`
+	Traits             map[string]any `json:"traits,omitempty"`
+	ApplicationData    map[string]any `json:"application_data"`
+}
+
+// ToProfileRequest returns the service input for this request, with no user ID.
+func (r ProfileCreateRequest) ToProfileRequest() ProfileRequest {
+	return ProfileRequest{
+		IdentityAttributes: r.IdentityAttributes,
+		Traits:             r.Traits,
+		ApplicationData:    r.ApplicationData,
+	}
+}
+
+// ProfileRequest is the service input for creating or updating a profile. Only internal callers, such as the
+// identity server sync and authentication events, set UserID.
 type ProfileRequest struct {
 	UserID             string         `json:"user_id" bson:"user_id"`
 	IdentityAttributes map[string]any `json:"identity_attributes,omitempty" bson:"identity_attributes,omitempty"`

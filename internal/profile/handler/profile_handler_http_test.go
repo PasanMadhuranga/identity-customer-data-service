@@ -168,6 +168,7 @@ func TestInitProfileRefusals(t *testing.T) {
 	tests := map[string]string{
 		"malformed JSON":      `{"traits":`,
 		"an unknown field":    `{"color":"red"}`,
+		"a user ID":           `{"user_id":"u-1","traits":{"city":"Colombo"}}`,
 		"an unknown trait":    `{"traits":{"nope":"x"}}`,
 		"a wrongly typed one": `{"traits":{"age":"old"}}`,
 	}
@@ -360,6 +361,14 @@ func TestPatchProfile(t *testing.T) {
 	traits := decodeProfile(t, patched).Traits
 	assert.Equal(t, "Kandy", traits["city"])
 	assert.EqualValues(t, 30, traits["age"], "a trait that was not patched stays")
+
+	withUserID := env.call(t, env.h.PatchProfile, http.MethodPatch, env.auth.ValidToken, "",
+		`{"user_id":"u-1","traits":{"city":"Galle"}}`, profileIDOf(created.ProfileID))
+	assert.Equal(t, http.StatusBadRequest, withUserID.Code, withUserID.Body.String())
+	unchanged, err := env.svc.GetProfile(env.ctx, created.ProfileID, env.orgID)
+	require.NoError(t, err)
+	assert.Empty(t, unchanged.UserID, "a rejected patch does not set the user ID")
+	assert.Equal(t, "Kandy", unchanged.Traits["city"], "a rejected patch changes nothing")
 
 	invalid := env.call(t, env.h.PatchProfile, http.MethodPatch, env.auth.ValidToken, "",
 		`{"traits":{"age":"old"}}`, profileIDOf(created.ProfileID))

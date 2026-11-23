@@ -2123,10 +2123,6 @@ components:
       type: object
       description: Fields that are not listed here are rejected.
       properties:
-        user_id:
-          type: string
-          description: User to link the profile to. Leave out for an anonymous profile.
-          example: "40497337-e8bf-4d92-9545-711894ab2af3"
         identity_attributes:
           type: object
           additionalProperties: true

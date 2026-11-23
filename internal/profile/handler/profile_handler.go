@@ -553,7 +553,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 	profilesProvider := provider.NewProfilesProvider()
 	profilesService := profilesProvider.GetProfilesService()
 
-	var profile model.ProfileRequest
+	var profile model.ProfileCreateRequest
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	err = decoder.Decode(&profile)
@@ -577,7 +577,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If no valid cookie, create a new profile and cookie
-	profileResponse, err := profilesService.CreateProfile(ctx, profile, org.ID)
+	profileResponse, err := profilesService.CreateProfile(ctx, profile.ToProfileRequest(), org.ID)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
@@ -751,6 +751,16 @@ func (ph *ProfileHandler) PatchProfile(w http.ResponseWriter, r *http.Request) {
 			Description: utils.HandleDecodeError(err, "profile"),
 		}, http.StatusBadRequest)
 		utils.HandleError(w, clientError)
+		return
+	}
+	if _, ok := patchData["user_id"]; ok {
+		clientError := errors2.NewClientError(errors2.ErrorMessage{
+			Code:        errors2.UpdateProfile.Code,
+			Message:     errors2.UpdateProfile.Message,
+			Description: "user_id cannot be updated.",
+		}, http.StatusBadRequest)
+		utils.HandleError(w, clientError)
+		return
 	}
 
 	profilesProvider := provider.NewProfilesProvider()

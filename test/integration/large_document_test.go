@@ -40,7 +40,7 @@ import (
 // one, two, three and four UTF-8 bytes, so a read cut off at a byte or a
 // character limit shows up as a mismatch.
 func largeText(size int) string {
-	const sample = "ශ්‍රී ලංකා 東京 Αθήνα שלום café 😀 "
+	const sample = "ශ්\u200dරී ලංකා 東京 Αθήνα שלום café 😀 "
 	return strings.Repeat(sample, size/len(sample)+1)
 }
 

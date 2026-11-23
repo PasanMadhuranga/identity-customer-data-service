@@ -27,9 +27,6 @@ cloud:
         env: "dev"
         logLevel: "DEBUG" # Log level: "INFO", "WARN", "ERROR", "DEBUG"
         logFormat: "text" # Record format on the console for the application log and the access log: "text", "json"
-        cache:
-          enabled: true
-          defaultCacheTimeout: 15
         auth:
           corsAllowedOrigins: []
         addr:
@@ -43,10 +40,6 @@ cloud:
           # Bounds the whole graceful shutdown of the application. Keep it below
           # terminationGracePeriodSeconds.
           gracePeriodSeconds: 25
-        sync:
-          schema:
-            enabled: true
-            interval: 3600 # in seconds
         datasource:
           type: "postgres"
           hostname: "localhost"
@@ -84,8 +77,6 @@ cloud:
           cookieDomain: "localhost"
           introspectionEndpoint: "/oauth2/introspect"
           tokenEndpoint: "/oauth2/token"
-          revocationEndpoint: "/oauth2/revoke"
-          claimsEndpoint: "api/server/v1/claim-dialects"
           isSystemAppGrantEnabled: true
           certName: "wso2carbontls.cer"
 

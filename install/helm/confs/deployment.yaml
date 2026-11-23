@@ -7,10 +7,6 @@ log:
   app:
     level: {{ .Values.cloud.deployment.cds.config.logLevel }} # "INFO", "WARN", "ERROR", "DEBUG"
 
-cache:
-  enabled: {{ .Values.cloud.deployment.cds.config.cache.enabled }}
-  default_cache_timeout: {{ .Values.cloud.deployment.cds.config.cache.defaultCacheTimeout }}
-
 auth:
   cors_allowed_origins:
   {{- range .Values.cloud.deployment.cds.config.auth.corsAllowedOrigins }}
@@ -41,8 +37,6 @@ auth_server:
   cookieDomain: {{ .Values.cloud.deployment.cds.config.identityServer.cookieDomain }}
   introspectionEndpoint: {{ .Values.cloud.deployment.cds.config.identityServer.introspectionEndpoint }}
   tokenEndpoint: {{ .Values.cloud.deployment.cds.config.identityServer.tokenEndpoint }}
-  revocationEndpoint: {{ .Values.cloud.deployment.cds.config.identityServer.revocationEndpoint }}
-  claimsEndpoint: {{ .Values.cloud.deployment.cds.config.identityServer.claimsEndpoint }}
   client_id: "${AUTH_SERVER_CLIENT_ID}"
   client_secret: "${AUTH_SERVER_CLIENT_SECRET}"
   admin_username: "${AUTH_SERVER_ADMIN_USERNAME}"

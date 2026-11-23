@@ -18,30 +18,104 @@
 #
 # --------------------------------------------------------------------------------------
 
-# Runs the integration suite against the databases you pick. It runs only when started
-# by hand: Actions > TestGrid > Run workflow, or
+# Runs the integration suite against the databases you tick. It runs when started by
+# hand (Actions > TestGrid > Run workflow) or from the release workflow, before a
+# release. Every database is ticked by default; untick the ones to leave out. From the
+# command line, set the ones to leave out to false:
 #
-#   gh workflow run testgrid.yml -f databases=mysql,mssql2022 --ref <branch>
+#   gh workflow run testgrid.yml -f mysql=false -f mssql2017=false --ref <branch>
 #
 # The PR Builder keeps the PostgreSQL and SQLite suites. The slower ones, MySQL, SQL
 # Server and Oracle, run from here. The branch picked in "Use workflow from" is the code
-# that is tested.
+# that is tested; a calling workflow passes the branch to test as `ref`.
 
 name: TestGrid
 
-run-name: TestGrid (${{ inputs.databases }})
+run-name: TestGrid${{ inputs.test && format(' ({0})', inputs.test) || '' }}
 
 on:
   workflow_dispatch:
     inputs:
-      databases:
-        description: 'Databases to run, separated by commas: postgres, sqlite, mysql, mssql2022, mssql2019, mssql2017, oracle21c, oracle23ai. Use "all" for every one.'
-        required: false
-        type: string
-        default: 'all'
+      postgres:
+        description: 'PostgreSQL'
+        type: boolean
+        default: true
+      sqlite:
+        description: 'SQLite'
+        type: boolean
+        default: true
+      mysql:
+        description: 'MySQL'
+        type: boolean
+        default: true
+      mssql2022:
+        description: 'SQL Server 2022'
+        type: boolean
+        default: true
+      mssql2019:
+        description: 'SQL Server 2019'
+        type: boolean
+        default: true
+      mssql2017:
+        description: 'SQL Server 2017'
+        type: boolean
+        default: true
+      oracle21c:
+        description: 'Oracle 21c'
+        type: boolean
+        default: true
+      oracle23ai:
+        description: 'Oracle 23ai'
+        type: boolean
+        default: true
       test:
         description: 'Only the tests whose names match, for example Test_Profile|Test_Consent. Empty runs every test.'
+        type: string
+        default: ''
+
+  # The release workflow calls TestGrid with no inputs other than ref, so it runs every
+  # database. The inputs here mirror the ones above.
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit to test. Empty tests the commit the caller runs on.'
         required: false
+        type: string
+        default: ''
+      postgres:
+        description: 'PostgreSQL'
+        type: boolean
+        default: true
+      sqlite:
+        description: 'SQLite'
+        type: boolean
+        default: true
+      mysql:
+        description: 'MySQL'
+        type: boolean
+        default: true
+      mssql2022:
+        description: 'SQL Server 2022'
+        type: boolean
+        default: true
+      mssql2019:
+        description: 'SQL Server 2019'
+        type: boolean
+        default: true
+      mssql2017:
+        description: 'SQL Server 2017'
+        type: boolean
+        default: true
+      oracle21c:
+        description: 'Oracle 21c'
+        type: boolean
+        default: true
+      oracle23ai:
+        description: 'Oracle 23ai'
+        type: boolean
+        default: true
+      test:
+        description: 'Only the tests whose names match, for example Test_Profile|Test_Consent. Empty runs every test.'
         type: string
         default: ''
 
@@ -62,12 +136,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       # The inputs reach the script as environment variables, never inside the script text.
       - name: Work out which databases to run
         id: plan
         env:
-          DATABASES: ${{ inputs.databases }}
+          DB_POSTGRES: ${{ inputs.postgres }}
+          DB_SQLITE: ${{ inputs.sqlite }}
+          DB_MYSQL: ${{ inputs.mysql }}
+          DB_MSSQL2022: ${{ inputs.mssql2022 }}
+          DB_MSSQL2019: ${{ inputs.mssql2019 }}
+          DB_MSSQL2017: ${{ inputs.mssql2017 }}
+          DB_ORACLE21C: ${{ inputs.oracle21c }}
+          DB_ORACLE23AI: ${{ inputs.oracle23ai }}
           TEST_FILTER: ${{ inputs.test }}
         run: bash .github/workflows/utils/testgrid-plan.sh
 
@@ -84,6 +167,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5

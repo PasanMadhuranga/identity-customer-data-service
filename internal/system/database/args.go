@@ -94,8 +94,8 @@ func normalizeOracleArgs(args []interface{}) []interface{} {
 	return normalized
 }
 
-// oracleJSON binds a marshaled JSON document as a BLOB, the type of the JSON
-// columns. The stores pass these documents as []byte and pass every other
+// oracleJSON binds a marshaled JSON document as a BLOB, which a JSON column
+// takes as UTF-8 text. The stores pass these documents as []byte and pass every other
 // value as a string. goora.Blob is the only form the driver writes in full
 // past 32 KB: a plain []byte of that size fails in a MERGE.
 func oracleJSON(document []byte) interface{} {

@@ -56,9 +56,9 @@ func Test_OracleStatementsAreResolvedForOracleOnly(t *testing.T) {
 	}
 }
 
-// The listed statements are written for Oracle 19c, so none may keep syntax it rejects, and none may end with
+// The listed statements are written for Oracle 21c, so none may keep syntax it rejects, and none may end with
 // the semicolon the driver refuses.
-func Test_OracleStatementsKeepNoSyntaxOracle19cRejects(t *testing.T) {
+func Test_OracleStatementsKeepNoSyntaxOracle21cRejects(t *testing.T) {
 	forbidden := regexp.MustCompile(`(?i)(ON CONFLICT|EXCLUDED\.|::|ILIKE|jsonb|RETURNING|\bLIMIT\b|\bnow\(\)|` +
 		`\bTRUE\b|\bFALSE\b|RECURSIVE|ON DUPLICATE KEY|AS TEXT|SYSUTCDATETIME|\bTOP\s*\(|OPENJSON|WITH \(HOLDLOCK\))`)
 	for id, text := range oracleStatements {

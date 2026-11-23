@@ -272,7 +272,8 @@ same statement.
 
 ### Option E: Oracle
 
-Oracle Database 19c, 21c and 23ai are supported, and one schema serves all three. Run
+Oracle Database 21c and 23ai are supported, and one schema serves both. 19c is not
+supported, because the schema uses the JSON column type that 21c introduced. Run
 CDD in a pluggable database, as a user that owns its tables. The example starts 23ai
 Free, whose pluggable database is `FREEPDB1`, and applies the schema as the application
 user:

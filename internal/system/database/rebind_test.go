@@ -441,7 +441,7 @@ func Test_NormalizeArgs_Oracle(t *testing.T) {
 		[]byte(`{"a":1}`), json.RawMessage(`[]`), moment, true, false, 7, nil, "text", long,
 	})
 
-	// Marshaled JSON goes in as a BLOB, the type of the JSON columns.
+	// Marshaled JSON goes in as a BLOB, which a JSON column takes as UTF-8 text.
 	expected := []interface{}{goora.Blob{Data: []byte(`{"a":1}`)}, goora.Blob{Data: []byte(`[]`)},
 		moment.UTC(), int64(1), int64(0), 7, nil, "text"}
 	if !reflect.DeepEqual(got[:len(expected)], expected) {

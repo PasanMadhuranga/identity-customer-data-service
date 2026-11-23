@@ -43,11 +43,9 @@ const OracleContainerName = "cds-test-oracle"
 const (
 	// defaultOracleImage is the Oracle Database the suite runs on, 23ai Free.
 	// CDS_TEST_ORACLE_IMAGE replaces it, to run the suite on another release:
-	// gvenzl/oracle-xe:21-slim for 21c, or Oracle's own 19c image,
-	// container-registry.oracle.com/database/enterprise:19.3.0.0, which needs a
-	// login and an amd64 host. CDS_TEST_ORACLE_SERVICE then names the
-	// pluggable database the image creates: FREEPDB1 on 23ai Free, XEPDB1 on
-	// 21c XE and ORCLPDB1 on the 19c image.
+	// gvenzl/oracle-xe:21-slim for 21c. CDS_TEST_ORACLE_SERVICE then names the
+	// pluggable database the image creates: FREEPDB1 on 23ai Free and XEPDB1
+	// on 21c XE.
 	defaultOracleImage   = "gvenzl/oracle-free:23-slim"
 	defaultOracleService = "FREEPDB1"
 

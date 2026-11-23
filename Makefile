@@ -140,7 +140,8 @@ dist: clean-dist
 # Pack layout:
 #   bin/$(PRODUCT_NAME)              the runtime ($(PRODUCT_NAME).exe on Windows)
 #   bin/start.sh                     runs it in the foreground (start.bat on Windows)
-#   repository/conf/                 deployment.yaml and compatibility.yaml
+#   repository/conf/                 deployment.yaml, compatibility.yaml, and secrets.env with
+#                                    every value empty, readable by its owner only
 #   repository/database/             where the inbuilt database is created
 #   repository/dbscripts/            DDL for operators running an external database
 #   repository/resources/security/   the TLS material, defaulting to Identity Server 7.3.0's key pair
@@ -165,6 +166,7 @@ _dist_one:
 	CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -o $$stage/bin/$$exe ./cmd/cdd; \
 	cp -r $(REPOSITORY_DIR)/. $$stage/repository/; \
 	$(DISTRIBUTION_SRC)/pack-config.sh $$stage/repository/conf/deployment.yaml; \
+	install -m 600 $(DISTRIBUTION_SRC)/pack/secrets.env $$stage/repository/conf/secrets.env; \
 	cp dbscripts/*.sql $$stage/repository/dbscripts/; \
 	cp $(DISTRIBUTION_SRC)/pack/security-README.md $$stage/repository/resources/security/README.md; \
 	$(DISTRIBUTION_SRC)/default-cert.sh $$stage/repository/resources/security; \

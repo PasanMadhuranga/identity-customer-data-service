@@ -20,6 +20,7 @@ DIST_DIR="${1:?usage: check-pack.sh <dist-dir>}"
 REQUIRED="
 repository/conf/deployment.yaml
 repository/conf/compatibility.yaml
+repository/conf/secrets.env
 repository/dbscripts/postgres.sql
 repository/dbscripts/sqlite.sql
 repository/resources/security/README.md
@@ -59,6 +60,14 @@ for zip in "$DIST_DIR"/*.zip; do
   if ! unzip -p "$zip" "$pack/repository/conf/deployment.yaml" 2>/dev/null \
       | grep -qE '^[[:space:]]+type:[[:space:]]*"sqlite"'; then
     echo "  x $pack does not default to the inbuilt database" >&2
+    failures=$((failures + 1))
+  fi
+
+  # secrets.env is shipped for the operator to fill in. A value in it would be
+  # the same secret in every download of the release.
+  if unzip -p "$zip" "$pack/repository/conf/secrets.env" 2>/dev/null \
+      | grep -qE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*[^[:space:]]'; then
+    echo "  x $pack ships a value in repository/conf/secrets.env" >&2
     failures=$((failures + 1))
   fi
 

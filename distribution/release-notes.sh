@@ -128,11 +128,16 @@ echo
 cat <<NOTES
 ## Installing
 
-Extracting the zip is the installation; there is nothing to run first:
+Extracting the zip is the installation. Before the first start, fill in
+\`repository/conf/secrets.env\`, which the pack ships with every value empty:
+at least \`SERVICE_CREDENTIALS_ENCRYPTION_KEY\`, generated for this installation
+with \`openssl rand -base64 32\`, and \`AUTH_SERVER_ADMIN_PASSWORD\`, the
+\`admin_password\` below.
 
 \`\`\`bash
 unzip $PRODUCT-linux-amd64-$PACK_VERSION.zip -d /opt
 cd /opt/$PRODUCT-linux-amd64-$PACK_VERSION
+vi repository/conf/secrets.env
 bin/start.sh
 \`\`\`
 
@@ -153,7 +158,7 @@ Then switch CDD on in the Identity Server's \`deployment.toml\` and restart it:
 enable = true
 server_url = "https://localhost:8900"
 admin_username = "admin"
-admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDD>"
+admin_password = "<AUTH_SERVER_ADMIN_PASSWORD in secrets.env>"
 \`\`\`
 
 See the [installation guide](https://github.com/$REPO/blob/$VERSION/docs/guides/on-prem-installation.md).

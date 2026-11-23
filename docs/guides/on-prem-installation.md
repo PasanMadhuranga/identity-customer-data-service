@@ -63,15 +63,17 @@ organization enables CDD, the Identity Server creates an application for CDD
 in that organization and sends CDD its credentials. CDD calls the Identity
 Server for that organization with them, and introspects its tokens with them,
 and it keeps them only sealed with this key (`idp.service_credentials.encryption_key`).
-Without a key it refuses them, and uses the clients configured under
-`auth_server` for every organization instead. Generate one with:
+Without a key it refuses them, uses the clients configured under
+`auth_server` for every organization instead, and says so at start. Generate
+one for this installation, and put it in `repository/conf/secrets.env` (see
+[Secrets](#secrets)):
 
 ```bash
 openssl rand -base64 32
 ```
 
-Keep it safe and keep it the same: credentials sealed with one key cannot be
-read with another.
+Never reuse a key from another installation or from an example. Back it up and
+keep it the same: credentials sealed with one key cannot be read with another.
 
 ## Switching CDD on in the Identity Server
 
@@ -83,7 +85,7 @@ restart it:
 enable = true
 server_url = "https://localhost:8900"
 admin_username = "admin"
-admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDD>"
+admin_password = "<AUTH_SERVER_ADMIN_PASSWORD in secrets.env>"
 ```
 
 `server_url` is where the Identity Server reaches CDD. `admin_username` and
@@ -165,11 +167,28 @@ environment variables the `${...}` placeholders in the configuration expand
 from — `AUTH_SERVER_ADMIN_PASSWORD`, `SERVICE_CREDENTIALS_ENCRYPTION_KEY`,
 `DB_PASSWORD` and the like.
 
-Set them in the environment, or keep them in `repository/conf/secrets.env`,
-one `KEY=VALUE` per line, readable by the account that runs CDD and nobody
-else. `cdd start` reads that file, and a variable already set in the
-environment wins over it, so a deployment with a secret manager supplies them
-from there and needs no file.
+The pack ships `repository/conf/secrets.env` with every one of them listed and
+every value empty, one `KEY=VALUE` per line. Fill it in before the first start,
+and keep it readable by the account that runs CDD and nobody else (the pack
+ships it with mode 600). `cdd start` reads that file, and a variable already
+set in the environment wins over it, so a deployment with a secret manager
+supplies them from there and leaves the file empty.
+
+| Secret | Needed | What it is |
+|---|---|---|
+| `SERVICE_CREDENTIALS_ENCRYPTION_KEY` | always | seals the service credentials of each organization; `openssl rand -base64 32`, generated for this installation |
+| `AUTH_SERVER_ADMIN_PASSWORD` | always | the `admin_password` the Identity Server presents on the synchronisation endpoints |
+| `AUTH_SERVER_CLIENT_SECRET`, `INTROSPECTION_CLIENT_SECRET` | for an organization without service credentials | the secrets of the clients under `auth_server` |
+| `DB_PASSWORD` | with an external database | the `datasource` password |
+| `BROKER_PASSWORD` | with a message broker | the `message_queue.broker` password |
+
+CDD starts with any of them empty, so a missing one would otherwise show only
+as refused requests. At start it warns, naming the variable, when the admin
+password or the encryption key is empty.
+
+Keep a copy of the file, and of the key above all, outside the installation
+directory. A new pack ships the file empty again, so moving to one means
+copying the file over from the previous installation.
 
 ## Layout
 
@@ -182,7 +201,7 @@ from there and needs no file.
 │   ├── conf/
 │   │   ├── deployment.yaml         the configuration
 │   │   ├── compatibility.yaml      the Identity Server versions this release supports
-│   │   └── secrets.env             optional, written by the operator, mode 600
+│   │   └── secrets.env             the secrets, shipped empty for the operator to fill in, mode 600
 │   ├── database/                   the inbuilt database, when one is used
 │   ├── dbscripts/                  DDL for an external database
 │   └── resources/security/         the TLS material

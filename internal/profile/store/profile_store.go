@@ -1310,8 +1310,17 @@ func GetAllProfilesWithFilter(ctx context.Context,
 		orderClause = "ORDER BY p.created_at ASC, p.profile_id ASC"
 	}
 
+	rowLimit, err := scripts.RowLimit(dbType, argID)
+	if err != nil {
+		return nil, false, errors2.NewServerError(errors2.ErrorMessage{
+			Code:        errors2.FilterProfile.Code,
+			Message:     errors2.FilterProfile.Message,
+			Description: fmt.Sprintf("Failed to prepare the row limit: %s", err),
+		}, err)
+	}
+
 	limitPlusOne := limit + 1
-	finalSQL := fmt.Sprintf("%s\n%s\n%s\nLIMIT $%d", baseSQL, whereClause, orderClause, argID)
+	finalSQL := fmt.Sprintf("%s\n%s\n%s\n%s", baseSQL, whereClause, orderClause, rowLimit)
 	args = append(args, limitPlusOne)
 
 	results, err := dbClient.ExecuteQueryContext(ctx, scripts.GetAllProfilesWithFilterBase.WithSQL(finalSQL), args...)

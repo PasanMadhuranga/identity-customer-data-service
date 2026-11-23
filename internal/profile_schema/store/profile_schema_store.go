@@ -95,8 +95,8 @@ func AddProfileSchemaAttributesForScope(ctx context.Context,
 		}
 
 		rows = append(rows, []interface{}{orgID, attr.AttributeID, attr.AttributeName, attr.ValueType,
-			attr.MergeStrategy, attr.ApplicationIdentifier, attr.Mutability, attr.MultiValued, subAttrsJSON,
-			canonicalJSON, scope, attr.DisplayName})
+			attr.MergeStrategy, attr.ApplicationIdentifier, attr.Mutability, attr.MultiValued, string(subAttrsJSON),
+			string(canonicalJSON), scope, attr.DisplayName})
 	}
 
 	batchSize := min(len(rows), database.MaxRowsPerStatement(dbClient.DBType(), 12))
@@ -593,8 +593,8 @@ func PatchProfileSchemaAttributesForScope(ctx context.Context,
 			attr.Mutability,
 			attr.ApplicationIdentifier,
 			attr.MultiValued,
-			canonicalJSON,
-			subAttrsJSON,
+			string(canonicalJSON),
+			string(subAttrsJSON),
 			attr.DisplayName,
 			orgID,
 			attr.AttributeID,

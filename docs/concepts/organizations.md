@@ -11,8 +11,9 @@ below it.
 
 ## Switching it on
 
-Organization support is off by default. Turn it on in
-`repository/conf/deployment.yaml`:
+Organization support is on in the shipped `repository/conf/deployment.yaml`
+and in the Helm chart. A `deployment.yaml` without the key keeps it off. The
+switch is:
 
 ```yaml
 organization_management:
@@ -20,8 +21,10 @@ organization_management:
 ```
 
 The organization tables are part of every database script in
-`repository/dbscripts/` and of the inbuilt database, so there is nothing else
-to create.
+`repository/dbscripts/` and of the inbuilt database, so a new database needs
+nothing else. An existing PostgreSQL database needs
+`dbscripts/migrations/002-organization-management-postgres.sql` before you
+turn it on.
 
 ---
 

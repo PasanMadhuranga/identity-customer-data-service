@@ -63,8 +63,9 @@ organization enables CDD, the Identity Server creates an application for CDD
 in that organization and sends CDD its credentials. CDD calls the Identity
 Server for that organization with them, and introspects its tokens with them,
 and it keeps them only sealed with this key (`idp.service_credentials.encryption_key`).
-Without a key it refuses them, uses the clients configured under
-`auth_server` for every organization instead, and says so at start. Generate
+Without a key it refuses them and says so at start; it can then call the
+Identity Server only with a client pair of its own configured under
+`auth_server`, which the pack does not set. Generate
 one for this installation, and put it in `repository/conf/secrets.env` (see
 [Secrets](#secrets)):
 
@@ -96,8 +97,7 @@ endpoints, so they have to match `auth_server.admin_username` and
 Everything else the integration needs follows from `enable = true` in an
 Identity Server release that carries the CDD integration: the event handlers,
 the CDD API resources and their scopes, and the Console's API resource
-collection. The Identity Server versions a CDD release supports are listed in
-its release metadata.
+collection.
 
 CDD is then enabled per organization, in the Identity Server — from the
 Console, or with `PATCH /api/server/v1/configs/cds`. That is also what runs
@@ -178,7 +178,6 @@ supplies them from there and leaves the file empty.
 |---|---|---|
 | `SERVICE_CREDENTIALS_ENCRYPTION_KEY` | always | seals the service credentials of each organization; `openssl rand -base64 32`, generated for this installation |
 | `AUTH_SERVER_ADMIN_PASSWORD` | always | the `admin_password` the Identity Server presents on the synchronisation endpoints |
-| `AUTH_SERVER_CLIENT_SECRET`, `INTROSPECTION_CLIENT_SECRET` | for an organization without service credentials | the secrets of the clients under `auth_server` |
 | `DB_PASSWORD` | with an external database | the `datasource` password |
 | `BROKER_PASSWORD` | with a message broker | the `message_queue.broker` password |
 
@@ -200,7 +199,6 @@ copying the file over from the previous installation.
 ├── repository/
 │   ├── conf/
 │   │   ├── deployment.yaml         the configuration
-│   │   ├── compatibility.yaml      the Identity Server versions this release supports
 │   │   └── secrets.env             the secrets, shipped empty for the operator to fill in, mode 600
 │   ├── database/                   the inbuilt database, when one is used
 │   ├── dbscripts/                  DDL for an external database

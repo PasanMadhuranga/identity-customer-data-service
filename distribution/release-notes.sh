@@ -38,8 +38,6 @@ REPO="${CDD_REPO:-wso2/identity-customer-data-service}"
 
 [ -d "$DIST_DIR" ] || { echo "release-notes: $DIST_DIR not found" >&2; exit 1; }
 
-METADATA="$DIST_DIR/$PRODUCT-$PACK_VERSION-release-metadata.yaml"
-
 # The checksum files are what an installation verifies against, so the digests
 # shown here are read from those rather than recomputed — if the two ever
 # disagreed, this would be the wrong place to find out.
@@ -47,18 +45,6 @@ digest_of() {
   local file="$1.sha256"
   [ -f "$file" ] || { echo "unavailable"; return; }
   awk '{print $1; exit}' "$file"
-}
-
-supported_is() {
-  [ -f "$METADATA" ] || return 0
-  awk '
-    /^[[:space:]]*identity_server:/ { inside = 1; next }
-    inside && /^[[:space:]]*[a-z_]+:[[:space:]]*$/ && !/supported/ { inside = 0 }
-    inside && /^[[:space:]]*-[[:space:]]/ { gsub(/^[[:space:]]*-[[:space:]]*"?|"?[[:space:]]*$/, ""); print }
-    inside && /supported:[[:space:]]*\[.+\]/ {
-      sub(/^[^[]*\[/, ""); sub(/\].*$/, ""); gsub(/[", ]+/, "\n"); print
-    }
-  ' "$METADATA" | grep -v '^$' | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g'
 }
 
 # --- Introduction --------------------------------------------------------- #
@@ -106,22 +92,6 @@ echo "shasum -a 256 -c $PRODUCT-darwin-arm64-$PACK_VERSION.zip.sha256     # macO
 echo '```'
 echo
 echo "On Windows, compare \`Get-FileHash $PRODUCT-windows-amd64-$PACK_VERSION.zip\` with the \`.sha256\` file."
-echo
-
-# --- Compatibility -------------------------------------------------------- #
-IS_SUPPORTED="$(supported_is || true)"
-echo "## Compatibility"
-echo
-if [ -n "$IS_SUPPORTED" ]; then
-  echo "| | |"
-  echo "|---|---|"
-  echo "| Identity Server | $IS_SUPPORTED |"
-else
-  echo "This build declares no verified Identity Server baseline, rather than"
-  echo "claiming a compatibility that has not been tested."
-fi
-echo
-echo "\`$PRODUCT-$PACK_VERSION-release-metadata.yaml\` carries the full statement."
 echo
 
 # --- Installing ----------------------------------------------------------- #

@@ -140,13 +140,13 @@ dist: clean-dist
 # Pack layout:
 #   bin/$(PRODUCT_NAME)              the runtime ($(PRODUCT_NAME).exe on Windows)
 #   bin/start.sh                     runs it in the foreground (start.bat on Windows)
-#   repository/conf/                 deployment.yaml, compatibility.yaml, and secrets.env with
-#                                    every value empty, readable by its owner only
+#   repository/conf/                 deployment.yaml, and secrets.env with every value empty,
+#                                    readable by its owner only
 #   repository/database/             where the inbuilt database is created
 #   repository/dbscripts/            DDL for operators running an external database
 #   repository/resources/security/   the TLS material, defaulting to Identity Server 7.3.0's key pair
 #   updates/product.txt              the update-service product identity of this pack
-#   version.txt, LICENSE.txt, README.md
+#   version.txt, LICENSE.txt, README.md (the pack's own, not this repository's)
 #
 # The update tool setup scripts are not built from this source: they are added
 # to bin/ when a release is onboarded to WSO2 Updates, which happens outside
@@ -170,7 +170,8 @@ _dist_one:
 	cp dbscripts/*.sql $$stage/repository/dbscripts/; \
 	cp $(DISTRIBUTION_SRC)/pack/security-README.md $$stage/repository/resources/security/README.md; \
 	$(DISTRIBUTION_SRC)/default-cert.sh $$stage/repository/resources/security; \
-	cp LICENSE.txt README.md $(VERSION_FILE) $$stage/; \
+	cp LICENSE.txt $(VERSION_FILE) $$stage/; \
+	sed 's/@VERSION@/$(VERSION)/g' $(DISTRIBUTION_SRC)/pack/README.md > $$stage/README.md; \
 	install -m 755 $(DISTRIBUTION_SRC)/pack/$$launcher $$stage/bin/; \
 	printf '%s\n' "$$pack" > $$stage/updates/product.txt; \
 	find $$stage -name '.DS_Store' -delete; \
@@ -180,17 +181,20 @@ _dist_one:
 	if command -v md5sum >/dev/null 2>&1; then md5sum $$pack.zip > $$pack.zip.md5; else md5 -r $$pack.zip > $$pack.zip.md5; fi; \
 	echo "  -> $(DIST_DIR)/$$pack.zip"
 
-# Publish the release compatibility metadata beside the packs, so installation
+# Publish the release metadata beside the packs, so installation
 # tooling can resolve the right artifact for a target environment without
 # unpacking one.
 _dist_metadata:
 	@PRODUCT_NAME=$(PRODUCT_NAME) PACK_VERSION=$(PACK_VERSION) PLATFORMS="$(PLATFORMS)" \
-		$(DISTRIBUTION_SRC)/release-metadata.sh \
-		$(REPOSITORY_DIR)/conf/compatibility.yaml $(DIST_DIR)
+		$(DISTRIBUTION_SRC)/release-metadata.sh $(DIST_DIR)
 
 # Remove the staged distributions and their zips.
 clean-dist:
 	rm -rf $(DIST_DIR)
+
+# Check that LICENSE.txt lists exactly the modules the packs link.
+check-licenses:
+	@PLATFORMS="$(PLATFORMS)" $(DISTRIBUTION_SRC)/check-licenses.sh LICENSE.txt
 
 help:
 	@echo "Makefile targets:"
@@ -199,6 +203,7 @@ help:
 	@echo "  build                      - Compile the binary for the host platform."
 	@echo "  dist                       - Build the release packs into $(DIST_DIR)."
 	@echo "  clean-dist                 - Remove the staged distributions and their zips."
+	@echo "  check-licenses             - Check that LICENSE.txt lists exactly the modules the packs link."
 	@echo "  integration-test           - Run integration tests against PostgreSQL (use test=TestName to filter)."
 	@echo "  integration-test-sqlite    - Run integration tests against the inbuilt database (use test=TestName to filter)."
 	@echo "  integration-test-mysql     - Run integration tests against MySQL (use test=TestName to filter)."
@@ -210,7 +215,7 @@ help:
 	@echo "  lint                       - Run golangci-lint."
 	@echo "  help                       - Show this help message."
 
-.PHONY: all clean build dist clean-dist _dist_one _dist_metadata lint lint-all help integration-test integration-test-sqlite integration-test-mysql integration-test-mssql integration-test-oracle mq-integration-test unit-test unit-test-coverage
+.PHONY: all clean build dist clean-dist check-licenses _dist_one _dist_metadata lint lint-all help integration-test integration-test-sqlite integration-test-mysql integration-test-mssql integration-test-oracle mq-integration-test unit-test unit-test-coverage
 
 .PHONY: go_install_tool golangci-lint
 

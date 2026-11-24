@@ -19,7 +19,6 @@ DIST_DIR="${1:?usage: check-pack.sh <dist-dir>}"
 # update service resolves the pack by.
 REQUIRED="
 repository/conf/deployment.yaml
-repository/conf/compatibility.yaml
 repository/conf/secrets.env
 repository/dbscripts/postgres.sql
 repository/dbscripts/sqlite.sql
@@ -68,6 +67,12 @@ for zip in "$DIST_DIR"/*.zip; do
   if unzip -p "$zip" "$pack/repository/conf/secrets.env" 2>/dev/null \
       | grep -qE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*[^[:space:]]'; then
     echo "  x $pack ships a value in repository/conf/secrets.env" >&2
+    failures=$((failures + 1))
+  fi
+
+  # The pack README links the documentation of its own release.
+  if unzip -p "$zip" "$pack/README.md" 2>/dev/null | grep -q '@VERSION@'; then
+    echo "  x $pack has an unfilled @VERSION@ in README.md" >&2
     failures=$((failures + 1))
   fi
 

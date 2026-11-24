@@ -95,7 +95,8 @@ credentials of its primary organization, at the introspection endpoint of the
 primary organization: that endpoint introspects the tokens of all its sub
 organizations. Only where neither has credentials does CDD use the configured
 introspection client (`auth_server.introspection_client_id` /
-`introspection_client_secret`), as before. Keep it configured as the fallback.
+`introspection_client_secret`), as before. The shipped configuration does not
+set one; add it under `auth_server` where a fallback is wanted.
 
 Where the introspection endpoint of the Identity Server takes client
 authentication, set `introspection_auth: "client_secret_basic"`. CDD then sends

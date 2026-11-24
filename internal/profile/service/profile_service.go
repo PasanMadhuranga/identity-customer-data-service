@@ -828,7 +828,14 @@ func (ps *ProfilesService) UpdateProfile(ctx context.Context,
 		}, err)
 		return nil, serverError
 	}
+	return ps.updateProfile(ctx, profileID, orgID, profile, updatedProfile)
+}
 
+// updateProfile updates a profile that the caller has read already, so that a caller which needs
+// the stored profile itself, as PatchProfile does, reads it once rather than twice.
+func (ps *ProfilesService) updateProfile(ctx context.Context, profileID string, orgID string,
+	profile *profileModel.Profile, updatedProfile profileModel.ProfileRequest) (*profileModel.ProfileResponse, error) {
+	logger := log.GetLogger()
 	if profile == nil {
 		clientError := errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.ProfileNotFound.Code,
@@ -1689,8 +1696,8 @@ func (ps *ProfilesService) PatchProfile(ctx context.Context,
 		return nil, serverError
 	}
 
-	// Reuse the PUT logic to update the profile
-	return ps.UpdateProfile(ctx, profileID, orgID, updatedProfileReq)
+	// Reuse the PUT logic to update the profile, with the profile read above.
+	return ps.updateProfile(ctx, profileID, orgID, existingProfile, updatedProfileReq)
 }
 
 // GetProfileCookieByProfileID returns the cookie of a profile, or a not-found client error if it has none.

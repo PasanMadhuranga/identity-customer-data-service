@@ -765,21 +765,11 @@ func (ph *ProfileHandler) PatchProfile(w http.ResponseWriter, r *http.Request) {
 
 	profilesProvider := provider.NewProfilesProvider()
 	profilesService := profilesProvider.GetProfilesService()
-	_, err = profilesService.PatchProfile(ctx, profileID, org.ID, patchData)
+	// The service reads the profile back after the update, so its answer is the response.
+	profileResponse, err := profilesService.PatchProfile(ctx, profileID, org.ID, patchData)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
-	}
-	profileResponse, err := profilesService.GetProfile(ctx, profileID, org.ID)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to update profile with profileId: %s", profileID)
-		log.GetLogger().Debug(errMsg, log.Error(err))
-		serverError := errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.UpdateProfile.Code,
-			Message:     errors2.UpdateProfile.Message,
-			Description: errMsg,
-		}, err)
-		utils.HandleError(w, serverError)
 	}
 	utils.RespondJSON(w, http.StatusOK, profileResponse, constants.ProfileResource)
 }

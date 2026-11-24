@@ -413,6 +413,18 @@ var ListExpiredTemporaryProfiles = newQuery("CDS-PRF-22",
 var DeleteProfilesByIDs = newQuery("CDS-PRF-25",
 	`DELETE FROM profiles WHERE org_id = $1 AND profile_id IN (%s)`)
 
+// LockProfileReference locks the reference row of one profile until the transaction ends, and
+// returns its status. A merge locks the rows of both profiles first, one statement each in
+// profile ID order, so two merges that share a profile wait for each other rather than
+// deadlock. The inbuilt database takes its write lock when the transaction begins, so it needs
+// no row lock.
+var LockProfileReference = newQuery("CDS-PRF-26",
+	`SELECT profile_id, profile_status FROM profile_reference
+	WHERE profile_id = $1 AND org_id = $2
+	FOR UPDATE`,
+	`SELECT profile_id, profile_status FROM profile_reference
+	WHERE profile_id = $1 AND org_id = $2`)
+
 // DeleteReviewTasksByCandidateProfileIDs removes the review tasks that name a profile in the IN list %s
 // as candidate.
 var DeleteReviewTasksByCandidateProfileIDs = newQuery("CDS-IDR-24",

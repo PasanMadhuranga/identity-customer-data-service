@@ -157,3 +157,84 @@ func TestAMasterDemotedUnderAPermanentProfileHandsOverItsChildren(t *testing.T) 
 		Scan(&kidReason))
 	require.Equal(t, "earlier", kidReason, "a moved child keeps the reason it was merged for")
 }
+
+// reviewTask inserts a pending review task for a pair.
+func reviewTask(t *testing.T, db *sql.DB, id, incomingID, candidateID string) {
+	t.Helper()
+	_, err := db.Exec(`INSERT INTO review_tasks (id, org_id, incoming_profile_id, candidate_profile_id, match_score)
+		VALUES (?, 'org-id-tenant', ?, ?, 0.8)`, id, incomingID, candidateID)
+	require.NoError(t, err)
+}
+
+// taskStatus returns the status of a review task.
+func taskStatus(t *testing.T, db *sql.DB, id string) string {
+	t.Helper()
+	var status string
+	require.NoError(t, db.QueryRow(`SELECT status FROM review_tasks WHERE id = ?`, id).Scan(&status))
+	return status
+}
+
+// TestMergeCancelsThePendingReviewTasksOfBothProfiles covers the review tasks of two profiles that
+// merge. Each was raised on the data of a profile before the merge changed it, so the merge
+// cancels them, whichever side of the task the profile is on. A task of other profiles stays.
+func TestMergeCancelsThePendingReviewTasksOfBothProfiles(t *testing.T) {
+	db := candidateWorkerDB(t)
+	candidate := workerProfile(t, db, "candidate", "same-user", `{"email":"a"}`, time.Hour)
+	incoming := workerProfile(t, db, "incoming", "same-user", `{"email":"b"}`, 0)
+	for _, id := range []string{"x", "y", "p", "q"} {
+		workerProfile(t, db, id, "", `{"email":"`+id+`"}`, 0)
+	}
+	reviewTask(t, db, "task-incoming", "incoming", "x")
+	reviewTask(t, db, "task-candidate", "y", "candidate")
+	reviewTask(t, db, "task-unrelated", "p", "q")
+
+	master, err := MergeMatchedProfiles(context.Background(), tenantOrg.ID, candidate, incoming, "test")
+
+	require.NoError(t, err)
+	require.NotNil(t, master)
+	require.Equal(t, "CANCELLED", taskStatus(t, db, "task-incoming"))
+	require.Equal(t, "CANCELLED", taskStatus(t, db, "task-candidate"))
+	require.Equal(t, "PENDING", taskStatus(t, db, "task-unrelated"))
+}
+
+// TestReviewedMergeKeepsItsOwnTask covers the merge of an approved review task. It cancels the
+// other tasks of the two profiles, but leaves the approved one for the caller to resolve.
+func TestReviewedMergeKeepsItsOwnTask(t *testing.T) {
+	db := candidateWorkerDB(t)
+	candidate := workerProfile(t, db, "candidate", "same-user", `{"email":"a"}`, time.Hour)
+	incoming := workerProfile(t, db, "incoming", "same-user", `{"email":"b"}`, 0)
+	workerProfile(t, db, "x", "", `{"email":"x"}`, 0)
+	reviewTask(t, db, "task-approved", "incoming", "candidate")
+	reviewTask(t, db, "task-other", "incoming", "x")
+
+	master, err := MergeReviewedProfiles(context.Background(), tenantOrg.ID, "task-approved", candidate,
+		incoming, "test")
+
+	require.NoError(t, err)
+	require.NotNil(t, master)
+	require.Equal(t, "PENDING", taskStatus(t, db, "task-approved"))
+	require.Equal(t, "CANCELLED", taskStatus(t, db, "task-other"))
+}
+
+// TestMergeWhoseTasksCannotBeCancelledWritesNothing covers a merge that fails to cancel the review
+// tasks of its profiles. The tasks are cancelled in the merge transaction, so the merge rolls back
+// rather than leave a task pending for a pair that is merged.
+func TestMergeWhoseTasksCannotBeCancelledWritesNothing(t *testing.T) {
+	db := candidateWorkerDB(t)
+	candidate := workerProfile(t, db, "candidate", "same-user", `{"email":"a"}`, time.Hour)
+	incoming := workerProfile(t, db, "incoming", "same-user", `{"email":"b"}`, 0)
+	workerProfile(t, db, "x", "", `{"email":"x"}`, 0)
+	reviewTask(t, db, "task-incoming", "incoming", "x")
+	_, err := db.Exec(`CREATE TRIGGER fail_task_cancel BEFORE UPDATE ON review_tasks
+		BEGIN SELECT RAISE(ABORT, 'the task cannot be cancelled'); END`)
+	require.NoError(t, err)
+
+	master, err := MergeMatchedProfiles(context.Background(), tenantOrg.ID, candidate, incoming, "test")
+
+	require.Error(t, err)
+	require.Nil(t, master)
+	status, parent := referenceOf(t, db, "incoming")
+	require.Equal(t, "REFERENCE_PROFILE", status)
+	require.Empty(t, parent)
+	require.Equal(t, "PENDING", taskStatus(t, db, "task-incoming"))
+}

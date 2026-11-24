@@ -319,7 +319,7 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 				// master that job made.
 				logger.Info(fmt.Sprintf("AsyncWorker: '%s' or '%s' was merged by another job after they were "+
 					"scored, so both are resolved again", matchedProfile.ProfileID, freshProfile.ProfileID))
-				workers.RequeueStaleMerge(ctx, orgID, matchedProfile.ProfileID, freshProfile.ProfileID)
+				workers.RequeueAsMasters(ctx, orgID, matchedProfile.ProfileID, freshProfile.ProfileID)
 				return
 			}
 			if mergeErr != nil {
@@ -359,33 +359,8 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 	}
 
 	if merged {
-		// Cancel pending review tasks that referenced the freshly-merged profile.
-		cancelledIncomingIDs, cancelErr := irStore.CancelRelatedReviewTasks(ctx, "", freshProfile.ProfileID,
-			mergedMaster.ProfileID, constants.CanceledBySystem)
-		if cancelErr != nil {
-			logger.Warn(fmt.Sprintf("AsyncWorker: cascade cancel failed after auto-merge of '%s' → '%s'",
-				freshProfile.ProfileID, mergedMaster.ProfileID), log.Error(cancelErr))
-		}
-		for _, srcID := range cancelledIncomingIDs {
-			p, loadErr := profileStore.GetProfile(ctx, srcID, orgID)
-			if loadErr != nil || p == nil {
-				continue
-			}
-			// If the cancelled task's incoming has itself become a child, re-enqueue its master instead.
-			if p.ProfileStatus != nil && p.ProfileStatus.ReferenceProfileID != "" {
-				masterID := p.ProfileStatus.ReferenceProfileID
-				if masterID == mergedMaster.ProfileID {
-					continue
-				}
-				master, mErr := profileStore.GetProfile(ctx, masterID, orgID)
-				if mErr != nil || master == nil {
-					continue
-				}
-				workers.EnqueueProfileForProcessing(*master)
-				continue
-			}
-			workers.EnqueueProfileForProcessing(*p)
-		}
+		// The merge cancelled the pending review tasks of both profiles and queued their profiles
+		// to be evaluated again.
 
 		// Surface remaining qualified candidates as review tasks against the new master.
 		// Incoming = mergedMaster.ProfileID, the new master is the live entity that holds the matched attributes.

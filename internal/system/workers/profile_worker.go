@@ -32,6 +32,7 @@ import (
 
 	"github.com/google/uuid"
 
+	irStore "github.com/wso2/identity-customer-data-service/internal/identity_resolution/store"
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -345,7 +346,7 @@ func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID st
 	if errors.Is(mergeErr, ErrMergeStale) {
 		logger.Info(fmt.Sprintf("Profile %s or %s was merged by another job after they were matched, so "+
 			"both are unified again", candidate.ProfileID, incoming.ProfileID))
-		RequeueStaleMerge(ctx, orgID, candidate.ProfileID, incoming.ProfileID)
+		RequeueAsMasters(ctx, orgID, candidate.ProfileID, incoming.ProfileID)
 		return true
 	}
 	if mergeErr != nil {
@@ -373,9 +374,31 @@ func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID st
 // The merge runs in one transaction. It first locks the reference rows of both profiles and
 // reads both again, so it merges what is stored now rather than what the caller matched, and two
 // merges that share a profile run one after the other. A merge that fails writes nothing.
+//
+// In the same transaction, the merge cancels the pending review tasks that name either profile:
+// each was raised on the data of a profile before the merge changed it. After the commit, the
+// profiles of those tasks are queued to be evaluated again against the merged result, which raises
+// a new task where the match still needs a person.
 func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfile profileModel.Profile,
 	newProfile profileModel.Profile, reason string) (*profileModel.Profile, error) {
+	return mergeProfiles(ctx, orgID, "", existingMasterProfile, newProfile, reason)
+}
+
+// MergeReviewedProfiles merges the two profiles of the approved review task taskID, as
+// MergeMatchedProfiles does, but leaves that task pending for the caller to resolve.
+func MergeReviewedProfiles(ctx context.Context, orgID string, taskID string,
+	existingMasterProfile profileModel.Profile, newProfile profileModel.Profile, reason string) (
+	*profileModel.Profile, error) {
+	return mergeProfiles(ctx, orgID, taskID, existingMasterProfile, newProfile, reason)
+}
+
+// mergeProfiles does the work of MergeMatchedProfiles and MergeReviewedProfiles. The pending review
+// task keepTaskID, when it is not empty, is not cancelled.
+func mergeProfiles(ctx context.Context, orgID string, keepTaskID string,
+	existingMasterProfile profileModel.Profile, newProfile profileModel.Profile, reason string) (
+	*profileModel.Profile, error) {
 	var master *profileModel.Profile
+	var withdrawn []string
 	err := profileStore.RunInTransaction(ctx, func(txCtx context.Context) error {
 		existing, incoming, err := lockMergePair(txCtx, orgID, existingMasterProfile.ProfileID,
 			newProfile.ProfileID)
@@ -383,7 +406,16 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 			return err
 		}
 		master, err = mergeMatchedProfiles(txCtx, orgID, existing, incoming, reason)
-		return err
+		if err != nil || master == nil {
+			return err
+		}
+		withdrawn, err = irStore.CancelRelatedReviewTasks(txCtx, keepTaskID, existing.ProfileID,
+			incoming.ProfileID, constants.CanceledBySystem)
+		if err != nil {
+			return fmt.Errorf("cancel the review tasks of '%s' and '%s': %w",
+				existing.ProfileID, incoming.ProfileID, err)
+		}
+		return nil
 	})
 	if err != nil {
 		master = nil
@@ -394,22 +426,26 @@ func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 	}
 	// One audit record for each merge attempt, also when it fails before the merge starts.
 	auditMerge(ctx, orgID, existingMasterProfile.ProfileID, newProfile.ProfileID, reason, master, err)
+	if err == nil {
+		RequeueAsMasters(ctx, orgID, withdrawn...)
+	}
 	return master, err
 }
 
 // ErrMergeStale says that one of two matched profiles is no longer a reference profile when the
 // merge locks it, because another job merged it after the pair was matched. Nothing was written.
-// The caller hands the pair to RequeueStaleMerge.
+// The caller hands the pair to RequeueAsMasters.
 var ErrMergeStale = errors.New("a profile of the pair was merged by another job after the pair was matched")
 
-// RequeueStaleMerge queues both profiles of a pair whose merge was stale, each as the master it
-// now belongs to.
+// RequeueAsMasters queues profiles to be unified again, each as the master it now belongs to: both
+// profiles of a stale merge, or the profiles of review tasks a merge withdrew. Profiles that belong
+// to the same master queue it once.
 //
-// Either profile can be the one that is still apart. When the incoming profile was merged
-// elsewhere, its job cannot unify it again, because a child is skipped, so the candidate it
-// matched has to be matched against the new master instead. A profile queued twice on one
-// instance is unified once.
-func RequeueStaleMerge(ctx context.Context, orgID string, profileIDs ...string) {
+// Either profile of a stale merge can be the one that is still apart. When the incoming profile
+// was merged elsewhere, its job cannot unify it again, because a child is skipped, so the
+// candidate it matched has to be matched against the new master instead.
+func RequeueAsMasters(ctx context.Context, orgID string, profileIDs ...string) {
+	queued := map[string]bool{}
 	for _, profileID := range profileIDs {
 		stored, err := profileStore.GetProfileWithOptions(ctx, profileID, orgID,
 			profileStore.GetProfileOptions{IncludeApplicationData: false})
@@ -422,6 +458,10 @@ func RequeueStaleMerge(ctx context.Context, orgID string, profileIDs ...string) 
 		if stored.ProfileStatus != nil && stored.ProfileStatus.ReferenceProfileID != "" {
 			target = stored.ProfileStatus.ReferenceProfileID
 		}
+		if queued[target] {
+			continue
+		}
+		queued[target] = true
 		EnqueueProfileForProcessing(profileModel.Profile{ProfileID: target, OrgID: orgID})
 	}
 }

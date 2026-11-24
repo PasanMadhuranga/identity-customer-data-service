@@ -237,50 +237,79 @@ func Test_ResolveReviewTask_RejectsForeignOrg(t *testing.T) {
 	}
 }
 
-// Test_ResolveReviewTask_WithdrawsTaskWhenProfileMergedSince checks that approving a task whose
-// incoming profile was merged with another profile after the task was raised does not merge the
-// candidate into that profile's master. The administrator approved evidence about the incoming
-// profile alone, so the task is cancelled and the pair is evaluated again instead.
-func Test_ResolveReviewTask_WithdrawsTaskWhenProfileMergedSince(t *testing.T) {
-	org := newOrg("withdraw-merged")
-	incoming := insertBareProfile(t, org, "", map[string]interface{}{"name": "Gil"})
-	candidate := insertBareProfile(t, org, "", map[string]interface{}{"name": "Gil"})
-	other := insertBareProfile(t, org, "user-withdraw", map[string]interface{}{"name": "Hal"})
-
+// Test_ResolveReviewTask_WhenProfileMergedSince checks that a review task is never applied to the
+// master of a profile merged after the task was raised. The administrator approved evidence about
+// the profile alone, and its master holds data the task did not show, so the pair is evaluated
+// again instead.
+func Test_ResolveReviewTask_WhenProfileMergedSince(t *testing.T) {
 	ctx := context.Background()
-	ref := setup.TestOrg(t, org)
-	task := irModel.ReviewTask{
-		OrgID:              ref.ID,
-		IncomingProfileID:  incoming.ProfileID,
-		CandidateProfileID: candidate.ProfileID,
-		MatchScore:         0.8,
-		Status:             constants.ReviewStatusPending,
-		ScoreBreakdown:     map[string]float64{"traits.name": 1.0},
+
+	// setupPair returns the org, the incoming and candidate profiles of a task, and another
+	// permanent profile for the incoming one to merge with. The names differ, so evaluating them
+	// again matches nothing.
+	setupPair := func(t *testing.T, name string) (string, profileModel.Profile, profileModel.Profile,
+		profileModel.Profile) {
+		org := newOrg(name)
+		incoming := insertBareProfile(t, org, "", map[string]interface{}{"name": "Gil"})
+		candidate := insertBareProfile(t, org, "", map[string]interface{}{"name": "Ivy"})
+		other := insertBareProfile(t, org, "user-"+name, map[string]interface{}{"name": "Hal"})
+		return setup.TestOrg(t, org).ID, incoming, candidate, other
 	}
-	require.NoError(t, irStore.InsertReviewTask(ctx, ref.ID, task))
-	pending, _, err := irStore.GetPendingReviewTasks(ctx, ref.ID, 10)
-	require.NoError(t, err)
-	require.Len(t, pending, 1)
+	raiseTask := func(t *testing.T, orgID string, incoming, candidate profileModel.Profile) string {
+		require.NoError(t, irStore.InsertReviewTask(ctx, orgID, irModel.ReviewTask{
+			OrgID:              orgID,
+			IncomingProfileID:  incoming.ProfileID,
+			CandidateProfileID: candidate.ProfileID,
+			MatchScore:         0.8,
+			Status:             constants.ReviewStatusPending,
+			ScoreBreakdown:     map[string]float64{"traits.name": 1.0},
+		}))
+		pending, _, err := irStore.GetPendingReviewTasks(ctx, orgID, 10)
+		require.NoError(t, err)
+		require.Len(t, pending, 1)
+		return pending[0].ID
+	}
+	assertApart := func(t *testing.T, orgID string, candidate profileModel.Profile) {
+		stored, err := profileStore.GetProfile(ctx, candidate.ProfileID, orgID)
+		require.NoError(t, err)
+		require.NotNil(t, stored)
+		assert.Empty(t, stored.ProfileStatus.ReferenceProfileID,
+			"the candidate was merged into the master of a profile the task no longer describes")
+	}
+	assertStatus := func(t *testing.T, taskID, want string) {
+		task, err := irStore.GetReviewTaskByID(ctx, taskID)
+		require.NoError(t, err)
+		require.NotNil(t, task)
+		assert.Equal(t, want, task.Status)
+	}
 
-	// The incoming profile is merged with another profile after the task was raised.
-	master, err := workers.MergeMatchedProfiles(ctx, ref.ID, other, incoming, constants.MergeReasonAutoMerge)
-	require.NoError(t, err)
-	require.NotNil(t, master)
-	require.Equal(t, other.ProfileID, master.ProfileID)
+	t.Run("the merge cancels the task", func(t *testing.T) {
+		orgID, incoming, candidate, other := setupPair(t, "merge-cancels-task")
+		taskID := raiseTask(t, orgID, incoming, candidate)
 
-	err = irService.GetIdentityResolutionService().ResolveReviewTask(ctx, ref.ID, pending[0].ID, true, "admin", "")
-	assertClientError(t, err, http.StatusConflict, errors2.IRCannotMerge.Code)
+		master, err := workers.MergeMatchedProfiles(ctx, orgID, other, incoming, constants.MergeReasonAutoMerge)
+		require.NoError(t, err)
+		require.NotNil(t, master)
+		assertStatus(t, taskID, constants.ReviewStatusCancelled)
 
-	resolved, err := irStore.GetReviewTaskByID(ctx, pending[0].ID)
-	require.NoError(t, err)
-	require.NotNil(t, resolved)
-	assert.Equal(t, constants.ReviewStatusCancelled, resolved.Status)
+		err = irService.GetIdentityResolutionService().ResolveReviewTask(ctx, orgID, taskID, true, "admin", "")
+		assertClientError(t, err, http.StatusConflict, errors2.IRReviewTaskResolved.Code)
+		assertApart(t, orgID, candidate)
+	})
 
-	stored, err := profileStore.GetProfile(ctx, candidate.ProfileID, ref.ID)
-	require.NoError(t, err)
-	require.NotNil(t, stored)
-	assert.Empty(t, stored.ProfileStatus.ReferenceProfileID,
-		"the candidate was merged into the master of a profile the task no longer describes")
+	t.Run("approving a task still pending withdraws it", func(t *testing.T) {
+		// A task raised before merges cancelled them, or one approved while its profile merged.
+		orgID, incoming, candidate, other := setupPair(t, "approve-withdraws-task")
+		master, err := workers.MergeMatchedProfiles(ctx, orgID, other, incoming, constants.MergeReasonAutoMerge)
+		require.NoError(t, err)
+		require.NotNil(t, master)
+		taskID := raiseTask(t, orgID, incoming, candidate)
+
+		err = irService.GetIdentityResolutionService().ResolveReviewTask(ctx, orgID, taskID, true, "admin", "")
+		assertClientError(t, err, http.StatusConflict, errors2.IRCannotMerge.Code)
+		assertStatus(t, taskID, constants.ReviewStatusCancelled)
+		assertApart(t, orgID, candidate)
+	})
 }
 
 // Test_ReviewTask_CanBeRecreatedAfterCancellation checks that a pair cancelled by a cascade

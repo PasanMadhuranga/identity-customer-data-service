@@ -293,7 +293,7 @@ Matching runs without locks: reading the profile, finding and scoring candidates
 
 One evaluation merges once. When it finds several candidates that score for a merge, it merges the first and queues the new master, whose evaluation takes the next. The result is the same whichever of several related profiles is evaluated first.
 
-An approved review task is held to the same rule. If either profile of the task was merged with another profile after the task was raised, the approval does not merge the masters they now belong to, since those hold data the task did not show. The task is cancelled and both profiles are evaluated again. See [Reviewing matches](../guides/reviewing-matches.md#approving-or-rejecting).
+A merge also cancels, in its transaction, the pending review tasks that name either profile, since each was raised on data the merge changed, and queues the profiles of those tasks to be evaluated again against the merged result. An approval is held to the same rule: a task whose profile was merged after it was raised is never applied to the master that profile now belongs to. See [Reviewing matches](../guides/reviewing-matches.md#tasks-that-resolve-themselves).
 
 A profile has at most one job running on an instance. A job that arrives for a profile that is being unified does not wait for a worker. It asks the running job to unify the profile once more when it ends, since the running job may have read the profile before the change that queued the new one.
 

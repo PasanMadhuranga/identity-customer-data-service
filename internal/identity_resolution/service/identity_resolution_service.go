@@ -227,7 +227,11 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 		}
 	}
 
-	survivingMaster, mergeErr := workers.MergeMatchedProfiles(ctx, orgID, *candidate, *incomingProfile, mergeReason)
+	// The merge cancels the other pending tasks of both profiles and queues their profiles to be
+	// evaluated again. This task stays pending until the merge is done, so a failed merge leaves
+	// it pending for the caller to retry.
+	survivingMaster, mergeErr := workers.MergeReviewedProfiles(ctx, orgID, taskID, *candidate, *incomingProfile,
+		mergeReason)
 	if errors.Is(mergeErr, workers.ErrMergeStale) {
 		// A unification job merged one of the two between reading them above and the merge.
 		return withdrawReviewTask(ctx, orgID, task)
@@ -248,36 +252,6 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 			Message:     errors2.IRCannotMerge.Message,
 			Description: "The two profiles in this review task cannot be merged.",
 		}, http.StatusConflict)
-	}
-
-	// Cascade cancel only after the merge has actually happened. Canceling first meant a
-	// failed merge left the sibling tasks cancelled while this one stayed pending, and a
-	// cancelled pair cannot be re-proposed while a row for it already exists.
-	cancelledIncomingIDs, cancelErr := irStore.CancelRelatedReviewTasks(ctx, taskID,
-		task.IncomingProfileID, task.CandidateProfileID, constants.CanceledBySystem)
-	if cancelErr != nil {
-		logger.Warn(fmt.Sprintf("Service: cascade cancel failed for task %s", taskID), log.Error(cancelErr))
-	}
-
-	// Re-enqueue the affected profiles so they are re-evaluated against the new master.
-	for _, incomingID := range cancelledIncomingIDs {
-		affected, loadErr := profileStore.GetProfile(ctx, incomingID, orgID)
-		if loadErr != nil || affected == nil {
-			logger.Warn(
-				fmt.Sprintf("Service: skipping re-evaluation for '%s' — profile not found or error", incomingID),
-			)
-			continue
-		}
-
-		if affected.ProfileStatus != nil && affected.ProfileStatus.ReferenceProfileID != "" {
-			master, masterErr := profileStore.GetProfile(ctx, affected.ProfileStatus.ReferenceProfileID, orgID)
-			if masterErr == nil && master != nil {
-				workers.EnqueueProfileForProcessing(*master)
-			}
-			continue
-		}
-
-		workers.EnqueueProfileForProcessing(*affected)
 	}
 
 	// Merge succeeded — commit task status.
@@ -307,7 +281,7 @@ func withdrawReviewTask(ctx context.Context, orgID string, task *model.ReviewTas
 			"after the task was raised"); err != nil {
 		return err
 	}
-	workers.RequeueStaleMerge(ctx, orgID, task.IncomingProfileID, task.CandidateProfileID)
+	workers.RequeueAsMasters(ctx, orgID, task.IncomingProfileID, task.CandidateProfileID)
 
 	return errors2.NewClientError(errors2.ErrorMessage{
 		Code:    errors2.IRCannotMerge.Code,

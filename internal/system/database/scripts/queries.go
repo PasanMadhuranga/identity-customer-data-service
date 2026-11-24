@@ -804,9 +804,9 @@ var IRCancelRelatedReviewTasks = newQuery("CDS-IDR-11",
 				 WHERE id != $4 AND status = $5
 				   AND (incoming_profile_id IN ($6, $7) OR candidate_profile_id IN ($6, $7))`)
 
-// IRFindRelatedPendingReviewTasks finds incoming profile IDs of PENDING tasks affected by a cascade cancel.
+// IRFindRelatedPendingReviewTasks finds the profile pairs of PENDING tasks affected by a cascade cancel.
 var IRFindRelatedPendingReviewTasks = newQuery("CDS-IDR-12",
-	`SELECT DISTINCT incoming_profile_id
+	`SELECT DISTINCT incoming_profile_id, candidate_profile_id
 				 FROM review_tasks
 				 WHERE id != $1 AND status = $2
 				   AND (incoming_profile_id IN ($3, $4) OR candidate_profile_id IN ($3, $4))`)

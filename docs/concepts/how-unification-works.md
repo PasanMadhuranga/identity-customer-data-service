@@ -288,10 +288,12 @@ Each instance unifies up to `identity_resolution.unification_workers` profiles a
 Matching runs without locks: reading the profile, finding and scoring candidates, and deciding are reads, and they are the bulk of the work. Only the merge is protected:
 
 1. The merge begins a transaction and locks the reference rows of both profiles, one at a time in profile ID order, so two merges that share a profile wait for each other rather than deadlock.
-2. It reads both profiles again under the lock. If either is no longer a reference profile, because another job merged it after the pair was matched, the merge writes nothing and the incoming profile is queued again. The next run resolves the merged profile to its master.
+2. It reads both profiles again under the lock. If either is no longer a reference profile, because another job merged it after the pair was matched, the merge writes nothing and both profiles are queued again, each as the master it now belongs to.
 3. It writes the references, the merged data and the index changes, and commits. A merge that fails at any step writes nothing, so a profile is never left as a child of a master that did not receive its data.
 
 One evaluation merges once. When it finds several candidates that score for a merge, it merges the first and queues the new master, whose evaluation takes the next. The result is the same whichever of several related profiles is evaluated first.
+
+An approved review task is held to the same rule. If either profile of the task was merged with another profile after the task was raised, the approval does not merge the masters they now belong to, since those hold data the task did not show. The task is cancelled and both profiles are evaluated again. See [Reviewing matches](../guides/reviewing-matches.md#approving-or-rejecting).
 
 A profile has at most one job running on an instance. A job that arrives for a profile that is being unified does not wait for a worker. It asks the running job to unify the profile once more when it ends, since the running job may have read the profile before the change that queued the new one.
 

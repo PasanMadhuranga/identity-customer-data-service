@@ -191,19 +191,10 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 		}, http.StatusNotFound)
 	}
 
-	// Redirect to master if either profile is a child (may have been merged since the task was created).
-	incomingProfile, err = redirectToMasterIfChild(ctx, orgID, incomingProfile)
-	if err != nil {
-		return err
-	}
-	candidate, err = redirectToMasterIfChild(ctx, orgID, candidate)
-	if err != nil {
-		return err
-	}
-
-	// After redirect both might now point to the same master — already merged.
-	if incomingProfile.ProfileID == candidate.ProfileID {
-		return nil
+	// The administrator approved evidence about the two profiles as they were when the task was
+	// raised. A profile merged since then belongs to a master whose data they did not see.
+	if isMergedProfile(incomingProfile) || isMergedProfile(candidate) {
+		return withdrawReviewTask(ctx, orgID, task)
 	}
 
 	if incomingProfile.UserID != "" && candidate.UserID != "" && incomingProfile.UserID != candidate.UserID {
@@ -239,13 +230,7 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 	survivingMaster, mergeErr := workers.MergeMatchedProfiles(ctx, orgID, *candidate, *incomingProfile, mergeReason)
 	if errors.Is(mergeErr, workers.ErrMergeStale) {
 		// A unification job merged one of the two between reading them above and the merge.
-		// The task stays pending, and approving it again merges with the new master.
-		return errors2.NewClientError(errors2.ErrorMessage{
-			Code:    errors2.IRCannotMerge.Code,
-			Message: errors2.IRCannotMerge.Message,
-			Description: "One of the two profiles was merged with another profile while the task was " +
-				"approved. Approve the task again.",
-		}, http.StatusConflict)
+		return withdrawReviewTask(ctx, orgID, task)
 	}
 	if mergeErr != nil {
 		logger.Error(fmt.Sprintf("Service: review merge failed for task %s — '%s' and '%s'",
@@ -305,20 +290,30 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 	return nil
 }
 
-func redirectToMasterIfChild(ctx context.Context, orgID string, p *profileModel.Profile) (*profileModel.Profile,
-	error) {
-	if p.ProfileStatus == nil || p.ProfileStatus.ReferenceProfileID == "" {
-		return p, nil
-	}
-	masterID := p.ProfileStatus.ReferenceProfileID
+// isMergedProfile reports whether a profile has been merged into another profile, which is its master.
+func isMergedProfile(p *profileModel.Profile) bool {
+	return p.ProfileStatus != nil && p.ProfileStatus.ReferenceProfileID != ""
+}
 
-	master, err := profileStore.GetProfile(ctx, masterID, orgID)
-	if err != nil || master == nil {
-		return nil, errors2.NewServerError(errors2.ErrorMessage{
-			Code:        errors2.IRMergeFailed.Code,
-			Message:     errors2.IRMergeFailed.Message,
-			Description: fmt.Sprintf("Failed to load master profile '%s' for redirect", masterID),
-		}, err)
+// withdrawReviewTask cancels a review task one of whose profiles has been merged with another profile
+// since the task was raised, and returns a 409 that says so.
+//
+// The task is not applied to the masters the profiles now belong to: they hold data the administrator
+// did not see, and the evidence may no longer hold. Both profiles are queued to be evaluated again,
+// each as the master it belongs to, which merges them, raises a new task, or leaves them apart.
+func withdrawReviewTask(ctx context.Context, orgID string, task *model.ReviewTask) error {
+	if err := irStore.UpdateReviewTaskStatus(ctx, task.ID, constants.ReviewStatusCancelled,
+		constants.CanceledBySystem, "Withdrawn: a profile of the pair was merged with another profile "+
+			"after the task was raised"); err != nil {
+		return err
 	}
-	return master, nil
+	workers.RequeueStaleMerge(ctx, orgID, task.IncomingProfileID, task.CandidateProfileID)
+
+	return errors2.NewClientError(errors2.ErrorMessage{
+		Code:    errors2.IRCannotMerge.Code,
+		Message: errors2.IRCannotMerge.Message,
+		Description: "One of the two profiles was merged with another profile after the task was raised, " +
+			"so the task was withdrawn. The profiles are evaluated again, and a new task is raised if the " +
+			"match still needs a review.",
+	}, http.StatusConflict)
 }

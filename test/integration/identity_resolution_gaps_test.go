@@ -21,12 +21,15 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/wso2/identity-customer-data-service/test/setup"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	irModel "github.com/wso2/identity-customer-data-service/internal/identity_resolution/model"
 	irService "github.com/wso2/identity-customer-data-service/internal/identity_resolution/service"
@@ -35,6 +38,7 @@ import (
 	profileService "github.com/wso2/identity-customer-data-service/internal/profile/service"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
+	errors2 "github.com/wso2/identity-customer-data-service/internal/system/errors"
 	"github.com/wso2/identity-customer-data-service/internal/system/workers"
 )
 
@@ -231,6 +235,52 @@ func Test_ResolveReviewTask_RejectsForeignOrg(t *testing.T) {
 	if err := svc.ResolveReviewTask(context.Background(), refA.ID, pending[0].ID, true, "attacker", ""); err == nil {
 		t.Errorf("org %s resolved a task belonging to org %s", orgA, orgB)
 	}
+}
+
+// Test_ResolveReviewTask_WithdrawsTaskWhenProfileMergedSince checks that approving a task whose
+// incoming profile was merged with another profile after the task was raised does not merge the
+// candidate into that profile's master. The administrator approved evidence about the incoming
+// profile alone, so the task is cancelled and the pair is evaluated again instead.
+func Test_ResolveReviewTask_WithdrawsTaskWhenProfileMergedSince(t *testing.T) {
+	org := newOrg("withdraw-merged")
+	incoming := insertBareProfile(t, org, "", map[string]interface{}{"name": "Gil"})
+	candidate := insertBareProfile(t, org, "", map[string]interface{}{"name": "Gil"})
+	other := insertBareProfile(t, org, "user-withdraw", map[string]interface{}{"name": "Hal"})
+
+	ctx := context.Background()
+	ref := setup.TestOrg(t, org)
+	task := irModel.ReviewTask{
+		OrgID:              ref.ID,
+		IncomingProfileID:  incoming.ProfileID,
+		CandidateProfileID: candidate.ProfileID,
+		MatchScore:         0.8,
+		Status:             constants.ReviewStatusPending,
+		ScoreBreakdown:     map[string]float64{"traits.name": 1.0},
+	}
+	require.NoError(t, irStore.InsertReviewTask(ctx, ref.ID, task))
+	pending, _, err := irStore.GetPendingReviewTasks(ctx, ref.ID, 10)
+	require.NoError(t, err)
+	require.Len(t, pending, 1)
+
+	// The incoming profile is merged with another profile after the task was raised.
+	master, err := workers.MergeMatchedProfiles(ctx, ref.ID, other, incoming, constants.MergeReasonAutoMerge)
+	require.NoError(t, err)
+	require.NotNil(t, master)
+	require.Equal(t, other.ProfileID, master.ProfileID)
+
+	err = irService.GetIdentityResolutionService().ResolveReviewTask(ctx, ref.ID, pending[0].ID, true, "admin", "")
+	assertClientError(t, err, http.StatusConflict, errors2.IRCannotMerge.Code)
+
+	resolved, err := irStore.GetReviewTaskByID(ctx, pending[0].ID)
+	require.NoError(t, err)
+	require.NotNil(t, resolved)
+	assert.Equal(t, constants.ReviewStatusCancelled, resolved.Status)
+
+	stored, err := profileStore.GetProfile(ctx, candidate.ProfileID, ref.ID)
+	require.NoError(t, err)
+	require.NotNil(t, stored)
+	assert.Empty(t, stored.ProfileStatus.ReferenceProfileID,
+		"the candidate was merged into the master of a profile the task no longer describes")
 }
 
 // Test_ReviewTask_CanBeRecreatedAfterCancellation checks that a pair cancelled by a cascade

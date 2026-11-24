@@ -76,6 +76,12 @@ Scope `identity_resolution:update`. `decision` is `APPROVED` or `REJECTED`;
 
 Resolving a task that is already resolved is a 409.
 
+Approving a task is also a 409 when either of its profiles was merged with
+another profile after the task was raised. The task is marked `CANCELLED`
+rather than applied to the merged result, because that holds data the task did
+not show. Both profiles are evaluated again, and a new task is raised if the
+match still needs a person.
+
 ### Rejected pairs stay rejected
 
 A rejection is a statement about identity, so the pair does not come back

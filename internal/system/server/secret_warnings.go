@@ -39,8 +39,8 @@ func secretWarnings(cfg config.Config, credentialsSupported bool) []string {
 	}
 	if credentialsSupported && cfg.IDP.ServiceCredentials.EncryptionKey == "" {
 		warnings = append(warnings, "idp.service_credentials.encryption_key is empty, so CDD refuses the "+
-			"service credentials the identity provider sends and uses the clients under auth_server for every "+
-			"organization. Set SERVICE_CREDENTIALS_ENCRYPTION_KEY, in repository/conf/secrets.env or the "+
+			"service credentials the identity provider sends, and calls it only with a client pair configured "+
+			"under auth_server. Set SERVICE_CREDENTIALS_ENCRYPTION_KEY, in repository/conf/secrets.env or the "+
 			"environment, to the output of `openssl rand -base64 32`.")
 	}
 	return warnings

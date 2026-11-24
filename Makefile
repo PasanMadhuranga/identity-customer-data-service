@@ -146,7 +146,7 @@ dist: clean-dist
 #   repository/dbscripts/            DDL for operators running an external database
 #   repository/resources/security/   the TLS material, defaulting to Identity Server 7.3.0's key pair
 #   updates/product.txt              the update-service product identity of this pack
-#   version.txt, LICENSE.txt, README.md
+#   version.txt, LICENSE.txt, README.md (the pack's own, not this repository's)
 #
 # The update tool setup scripts are not built from this source: they are added
 # to bin/ when a release is onboarded to WSO2 Updates, which happens outside
@@ -170,7 +170,8 @@ _dist_one:
 	cp dbscripts/*.sql $$stage/repository/dbscripts/; \
 	cp $(DISTRIBUTION_SRC)/pack/security-README.md $$stage/repository/resources/security/README.md; \
 	$(DISTRIBUTION_SRC)/default-cert.sh $$stage/repository/resources/security; \
-	cp LICENSE.txt README.md $(VERSION_FILE) $$stage/; \
+	cp LICENSE.txt $(VERSION_FILE) $$stage/; \
+	sed 's/@VERSION@/$(VERSION)/g' $(DISTRIBUTION_SRC)/pack/README.md > $$stage/README.md; \
 	install -m 755 $(DISTRIBUTION_SRC)/pack/$$launcher $$stage/bin/; \
 	printf '%s\n' "$$pack" > $$stage/updates/product.txt; \
 	find $$stage -name '.DS_Store' -delete; \

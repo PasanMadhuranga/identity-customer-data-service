@@ -70,6 +70,12 @@ for zip in "$DIST_DIR"/*.zip; do
     failures=$((failures + 1))
   fi
 
+  # The pack README links the documentation of its own release.
+  if unzip -p "$zip" "$pack/README.md" 2>/dev/null | grep -q '@VERSION@'; then
+    echo "  x $pack has an unfilled @VERSION@ in README.md" >&2
+    failures=$((failures + 1))
+  fi
+
   # The product identity has to name the pack it sits in, or the update
   # service resolves updates for a different platform.
   identity="$(unzip -p "$zip" "$pack/updates/product.txt" 2>/dev/null | tr -d '[:space:]')"

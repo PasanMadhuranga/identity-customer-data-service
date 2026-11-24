@@ -22,6 +22,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -236,6 +237,16 @@ func (s *IdentityResolutionService) ResolveReviewTask(ctx context.Context, orgID
 	}
 
 	survivingMaster, mergeErr := workers.MergeMatchedProfiles(ctx, orgID, *candidate, *incomingProfile, mergeReason)
+	if errors.Is(mergeErr, workers.ErrMergeStale) {
+		// A unification job merged one of the two between reading them above and the merge.
+		// The task stays pending, and approving it again merges with the new master.
+		return errors2.NewClientError(errors2.ErrorMessage{
+			Code:    errors2.IRCannotMerge.Code,
+			Message: errors2.IRCannotMerge.Message,
+			Description: "One of the two profiles was merged with another profile while the task was " +
+				"approved. Approve the task again.",
+		}, http.StatusConflict)
+	}
 	if mergeErr != nil {
 		logger.Error(fmt.Sprintf("Service: review merge failed for task %s — '%s' and '%s'",
 			taskID, incomingProfile.ProfileID, candidate.ProfileID), log.Error(mergeErr))

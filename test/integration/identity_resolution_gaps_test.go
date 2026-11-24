@@ -44,7 +44,8 @@ func newOrg(prefix string) string {
 
 // insertBareProfile writes a profile directly, bypassing the service so the test controls
 // exactly what exists without waiting on the async unification queue. The org is a handle,
-// resolved as a request handler does.
+// resolved as a request handler does. The profile is a reference profile, as one the service
+// creates is, since a merge locks and checks both profiles as reference profiles.
 func insertBareProfile(t *testing.T, org, userID string, traits map[string]interface{}) profileModel.Profile {
 	t.Helper()
 
@@ -58,7 +59,7 @@ func insertBareProfile(t *testing.T, org, userID string, traits map[string]inter
 		IdentityAttributes: map[string]interface{}{},
 		CreatedAt:          time.Now().UTC(),
 		UpdatedAt:          time.Now().UTC(),
-		ProfileStatus:      &profileModel.ProfileStatus{},
+		ProfileStatus:      &profileModel.ProfileStatus{IsReferenceProfile: true},
 	}
 	if err := profileStore.InsertProfile(context.Background(), ref.ID, profile); err != nil {
 		t.Fatalf("insert profile: %v", err)

@@ -782,7 +782,7 @@ var IRInsertReviewTask = newQuery(
 
 // IRMirrorReviewTaskExists checks whether a PENDING task exists for the reverse pair (candidate→incoming).
 var IRMirrorReviewTaskExists = newQuery("CDS-IDR-09",
-	`SELECT COUNT(*) FROM review_tasks
+	`SELECT COUNT(*) AS count FROM review_tasks
 				 WHERE incoming_profile_id = $1 AND candidate_profile_id = $2 AND status = $3`)
 
 // IRUpdateMirrorReviewTask flips the direction of a mirror task and refreshes its evidence.
@@ -829,7 +829,7 @@ var IRGetPendingReviewTasks = newQuery("CDS-IDR-14",
 
 // IRCountPendingReviewTasks counts an org's review tasks in one status.
 var IRCountPendingReviewTasks = newQuery("CDS-IDR-15",
-	`SELECT COUNT(*) FROM review_tasks WHERE org_id = $1 AND status = $2`)
+	`SELECT COUNT(*) AS count FROM review_tasks WHERE org_id = $1 AND status = $2`)
 
 // IRGetPendingReviewTasksByProfile returns an org's review tasks in one status raised for an incoming profile,
 // highest score first, up to the limit.
@@ -844,7 +844,7 @@ var IRGetPendingReviewTasksByProfile = newQuery("CDS-IDR-16",
 
 // IRCountPendingReviewTasksByProfile counts an org's review tasks in one status that involve a profile on either side.
 var IRCountPendingReviewTasksByProfile = newQuery("CDS-IDR-17",
-	`SELECT COUNT(*) FROM review_tasks WHERE org_id = $1 AND status = $2
+	`SELECT COUNT(*) AS count FROM review_tasks WHERE org_id = $1 AND status = $2
 				   AND (incoming_profile_id = $3 OR candidate_profile_id = $3)`)
 
 // IRUpdateReviewTaskStatus sets the status of a review task and records who resolved it and when.

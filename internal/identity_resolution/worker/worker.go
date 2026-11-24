@@ -22,6 +22,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -312,6 +313,15 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 				*freshProfile,
 				mergeReason,
 			)
+			if errors.Is(mergeErr, workers.ErrMergeStale) {
+				// Another job merged one of the two after they were scored. Nothing was
+				// written, and the next runs match whichever is still apart against the
+				// master that job made.
+				logger.Info(fmt.Sprintf("AsyncWorker: '%s' or '%s' was merged by another job after they were "+
+					"scored, so both are resolved again", matchedProfile.ProfileID, freshProfile.ProfileID))
+				workers.RequeueStaleMerge(ctx, orgID, matchedProfile.ProfileID, freshProfile.ProfileID)
+				return
+			}
 			if mergeErr != nil {
 				// Merge failed so not mark merged=true, not write audit log, not
 				// cascade-cancel related tasks.
@@ -379,14 +389,25 @@ func ResolveProfileAsync(ctx context.Context, orgID string, profile profileModel
 
 		// Surface remaining qualified candidates as review tasks against the new master.
 		// Incoming = mergedMaster.ProfileID, the new master is the live entity that holds the matched attributes.
+		//
+		// One evaluation merges once. A remaining candidate that scored for a merge is left to an
+		// evaluation of the new master instead of being held for review, which merges it or holds
+		// it for a reason of its own. Otherwise the outcome would depend on which of several related
+		// profiles happened to be evaluated last, and with parallel workers that is a matter of
+		// timing.
+		evaluateMasterAgain := false
 		for _, sc := range remaining {
 			decision := model.Decide(sc.score, thresholds)
 			if decision == constants.DecisionAutoMerge && !reconsidered[sc.id] {
-				sc = sc.withReason(model.ReasonMergedWithAnother)
+				evaluateMasterAgain = true
+				continue
 			}
 			if decision == constants.DecisionAutoMerge || decision == constants.DecisionManualReview {
 				insertReviewTask(ctx, orgID, mergedMaster.ProfileID, sc, thresholds.ManualReview, rejections)
 			}
+		}
+		if evaluateMasterAgain {
+			workers.EnqueueProfileForProcessing(profileModel.Profile{ProfileID: mergedMaster.ProfileID, OrgID: orgID})
 		}
 	}
 }
@@ -415,7 +436,21 @@ func insertReviewTask(ctx context.Context, orgID string, incomingProfileID strin
 		Explanation:        &explanation,
 	}
 
-	if err := irStore.InsertReviewTask(ctx, orgID, task); err != nil {
+	// Workers evaluating both profiles of a pair at the same time would each miss the other's
+	// task and raise one in each direction. Raising the task under the locks a merge takes runs
+	// the two one after the other, so the second finds the first and flips it.
+	err := profileStore.RunInTransaction(ctx, func(txCtx context.Context) error {
+		if err := profileStore.LockProfileReferences(txCtx, orgID, incomingProfileID, sc.id); err != nil {
+			return err
+		}
+		return irStore.InsertReviewTask(txCtx, orgID, task)
+	})
+	if errors.Is(err, profileStore.ErrProfileReferenceNotFound) {
+		logger.Info(fmt.Sprintf("AsyncWorker: '%s' or '%s' was deleted after they were scored, so no review "+
+			"task was raised", incomingProfileID, sc.id))
+		return
+	}
+	if err != nil {
 		logger.Error(fmt.Sprintf("AsyncWorker: failed to create review task for '%s' → '%s'",
 			incomingProfileID, sc.id), log.Error(err))
 	}

@@ -32,6 +32,7 @@ import (
 //
 // repository/conf/secrets.env is where an operator can keep them, one
 // KEY=VALUE per line, readable by the account that runs CDD and nobody else.
+// The pack ships it with every value empty, for the operator to fill in.
 // `cdd start` reads it, and a variable already set in the environment wins,
 // so a deployment with a secret manager supplies them from there instead and
 // needs no file at all.

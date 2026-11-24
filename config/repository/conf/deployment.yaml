@@ -32,19 +32,11 @@ log:
       file:
         name: "audit.log"
 
-cache:
-  enabled: true
-  default_cache_timeout: 15
-
-
 auth:
   # Browser origins allowed on every request, for the apps every organisation uses, such as
   # the Console and My Account. An organisation adds the origins of its own apps through
   # cors_allowed_origins in the admin configuration API, and those apply to its requests only.
   cors_allowed_origins:
-    - "http://localhost:3000"
-    - "http://localhost:3001"
-    - "https://localhost:9001"
     - "https://localhost:9443"
 
 addr:
@@ -95,8 +87,6 @@ auth_server:
   cookieDomain: "localhost"
   introspectionEndpoint: "/oauth2/introspect"
   tokenEndpoint: "/oauth2/token"
-  revocationEndpoint: "/oauth2/revoke"
-  claimsEndpoint: "api/server/v1/claim-dialects"
   client_id: "A5XX_NeBFi6Cf_4Zkn551xTdXnAa"
   client_secret: "${AUTH_SERVER_CLIENT_SECRET}"
   admin_username: "admin"
@@ -191,11 +181,6 @@ auth_server:
       - "internal_org_cds_identity_resolution_view"
     org:identity_resolution:update:
       - "internal_org_cds_identity_resolution_update"
-
-sync:
-  schema:
-    enabled: true
-    interval: 3600 # in seconds
 
 cleanup:
   cookie:

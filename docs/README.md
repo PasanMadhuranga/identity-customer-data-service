@@ -10,14 +10,25 @@ Identity Server.
 1. **Download** the zip for your platform from the
    [releases page](https://github.com/wso2/identity-customer-data-service/releases):
    Linux, macOS or Windows.
-2. **Extract and start it.** Extracting is the installation; there is nothing to
-   run first.
+2. **Extract it, fill in its secrets, and start it.** Extracting is the
+   installation. The pack ships `repository/conf/secrets.env` with every value
+   empty; set at least these two before the first start:
 
    ```bash
    unzip cdd-linux-amd64-<version>.zip
    cd cdd-linux-amd64-<version>
+   openssl rand -base64 32   # the value for SERVICE_CREDENTIALS_ENCRYPTION_KEY
+   vi repository/conf/secrets.env
    bin/start.sh        # bin\start.bat on Windows
    ```
+
+   ```bash
+   SERVICE_CREDENTIALS_ENCRYPTION_KEY=<generated for this installation>
+   AUTH_SERVER_ADMIN_PASSWORD=<the admin_password of step 3>
+   ```
+
+   Generate the key for each installation and back it up; never reuse the one
+   from another installation or from an example.
 
    CDD runs in the foreground on `https://localhost:8900`; Ctrl+C stops it. It
    starts on an inbuilt database, so nothing else has to be installed.
@@ -29,7 +40,7 @@ Identity Server.
    enable = true
    server_url = "https://localhost:8900"
    admin_username = "admin"
-   admin_password = "<AUTH_SERVER_ADMIN_PASSWORD of CDD>"
+   admin_password = "<AUTH_SERVER_ADMIN_PASSWORD in secrets.env>"
    ```
 
 4. **Enable CDD for an organization** from the Identity Server Console.

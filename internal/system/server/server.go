@@ -119,6 +119,9 @@ func Run(cdsHome string) {
 		log.GetLogger().Error("Invalid service credentials configuration.", log.Error(err))
 		os.Exit(1)
 	}
+	for _, warning := range secretWarnings(*cdsConfig, credentialsSupported) {
+		log.GetLogger().Warn(warning)
+	}
 
 	// Resolve the shutdown deadline at start, so a refused value stops the
 	// server before anything runs.

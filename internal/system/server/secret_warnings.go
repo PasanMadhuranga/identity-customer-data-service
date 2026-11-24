@@ -33,7 +33,7 @@ func secretWarnings(cfg config.Config, credentialsSupported bool) []string {
 	var warnings []string
 	if strings.TrimSpace(cfg.AuthServer.AdminUsername) == "" || strings.TrimSpace(cfg.AuthServer.AdminPassword) == "" {
 		warnings = append(warnings, "auth_server.admin_username or auth_server.admin_password is empty, so every "+
-			"call to the synchronisation endpoints is refused, including the identity provider's. Set "+
+			"call to the synchronization endpoints is refused, including the identity provider's. Set "+
 			"AUTH_SERVER_ADMIN_PASSWORD, in repository/conf/secrets.env or the environment, to the password "+
 			"the identity provider presents.")
 	}

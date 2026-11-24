@@ -40,7 +40,7 @@ func TestSecretWarningsNoneWhenEverySecretIsSet(t *testing.T) {
 }
 
 // An empty password is what an unexpanded ${AUTH_SERVER_ADMIN_PASSWORD} leaves,
-// and with it no synchronisation call can authenticate.
+// and with it no synchronization call can authenticate.
 func TestSecretWarningsNameAnEmptyAdminCredential(t *testing.T) {
 	cases := map[string]config.Config{
 		"empty password":         secretsConfig("admin", "", "a-key"),

@@ -323,7 +323,7 @@ make dist
 ```
 
 This produces one pack per supported platform in `target/dist/`, with their
-checksums and the release compatibility metadata:
+checksums and the release metadata:
 
 ```
 cdd-linux-amd64-<version>.zip

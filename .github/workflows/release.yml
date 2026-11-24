@@ -287,7 +287,7 @@ jobs:
           # placed deliberately, so the action must not append a second one.
           body_path: target/release-notes.md
           generate_release_notes: false
-          # The zips, their checksums, and the compatibility metadata.
+          # The zips, their checksums, and the release metadata.
           files: |
             target/dist/*.zip
             target/dist/*.sha256

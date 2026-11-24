@@ -96,8 +96,7 @@ endpoints, so they have to match `auth_server.admin_username` and
 Everything else the integration needs follows from `enable = true` in an
 Identity Server release that carries the CDD integration: the event handlers,
 the CDD API resources and their scopes, and the Console's API resource
-collection. The Identity Server versions a CDD release supports are listed in
-its release metadata.
+collection.
 
 CDD is then enabled per organization, in the Identity Server — from the
 Console, or with `PATCH /api/server/v1/configs/cds`. That is also what runs
@@ -200,7 +199,6 @@ copying the file over from the previous installation.
 ├── repository/
 │   ├── conf/
 │   │   ├── deployment.yaml         the configuration
-│   │   ├── compatibility.yaml      the Identity Server versions this release supports
 │   │   └── secrets.env             the secrets, shipped empty for the operator to fill in, mode 600
 │   ├── database/                   the inbuilt database, when one is used
 │   ├── dbscripts/                  DDL for an external database

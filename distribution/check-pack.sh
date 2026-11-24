@@ -19,7 +19,6 @@ DIST_DIR="${1:?usage: check-pack.sh <dist-dir>}"
 # update service resolves the pack by.
 REQUIRED="
 repository/conf/deployment.yaml
-repository/conf/compatibility.yaml
 repository/conf/secrets.env
 repository/dbscripts/postgres.sql
 repository/dbscripts/sqlite.sql

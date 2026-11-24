@@ -140,8 +140,8 @@ dist: clean-dist
 # Pack layout:
 #   bin/$(PRODUCT_NAME)              the runtime ($(PRODUCT_NAME).exe on Windows)
 #   bin/start.sh                     runs it in the foreground (start.bat on Windows)
-#   repository/conf/                 deployment.yaml, compatibility.yaml, and secrets.env with
-#                                    every value empty, readable by its owner only
+#   repository/conf/                 deployment.yaml, and secrets.env with every value empty,
+#                                    readable by its owner only
 #   repository/database/             where the inbuilt database is created
 #   repository/dbscripts/            DDL for operators running an external database
 #   repository/resources/security/   the TLS material, defaulting to Identity Server 7.3.0's key pair
@@ -180,13 +180,12 @@ _dist_one:
 	if command -v md5sum >/dev/null 2>&1; then md5sum $$pack.zip > $$pack.zip.md5; else md5 -r $$pack.zip > $$pack.zip.md5; fi; \
 	echo "  -> $(DIST_DIR)/$$pack.zip"
 
-# Publish the release compatibility metadata beside the packs, so installation
+# Publish the release metadata beside the packs, so installation
 # tooling can resolve the right artifact for a target environment without
 # unpacking one.
 _dist_metadata:
 	@PRODUCT_NAME=$(PRODUCT_NAME) PACK_VERSION=$(PACK_VERSION) PLATFORMS="$(PLATFORMS)" \
-		$(DISTRIBUTION_SRC)/release-metadata.sh \
-		$(REPOSITORY_DIR)/conf/compatibility.yaml $(DIST_DIR)
+		$(DISTRIBUTION_SRC)/release-metadata.sh $(DIST_DIR)
 
 # Remove the staged distributions and their zips.
 clean-dist:

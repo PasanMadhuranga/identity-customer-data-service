@@ -57,6 +57,9 @@ jobs:
       - name: Build
         run: make build
 
+      - name: Check the third-party licenses
+        run: make check-licenses
+
       # Cross-compilation and packaging are exercised only here, so a
       # dependency that stops building for one platform, or a pack that loses
       # a file it is meant to ship, is caught on the pull request rather than

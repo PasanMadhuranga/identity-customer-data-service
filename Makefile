@@ -192,6 +192,10 @@ _dist_metadata:
 clean-dist:
 	rm -rf $(DIST_DIR)
 
+# Check that LICENSE.txt lists exactly the modules the packs link.
+check-licenses:
+	@PLATFORMS="$(PLATFORMS)" $(DISTRIBUTION_SRC)/check-licenses.sh LICENSE.txt
+
 help:
 	@echo "Makefile targets:"
 	@echo "  all                        - Clean, build, and test the project."
@@ -199,6 +203,7 @@ help:
 	@echo "  build                      - Compile the binary for the host platform."
 	@echo "  dist                       - Build the release packs into $(DIST_DIR)."
 	@echo "  clean-dist                 - Remove the staged distributions and their zips."
+	@echo "  check-licenses             - Check that LICENSE.txt lists exactly the modules the packs link."
 	@echo "  integration-test           - Run integration tests against PostgreSQL (use test=TestName to filter)."
 	@echo "  integration-test-sqlite    - Run integration tests against the inbuilt database (use test=TestName to filter)."
 	@echo "  integration-test-mysql     - Run integration tests against MySQL (use test=TestName to filter)."
@@ -210,7 +215,7 @@ help:
 	@echo "  lint                       - Run golangci-lint."
 	@echo "  help                       - Show this help message."
 
-.PHONY: all clean build dist clean-dist _dist_one _dist_metadata lint lint-all help integration-test integration-test-sqlite integration-test-mysql integration-test-mssql integration-test-oracle mq-integration-test unit-test unit-test-coverage
+.PHONY: all clean build dist clean-dist check-licenses _dist_one _dist_metadata lint lint-all help integration-test integration-test-sqlite integration-test-mysql integration-test-mssql integration-test-oracle mq-integration-test unit-test unit-test-coverage
 
 .PHONY: go_install_tool golangci-lint
 

@@ -591,7 +591,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Create and set a new cookie
-	setProfileCookie(w, cookie.CookieID, r)
+	setProfileCookie(w, cookie.CookieID)
 
 	profileResponse.AnonymousTracker = cookie.CookieID
 
@@ -622,21 +622,21 @@ func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Re
 		return true
 	}
 
-	setProfileCookie(w, cookieObj.CookieID, r)
+	setProfileCookie(w, cookieObj.CookieID)
 	profileResponse.AnonymousTracker = cookieObj.CookieID
 	utils.RespondJSON(w, http.StatusOK, profileResponse, constants.ProfileResource)
 	return true
 }
 
-func setProfileCookie(w http.ResponseWriter, cookieID string, r *http.Request) {
+func setProfileCookie(w http.ResponseWriter, cookieID string) {
 	cookie := &http.Cookie{
 		Name:     constants.ProfileCookie,
 		Value:    cookieID,
 		Path:     "/",
 		Domain:   resolveDomain(),
 		HttpOnly: true,
-		Secure:   !strings.HasPrefix(r.Host, "localhost"),
-		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 }

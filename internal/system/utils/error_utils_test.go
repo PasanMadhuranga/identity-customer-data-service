@@ -66,9 +66,9 @@ func TestHandleDecodeErrorNamesTheFieldAndTheJSONType(t *testing.T) {
 		{`{"raw": 1}`, "Invalid type for field 'raw'. Expected a string in test request body."},
 		{`{"attributes": []}`, "Invalid type for field 'attributes'. Expected an object in test request body."},
 		{`{"nested": 1}`, "Invalid type for field 'nested'. Expected an object in test request body."},
-		{`{"nested": {"value": "x"}}`, "Invalid type for field 'nested.value'. Expected a number in test request body."},
-		{`{"items": [1]}`, "Invalid type for field 'items.0'. Expected an object in test request body."},
-		{`{"when": 1}`, "Invalid type for field 'when'. Expected a string in test request body."},
+		{`{"nested": {"value": "x"}}`,
+			"Invalid type for field 'nested.value'. Expected a number in test request body."},
+		{`{"items": 1}`, "Invalid type for field 'items'. Expected an array in test request body."},
 	}
 	for _, tc := range tests {
 		t.Run(tc.body, func(t *testing.T) {
@@ -81,6 +81,21 @@ func TestHandleDecodeErrorNamesTheFieldAndTheJSONType(t *testing.T) {
 			assert.NotContains(t, message, "[]")
 		})
 	}
+}
+
+// TestHandleDecodeErrorNamesNoGoType covers errors whose text differs between Go versions: the path
+// of an array element, and a type that reads itself from JSON.
+func TestHandleDecodeErrorNamesNoGoType(t *testing.T) {
+	for _, body := range []string{`{"items": [1]}`, `{"when": 1}`} {
+		t.Run(body, func(t *testing.T) {
+			message := decodeMessage(t, body, &decodeTarget{})
+
+			assert.NotContains(t, message, "decodeNested")
+			assert.NotContains(t, message, "time.Time")
+			assert.NotContains(t, message, "utils.")
+		})
+	}
+	assert.Contains(t, decodeMessage(t, `{"items": [1]}`, &decodeTarget{}), "Expected an object")
 }
 
 func TestHandleDecodeErrorOtherCases(t *testing.T) {

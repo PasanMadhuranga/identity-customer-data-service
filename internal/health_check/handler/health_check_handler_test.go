@@ -82,7 +82,7 @@ func TestReadinessFailureReturnsOnlyStatus(t *testing.T) {
 		assert.NotContains(t, w.Body.String(), detail)
 	}
 
-	logged, err := os.ReadFile(logPath)
+	logged, err := os.ReadFile(logPath) // #nosec G304 -- the test reads a file in its temporary directory.
 	require.NoError(t, err)
 	assert.Contains(t, string(logged), "Readiness check failed")
 	assert.Contains(t, string(logged), strconv.Itoa(port))

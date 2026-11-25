@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
+	"github.com/wso2/identity-customer-data-service/internal/system/constants"
 	"github.com/wso2/identity-customer-data-service/internal/system/services"
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
@@ -33,20 +34,48 @@ type ServiceManagerInterface interface {
 	RegisterServices() error
 }
 
-// ServiceManager registers the services on an HTTP mux.
+// ServiceManager registers the services on an HTTP mux, and the sync endpoints on a mux of their own when
+// there is a sync listener.
 type ServiceManager struct {
-	mux *http.ServeMux
+	mux     *http.ServeMux
+	syncMux *http.ServeMux
 }
 
-// NewServiceManager creates a new instance of ServiceManager.
+// NewServiceManager creates a ServiceManager that serves every route on mux.
 func NewServiceManager(mux *http.ServeMux) ServiceManagerInterface {
 	return &ServiceManager{
 		mux: mux,
 	}
 }
 
+// NewSplitServiceManager creates a ServiceManager that serves the sync endpoints on syncMux, the mux of the
+// sync listener, and every other route on mux.
+func NewSplitServiceManager(mux, syncMux *http.ServeMux) ServiceManagerInterface {
+	return &ServiceManager{
+		mux:     mux,
+		syncMux: syncMux,
+	}
+}
+
+// syncRoutes are the patterns of the routes only the identity server calls, with the admin credentials. With
+// a sync listener they are served there and nowhere else.
+var syncRoutes = map[string]bool{
+	"POST " + constants.APIBasePath + "/v1/profiles/sync":            true,
+	"POST " + constants.APIBasePath + "/v1/profile-schema/sync":      true,
+	"POST " + constants.APIBasePath + "/v1/organizations/event-sync": true,
+	"POST " + constants.APIBasePath + "/v1/service-credentials/sync": true,
+}
+
+// sharedRoutes are served on both listeners: the admin configuration update takes the Console's token on
+// the public listener and the identity server's admin credentials on the sync listener.
+var sharedRoutes = map[string]bool{
+	"PATCH " + constants.APIBasePath + "/v1/config": true,
+}
+
 // RegisterServices mounts the health services under /cds/ and the other services under the tenant path
-// /t/{tenant}/. The organization service is mounted only when organization management is enabled.
+// /t/{tenant}/. The organization service is mounted only when organization management is enabled. With a
+// sync mux, the sync routes and the health services are mounted on it, and the public mux no longer
+// serves the sync routes.
 func (sm *ServiceManager) RegisterServices() error {
 	// Non-tenanted root services (health, ready)
 	rootMux := http.NewServeMux()
@@ -66,16 +95,34 @@ func (sm *ServiceManager) RegisterServices() error {
 		_ = services.NewOrganizationService(routesMux)
 	}
 
-	tenantHandler := func(w http.ResponseWriter, r *http.Request) {
+	if sm.syncMux == nil {
+		utils.MountTenantDispatcher(sm.mux, tenantHandler(routesMux, func(string) bool { return true }))
+		return nil
+	}
+	sm.syncMux.Handle("/cds/", rootMux)
+	utils.MountTenantDispatcher(sm.mux, tenantHandler(routesMux, func(pattern string) bool {
+		return !syncRoutes[pattern]
+	}))
+	utils.MountTenantDispatcher(sm.syncMux, tenantHandler(routesMux, func(pattern string) bool {
+		return syncRoutes[pattern] || sharedRoutes[pattern]
+	}))
+	return nil
+}
+
+// tenantHandler serves the routes of routesMux whose pattern serves accepts, and a 404 for the others. A request
+// that matches no pattern is left to routesMux, which answers it with a 404 or a 405.
+func tenantHandler(routesMux *http.ServeMux, serves func(pattern string) bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimSuffix(r.URL.Path, "/")
 		if path == "" {
 			r.URL.Path = "/"
 		} else {
 			r.URL.Path = path
 		}
+		if _, pattern := routesMux.Handler(r); pattern != "" && !serves(pattern) {
+			http.NotFound(w, r)
+			return
+		}
 		routesMux.ServeHTTP(w, r)
 	}
-
-	utils.MountTenantDispatcher(sm.mux, tenantHandler)
-	return nil
 }

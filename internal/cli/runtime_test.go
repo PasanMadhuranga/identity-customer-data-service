@@ -82,3 +82,44 @@ func TestCertificatePathsResolveAsTheRuntimeDoes(t *testing.T) {
 		})
 	}
 }
+
+// start refuses a sync port something else holds, and checks none without a
+// sync port of its own.
+func TestSyncAddressInUseIsDetected(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("could not take a port: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	var config runtimeConfig
+	if config.syncAddressInUse() {
+		t.Error("no sync port was reported as in use")
+	}
+	config.Sync.Addr.Host = "127.0.0.1"
+	config.Sync.Addr.Port = listener.Addr().(*net.TCPAddr).Port
+	if !config.syncAddressInUse() {
+		t.Error("a sync port held by another listener was reported as free")
+	}
+}
+
+// The client trust store is warned about only where the sync port requires a
+// client certificate, as the runtime reads it only then.
+func TestClientTrustStoreOnlyWhereItIsRequired(t *testing.T) {
+	home := t.TempDir()
+	var config runtimeConfig
+	config.TLS.CertDir = "certs"
+	config.Sync.ClientTrustStore = "client_trust_store.pem"
+
+	if config.clientTrustStore(home) != "" {
+		t.Error("a client trust store was named without a sync port")
+	}
+	config.Sync.Addr.Port = 8901
+	if config.clientTrustStore(home) != "" {
+		t.Error("a client trust store was named while no client certificate is required")
+	}
+	config.Sync.RequireClientCert = true
+	if got, want := config.clientTrustStore(home), filepath.Join(home, "certs", "client_trust_store.pem"); got != want {
+		t.Errorf("client trust store at %s, want %s", got, want)
+	}
+}

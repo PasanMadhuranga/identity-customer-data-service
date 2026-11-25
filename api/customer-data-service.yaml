@@ -1593,7 +1593,8 @@ paths:
                     type: string
                     example: ready
         '503':
-          description: Service Unavailable. The service is not ready.
+          description: >-
+            Service Unavailable. The service is not ready. The reason is in the application log.
           content:
             application/json:
               schema:
@@ -1602,8 +1603,6 @@ paths:
                   status:
                     type: string
                     example: not ready
-                  error:
-                    type: string
 
   /organizations/event-sync:
     post:

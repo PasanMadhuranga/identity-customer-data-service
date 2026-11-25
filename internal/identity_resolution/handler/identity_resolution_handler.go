@@ -123,7 +123,7 @@ func (h *IdentityResolutionHandler) ResolveReviewTask(w http.ResponseWriter, r *
 		utils.HandleError(w, errors2.NewClientError(errors2.ErrorMessage{
 			Code:        errors2.BadRequest.Code,
 			Message:     errors2.BadRequest.Message,
-			Description: fmt.Sprintf("Failed to parse resolve request: %v", err),
+			Description: utils.HandleDecodeError(err, "review task resolve"),
 		}, http.StatusBadRequest))
 		return
 	}

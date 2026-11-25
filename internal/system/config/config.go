@@ -350,7 +350,8 @@ type IdentityResolutionConfig struct {
 	//
 	// Off when the key is absent, so a deployment.yaml written before the key existed keeps
 	// matching exactly as it did after an upgrade, rather than finding that an upgrade
-	// changed which profiles get unified. The shipped deployment.yaml sets it to true, so a new deployment has tolerant matching available from the start.
+	// changed which profiles get unified. The shipped deployment.yaml sets it to true, so a new
+	// deployment has tolerant matching available from the start.
 	//
 	// While off, new fuzzy rules are refused, the options endpoint stops offering the
 	// method, and a rule already stored as fuzzy is evaluated as an exact match. Switching

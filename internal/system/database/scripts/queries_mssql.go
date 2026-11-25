@@ -117,6 +117,8 @@ var mssqlStatements = map[string]string{
 		SET status = $1, resolved_at = SYSUTCDATETIME(), resolved_by = $2, resolution_notes = $3
 		WHERE id = $4`,
 
+	"CDS-IDR-25": `SELECT status FROM review_tasks WITH (UPDLOCK, ROWLOCK) WHERE id = $1`,
+
 	"CDS-IDR-19": `MERGE rejection_pairs WITH (HOLDLOCK) AS t
 		USING (SELECT $3 AS profile_id_1, $4 AS profile_id_2) AS s
 			ON t.profile_id_1 = s.profile_id_1 AND t.profile_id_2 = s.profile_id_2
@@ -210,6 +212,9 @@ var mssqlStatements = map[string]string{
 		  AND r.profile_status = 'REFERENCE_PROFILE'
 		  AND NOT EXISTS (SELECT 1 FROM profile_reference c WHERE c.reference_profile_id = p.profile_id)
 		ORDER BY p.updated_at`,
+
+	"CDS-PRF-26": `SELECT profile_id, profile_status FROM profile_reference WITH (UPDLOCK, ROWLOCK)
+		WHERE profile_id = $1 AND org_id = $2`,
 
 	"CDS-PRF-19": `SELECT TOP (1) p.profile_id
 		FROM profiles p JOIN profile_reference r ON r.profile_id = p.profile_id

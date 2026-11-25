@@ -22,7 +22,9 @@ package workers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"math/rand/v2"
 	"strings"
 	"sync"
 	"time"
@@ -31,6 +33,7 @@ import (
 
 	"github.com/google/uuid"
 
+	irStore "github.com/wso2/identity-customer-data-service/internal/identity_resolution/store"
 	profileModel "github.com/wso2/identity-customer-data-service/internal/profile/model"
 	profileStore "github.com/wso2/identity-customer-data-service/internal/profile/store"
 	schemaModel "github.com/wso2/identity-customer-data-service/internal/profile_schema/model"
@@ -38,10 +41,10 @@ import (
 	"github.com/wso2/identity-customer-data-service/internal/system/audit"
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
+	"github.com/wso2/identity-customer-data-service/internal/system/database"
 	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/queue"
 	"github.com/wso2/identity-customer-data-service/internal/unification_rules/model"
-	"github.com/wso2/identity-customer-data-service/internal/unification_rules/provider"
 )
 
 // activeProfileQueue is the queue implementation used for profile unification.
@@ -57,10 +60,10 @@ var (
 )
 
 // It is set at startup via RegisterFuzzyResolveFunc to avoid import cycles.
-var fuzzyResolveFunc func(ctx context.Context, orgId string, profile profileModel.Profile)
+var fuzzyResolveFunc func(ctx context.Context, orgId string, profile profileModel.Profile) error
 
 // RegisterFuzzyResolveFunc sets the callback for fuzzy identity resolution.
-func RegisterFuzzyResolveFunc(fn func(ctx context.Context, orgId string, profile profileModel.Profile)) {
+func RegisterFuzzyResolveFunc(fn func(ctx context.Context, orgId string, profile profileModel.Profile) error) {
 	fuzzyResolveFunc = fn
 }
 
@@ -77,11 +80,16 @@ func RegisterReindexAfterMergeFunc(
 }
 
 // StartProfileWorker initializes the profile unification queue (using the
-// provider configured in the runtime config) and starts the consumer
-// goroutine. An error is returned when the queue cannot be created or
-// started; the caller should treat this as a fatal startup failure.
+// provider configured in the runtime config) and starts the consumer, which
+// unifies up to identity_resolution.unification_workers profiles at the same
+// time. An error is returned when the queue cannot be created or started; the
+// caller should treat this as a fatal startup failure.
 func StartProfileWorker() error {
 	cfg := config.GetCDSRuntime().Config
+	workerCount, err := config.ResolveUnificationWorkers(cfg.IdentityResolution, cfg.DataSource.Type)
+	if err != nil {
+		return fmt.Errorf("workers: %w", err)
+	}
 	q, err := queue.NewProfileUnificationQueue(cfg)
 	if err != nil {
 		return fmt.Errorf("workers: failed to create profile unification queue: %w", err)
@@ -90,38 +98,11 @@ func StartProfileWorker() error {
 	// A queue message has no caller, so the worker is the context boundary for
 	// the work one message causes.
 	lifecycle := newJobLifecycle()
+	jobs := newProfileJobs()
 
-	if err := q.Start(func(profile profileModel.Profile) {
-		err := lifecycle.run(func(ctx context.Context) {
-			// The queue message carries the org ID. Read the org once for the job.
-			org, found, err := orgService.LookupOrganizationByID(ctx, profile.OrgID)
-			if err != nil {
-				log.GetLogger().Error(fmt.Sprintf("Failed to read the organization %s of profile %s for unification",
-					profile.OrgID, profile.ProfileID), log.Error(err))
-				return
-			}
-			if !found {
-				log.GetLogger().Error(fmt.Sprintf("CDD does not know the organization %s of profile %s, so the "+
-					"profile was not unified", profile.OrgID, profile.ProfileID))
-				return
-			}
-			storedProfile, err := profileStore.GetProfileWithOptions(ctx, profile.ProfileID, org.ID,
-				profileStore.GetProfileOptions{IncludeApplicationData: false})
-			if err != nil {
-				log.GetLogger().Error(fmt.Sprintf("Failed to load profile %s for unification",
-					profile.ProfileID), log.Error(err))
-				return
-			}
-			if storedProfile != nil {
-				unifyProfiles(ctx, org.ID, *storedProfile)
-			}
-		})
-		if err != nil {
-			log.GetLogger().Info(fmt.Sprintf(
-				"workers: the profile worker is stopping, so profile %s was not unified: %v",
-				profile.ProfileID, err))
-		}
-	}); err != nil {
+	if err := q.Start(func(profile profileModel.Profile) error {
+		return runProfileJob(lifecycle, jobs, profile)
+	}, workerCount); err != nil {
 		_ = q.Close(context.Background())
 		return fmt.Errorf("workers: failed to start profile unification queue: %w", err)
 	}
@@ -129,18 +110,165 @@ func StartProfileWorker() error {
 	activeProfileQueue = q
 	profileLifecycle = lifecycle
 	profileQueueMu.Unlock()
+	log.GetLogger().Info(fmt.Sprintf("Profile unification started with %d workers", workerCount))
 	return nil
+}
+
+// runProfileJob unifies the profile of one queue message. It returns an error
+// when the job did not run to the end because the worker is stopping, so that
+// a broker delivers the message again.
+//
+// A unification that fails on a transient database error, such as a lock that
+// was not granted in time, is tried again after a pause. One that still fails
+// after unificationRetryDelays is put at the back of the queue, so a database
+// that is down or overloaded for longer delays profiles instead of losing them.
+func runProfileJob(lifecycle *jobLifecycle, jobs *profileJobs, profile profileModel.Profile) error {
+	key := profile.OrgID + "/" + profile.ProfileID
+	if !jobs.claim(key) {
+		// This instance is unifying the profile already, and that job unifies
+		// it once more when it ends.
+		return nil
+	}
+
+	interrupted := false
+	var failure error
+	err := lifecycle.run(func(ctx context.Context) {
+		for {
+			failure = unifyWithRetries(ctx, profile)
+			if ctx.Err() != nil {
+				interrupted = true
+				jobs.release(key)
+				return
+			}
+			if failure != nil && !database.IsTransient(failure) {
+				// Running it again would fail the same way.
+				log.GetLogger().Error(fmt.Sprintf("Profile %s was not unified", profile.ProfileID),
+					log.Error(failure))
+				failure = nil
+			}
+			if !jobs.again(key) {
+				return
+			}
+		}
+	})
+	if err != nil {
+		jobs.release(key)
+		log.GetLogger().Info(fmt.Sprintf(
+			"workers: the profile worker is stopping, so profile %s was not unified: %v",
+			profile.ProfileID, err))
+		return err
+	}
+	if interrupted {
+		return fmt.Errorf("workers: unifying profile %s was interrupted: %w", profile.ProfileID, ErrShutdownIncomplete)
+	}
+	if failure != nil {
+		return requeueFailedProfile(profile, failure)
+	}
+	return nil
+}
+
+// unificationRetryDelays are the pauses before each retry of a unification that failed on a
+// transient database error. They add up to about half a minute, besides the time each attempt waits
+// for its locks.
+var unificationRetryDelays = []time.Duration{
+	500 * time.Millisecond, time.Second, 2 * time.Second, 4 * time.Second, 8 * time.Second, 15 * time.Second,
+}
+
+// unifyWithRetries unifies the profile of a queue message, and tries again after each of
+// unificationRetryDelays while it fails on a transient database error.
+func unifyWithRetries(ctx context.Context, profile profileModel.Profile) error {
+	for attempt := 0; ; attempt++ {
+		// An attempt that failed can have merged the profile before it failed. A retry unifies the
+		// master it was merged into, which holds its data, so the rest of the evaluation still runs.
+		err := unifyQueuedProfile(ctx, profile, attempt > 0)
+		if err == nil || !database.IsTransient(err) || attempt == len(unificationRetryDelays) ||
+			ctx.Err() != nil {
+			return err
+		}
+		pause := unificationRetryDelays[attempt]
+		// Jitter, so the jobs that one held lock failed do not all retry at the same moment.
+		pause += rand.N(pause/2 + 1) //nolint:gosec // jitter needs no secure random numbers
+		log.GetLogger().Info(fmt.Sprintf("Unifying profile %s failed on the database, so it is tried again "+
+			"in %s: %v", profile.ProfileID, pause.Round(time.Millisecond), err))
+		timer := time.NewTimer(pause)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+}
+
+// requeueFailedProfile puts a profile whose unification kept failing on the database at the back of
+// the queue. It returns an error when the queue does not take it, so that a broker delivers the
+// message again later.
+func requeueFailedProfile(profile profileModel.Profile, failure error) error {
+	profileQueueMu.RLock()
+	q := activeProfileQueue
+	profileQueueMu.RUnlock()
+	if q == nil {
+		return fmt.Errorf("workers: profile %s was not unified, and the queue has stopped: %w",
+			profile.ProfileID, failure)
+	}
+	if err := q.Enqueue(profileModel.Profile{ProfileID: profile.ProfileID, OrgID: profile.OrgID}); err != nil {
+		log.GetLogger().Error(fmt.Sprintf("Profile %s was not unified, and could not be queued again",
+			profile.ProfileID), log.Error(errors.Join(failure, err)))
+		return fmt.Errorf("workers: profile %s was not unified: %w", profile.ProfileID, failure)
+	}
+	log.GetLogger().Warn(fmt.Sprintf("Unifying profile %s kept failing on the database, so it was queued "+
+		"again: %v", profile.ProfileID, failure))
+	return nil
+}
+
+// unifyQueuedProfile reads the organization and the stored profile of a queue
+// message and unifies the profile. With followMerge, a profile that has been
+// merged since it was queued has its master unified instead.
+func unifyQueuedProfile(ctx context.Context, profile profileModel.Profile, followMerge bool) error {
+	// The queue message carries the org ID. Read the org once for the job.
+	org, found, err := orgService.LookupOrganizationByID(ctx, profile.OrgID)
+	if err != nil {
+		return fmt.Errorf("read the organization %s of profile %s: %w", profile.OrgID, profile.ProfileID, err)
+	}
+	if !found {
+		log.GetLogger().Error(fmt.Sprintf("CDD does not know the organization %s of profile %s, so the "+
+			"profile was not unified", profile.OrgID, profile.ProfileID))
+		return nil
+	}
+	storedProfile, err := profileStore.GetProfileWithOptions(ctx, profile.ProfileID, org.ID,
+		profileStore.GetProfileOptions{IncludeApplicationData: false})
+	if err != nil {
+		return fmt.Errorf("load profile %s for unification: %w", profile.ProfileID, err)
+	}
+	if storedProfile != nil && followMerge && storedProfile.ProfileStatus != nil &&
+		storedProfile.ProfileStatus.ReferenceProfileID != "" {
+		masterID := storedProfile.ProfileStatus.ReferenceProfileID
+		storedProfile, err = profileStore.GetProfileWithOptions(ctx, masterID, org.ID,
+			profileStore.GetProfileOptions{IncludeApplicationData: false})
+		if err != nil {
+			return fmt.Errorf("load master %s of profile %s for unification: %w", masterID, profile.ProfileID, err)
+		}
+	}
+	if storedProfile == nil {
+		return nil
+	}
+	return unifyProfiles(ctx, org.ID, *storedProfile)
 }
 
 // EnqueueProfileForProcessing adds a profile to the active queue for
 // asynchronous unification. It is a no-op when the worker has not been
 // started or has been stopped.
+//
+// The message carries only the profile and organization IDs. The worker reads
+// the stored profile when it runs, so the rest would only make the backlog
+// larger.
 func EnqueueProfileForProcessing(profile profileModel.Profile) {
 	profileQueueMu.RLock()
 	q := activeProfileQueue
 	profileQueueMu.RUnlock()
 	if q != nil {
-		if err := q.Enqueue(profile); err != nil {
+		job := profileModel.Profile{ProfileID: profile.ProfileID, OrgID: profile.OrgID}
+		if err := q.Enqueue(job); err != nil {
 			log.GetLogger().Error(fmt.Sprintf(
 				"workers: failed to enqueue profile %s for unification: %v",
 				profile.ProfileID, err))
@@ -183,43 +311,31 @@ func StopProfileWorker(ctx context.Context) error {
 }
 
 // unifyProfiles unifies profiles based on the configured unification rules.
-func unifyProfiles(ctx context.Context, orgID string, newProfile profileModel.Profile) {
+func unifyProfiles(ctx context.Context, orgID string, newProfile profileModel.Profile) error {
 	logger := log.GetLogger()
 	// A queued profile can have become a child while it waited. Leave its
 	// hierarchy intact; moving children or joining masters is a separate policy.
 	if newProfile.ProfileStatus == nil {
 		logger.Warn(fmt.Sprintf("Skipping unification for profile %s because its status is missing",
 			newProfile.ProfileID))
-		return
+		return nil
 	}
 	if !newProfile.ProfileStatus.IsReferenceProfile {
 		logger.Debug(fmt.Sprintf("Skipping unification for non-reference profile %s", newProfile.ProfileID))
-		return
+		return nil
 	}
 
 	// The system user-ID match takes precedence even when no rules are defined.
 	candidateID, err := findCandidate(ctx, orgID, newProfile, "", nil)
 	if err != nil {
-		logger.Error("Failed to find user-ID unification candidate", log.Error(err))
-		return
+		return fmt.Errorf("find the user-ID unification candidate of profile %s: %w", newProfile.ProfileID, err)
 	}
 	if candidateID != "" {
-		if mergeUnificationCandidate(ctx, orgID, candidateID, newProfile, constants.SystemUserIDMatchReason, nil) {
-			return
+		done, err := mergeUnificationCandidate(ctx, orgID, candidateID, newProfile,
+			constants.SystemUserIDMatchReason, nil)
+		if done || err != nil {
+			return err
 		}
-	}
-
-	// Query each rule only when no higher-priority match has been found.
-	ruleProvider := provider.NewUnificationRuleProvider()
-	ruleService := ruleProvider.GetUnificationRuleService()
-	unificationRules, err := ruleService.GetUnificationRules(ctx, orgID)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to fetch unification rules for unifying profile: %s",
-			newProfile.ProfileID), log.Error(err))
-		return
-	}
-	if len(unificationRules) == 0 {
-		logger.Info(fmt.Sprintf("No unification rules found for tenant: %s", orgID))
 	}
 
 	logger.Info(fmt.Sprintf("Beginning to evaluate unification for profile: %s", newProfile.ProfileID))
@@ -243,9 +359,9 @@ func unifyProfiles(ctx context.Context, orgID string, newProfile profileModel.Pr
 		logger.Error(fmt.Sprintf(
 			"unifyProfiles: identity resolution is not wired up — skipping rule-based matching for profile %s",
 			newProfile.ProfileID))
-		return
+		return nil
 	}
-	fuzzyResolveFunc(ctx, orgID, newProfile)
+	return fuzzyResolveFunc(ctx, orgID, newProfile)
 }
 
 // findCandidate applies unification-specific selection policy using the
@@ -267,38 +383,35 @@ func findCandidate(ctx context.Context, orgID string, incoming profileModel.Prof
 // rules. Atomic validation against concurrent writers belongs to the separate
 // merge work.
 func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID string,
-	incoming profileModel.Profile, reason string, rule *model.UnificationRule) bool {
+	incoming profileModel.Profile, reason string, rule *model.UnificationRule) (bool, error) {
 	logger := log.GetLogger()
 	candidate, err := profileStore.GetProfileWithOptions(ctx, candidateID, orgID,
 		profileStore.GetProfileOptions{IncludeApplicationData: false})
 	if err != nil {
-		logger.Error("Failed to load unification candidate", log.Error(err))
-		return true
+		return true, fmt.Errorf("load unification candidate %s: %w", candidateID, err)
 	}
 	if candidate == nil || candidate.OrgID != incoming.OrgID ||
 		candidate.ProfileStatus == nil || !candidate.ProfileStatus.IsReferenceProfile {
-		return false
+		return false, nil
 	}
 	if rule == nil {
 		if incoming.UserID == "" || candidate.UserID != incoming.UserID {
-			return false
+			return false, nil
 		}
 	} else if !matchesUnificationCandidate(*candidate, incoming, *rule) {
-		return false
+		return false, nil
 	}
 	if candidate.UserID != "" && incoming.UserID != "" && candidate.UserID != incoming.UserID {
 		logger.Info(fmt.Sprintf("Not merging profiles %s and %s: different user IDs", candidateID, incoming.ProfileID))
-		return false
+		return false, nil
 	}
 	candidate.ApplicationData, err = profileStore.FetchApplicationData(ctx, candidateID)
 	if err != nil {
-		logger.Error("Failed to load candidate application data for merge", log.Error(err))
-		return true
+		return true, fmt.Errorf("load the application data of candidate %s for the merge: %w", candidateID, err)
 	}
 	incoming.ApplicationData, err = profileStore.FetchApplicationData(ctx, incoming.ProfileID)
 	if err != nil {
-		logger.Error("Failed to load incoming application data for merge", log.Error(err))
-		return true
+		return true, fmt.Errorf("load the application data of profile %s for the merge: %w", incoming.ProfileID, err)
 	}
 	logger.Info(fmt.Sprintf("Profiles %s and %s matched for unification using reason %s",
 		candidate.ProfileID, incoming.ProfileID, reason))
@@ -306,12 +419,16 @@ func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID st
 	// error means the pair turned out to be unmergeable, which is not a reason to stop
 	// evaluating — the caller should carry on rather than treat it as a completed merge.
 	mergedMaster, mergeErr := MergeMatchedProfiles(ctx, orgID, *candidate, incoming, reason)
-	if mergeErr != nil {
-		logger.Error(fmt.Sprintf("Unification merge failed for profiles %s and %s",
-			candidate.ProfileID, incoming.ProfileID), log.Error(mergeErr))
-		return true
+	if errors.Is(mergeErr, ErrMergeStale) {
+		logger.Info(fmt.Sprintf("Profile %s or %s was merged by another job after they were matched, so "+
+			"both are unified again", candidate.ProfileID, incoming.ProfileID))
+		RequeueAsMasters(ctx, orgID, candidate.ProfileID, incoming.ProfileID)
+		return true, nil
 	}
-	return mergedMaster != nil
+	if mergeErr != nil {
+		return true, fmt.Errorf("merge profiles %s and %s: %w", candidate.ProfileID, incoming.ProfileID, mergeErr)
+	}
+	return mergedMaster != nil, nil
 }
 
 // MergeMatchedProfiles handles all merge scenarios for two matched profiles.
@@ -325,13 +442,153 @@ func mergeUnificationCandidate(ctx context.Context, orgID string, candidateID st
 // use the returned master rather than assuming either input survived.
 //
 // A nil master with a nil error means the pair was not mergeable and nothing was written.
-// Returns an error when the merge cannot proceed safely.
+// Returns an error when the merge cannot proceed safely, and ErrMergeStale when another job
+// merged one of the two profiles after they were matched.
+//
+// The merge runs in one transaction. It first locks the reference rows of both profiles and
+// reads both again, so it merges what is stored now rather than what the caller matched, and two
+// merges that share a profile run one after the other. A merge that fails writes nothing.
+//
+// In the same transaction, the merge cancels the pending review tasks that name either profile:
+// each was raised on the data of a profile before the merge changed it. After the commit, the
+// profiles of those tasks are queued to be evaluated again against the merged result, which raises
+// a new task where the match still needs a person.
 func MergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfile profileModel.Profile,
 	newProfile profileModel.Profile, reason string) (*profileModel.Profile, error) {
-	master, err := mergeMatchedProfiles(ctx, orgID, existingMasterProfile, newProfile, reason)
+	return mergeProfiles(ctx, orgID, nil, existingMasterProfile, newProfile, reason)
+}
+
+// ReviewApproval is the approval of a review task that a merge carries out.
+type ReviewApproval struct {
+	TaskID     string
+	ResolvedBy string
+	Notes      string
+}
+
+// MergeReviewedProfiles merges the two profiles of an approved review task, as MergeMatchedProfiles
+// does, and marks the task approved in the same transaction. When the task was resolved or withdrawn
+// before the merge locked it, it writes nothing and returns a *irStore.ReviewTaskNotPendingError, so
+// two administrators who approve the same task at once merge the profiles once.
+//
+// A nil master with a nil error means the pair was not mergeable, and the task stays pending.
+func MergeReviewedProfiles(ctx context.Context, orgID string, approval ReviewApproval,
+	existingMasterProfile profileModel.Profile, newProfile profileModel.Profile, reason string) (
+	*profileModel.Profile, error) {
+	return mergeProfiles(ctx, orgID, &approval, existingMasterProfile, newProfile, reason)
+}
+
+// mergeProfiles does the work of MergeMatchedProfiles and MergeReviewedProfiles. approval, when it
+// is not nil, is the review task the merge resolves.
+func mergeProfiles(ctx context.Context, orgID string, approval *ReviewApproval,
+	existingMasterProfile profileModel.Profile, newProfile profileModel.Profile, reason string) (
+	*profileModel.Profile, error) {
+	var master *profileModel.Profile
+	var withdrawn []string
+	err := profileStore.RunInTransaction(ctx, func(txCtx context.Context) error {
+		existing, incoming, err := lockMergePair(txCtx, orgID, existingMasterProfile.ProfileID,
+			newProfile.ProfileID)
+		if err != nil {
+			return err
+		}
+		keepTaskID := ""
+		if approval != nil {
+			// After the profile references, in the order every merge takes its locks.
+			if err := irStore.LockPendingReviewTask(txCtx, approval.TaskID); err != nil {
+				return err
+			}
+			keepTaskID = approval.TaskID
+		}
+		master, err = mergeMatchedProfiles(txCtx, orgID, existing, incoming, reason)
+		if err != nil || master == nil {
+			return err
+		}
+		withdrawn, err = irStore.CancelRelatedReviewTasks(txCtx, keepTaskID, existing.ProfileID,
+			incoming.ProfileID, constants.CanceledBySystem)
+		if err != nil {
+			return fmt.Errorf("cancel the review tasks of '%s' and '%s': %w",
+				existing.ProfileID, incoming.ProfileID, err)
+		}
+		if approval != nil {
+			return irStore.UpdateReviewTaskStatus(txCtx, approval.TaskID, constants.ReviewStatusApproved,
+				approval.ResolvedBy, approval.Notes)
+		}
+		return nil
+	})
+	if err != nil {
+		master = nil
+	}
+	var notPending *irStore.ReviewTaskNotPendingError
+	if errors.Is(err, ErrMergeStale) || errors.As(err, &notPending) {
+		// Nothing was written. The caller unifies a stale pair again, or reports the resolved task.
+		return nil, err
+	}
 	// One audit record for each merge attempt, also when it fails before the merge starts.
 	auditMerge(ctx, orgID, existingMasterProfile.ProfileID, newProfile.ProfileID, reason, master, err)
+	if err == nil {
+		RequeueAsMasters(ctx, orgID, withdrawn...)
+	}
 	return master, err
+}
+
+// ErrMergeStale says that one of two matched profiles is no longer a reference profile when the
+// merge locks it, because another job merged it after the pair was matched. Nothing was written.
+// The caller hands the pair to RequeueAsMasters.
+var ErrMergeStale = errors.New("a profile of the pair was merged by another job after the pair was matched")
+
+// RequeueAsMasters queues profiles to be unified again, each as the master it now belongs to: both
+// profiles of a stale merge, or the profiles of review tasks a merge withdrew. Profiles that belong
+// to the same master queue it once.
+//
+// Either profile of a stale merge can be the one that is still apart. When the incoming profile
+// was merged elsewhere, its job cannot unify it again, because a child is skipped, so the
+// candidate it matched has to be matched against the new master instead.
+func RequeueAsMasters(ctx context.Context, orgID string, profileIDs ...string) {
+	queued := map[string]bool{}
+	for _, profileID := range profileIDs {
+		stored, err := profileStore.GetProfileWithOptions(ctx, profileID, orgID,
+			profileStore.GetProfileOptions{IncludeApplicationData: false})
+		if err != nil || stored == nil {
+			log.GetLogger().Warn(fmt.Sprintf("Profile %s of a stale merge could not be read, so it was not "+
+				"queued again", profileID), log.Error(err))
+			continue
+		}
+		target := stored.ProfileID
+		if stored.ProfileStatus != nil && stored.ProfileStatus.ReferenceProfileID != "" {
+			target = stored.ProfileStatus.ReferenceProfileID
+		}
+		if queued[target] {
+			continue
+		}
+		queued[target] = true
+		EnqueueProfileForProcessing(profileModel.Profile{ProfileID: target, OrgID: orgID})
+	}
+}
+
+// lockMergePair locks the reference rows of both profiles in the transaction of ctx and reads both
+// again. It returns ErrMergeStale when either is gone or is no longer a reference profile.
+func lockMergePair(ctx context.Context, orgID, existingID, incomingID string) (
+	profileModel.Profile, profileModel.Profile, error) {
+	if err := profileStore.LockProfileReferences(ctx, orgID, existingID, incomingID); err != nil {
+		if errors.Is(err, profileStore.ErrProfileReferenceNotFound) {
+			return profileModel.Profile{}, profileModel.Profile{}, fmt.Errorf("%w: %w", ErrMergeStale, err)
+		}
+		return profileModel.Profile{}, profileModel.Profile{}, err
+	}
+
+	pair := make([]profileModel.Profile, 0, 2)
+	for _, profileID := range []string{existingID, incomingID} {
+		stored, err := profileStore.GetProfile(ctx, profileID, orgID)
+		if err != nil {
+			return profileModel.Profile{}, profileModel.Profile{},
+				fmt.Errorf("read profile '%s' for the merge: %w", profileID, err)
+		}
+		if stored == nil || stored.ProfileStatus == nil || !stored.ProfileStatus.IsReferenceProfile {
+			return profileModel.Profile{}, profileModel.Profile{},
+				fmt.Errorf("%w: profile '%s' is no longer a reference profile", ErrMergeStale, profileID)
+		}
+		pair = append(pair, *stored)
+	}
+	return pair[0], pair[1], nil
 }
 
 // mergeMatchedProfiles does the work of MergeMatchedProfiles.
@@ -347,6 +604,15 @@ func mergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 		return nil, fmt.Errorf("fetch references for master '%s': %w", existingMasterProfile.ProfileID, err)
 	}
 	existingMasterProfile.ProfileStatus.References = refs
+
+	// The incoming profile can be a master too, as when a master is evaluated again after a merge.
+	newRefs, err := profileStore.FetchReferencedProfiles(ctx, newProfile.ProfileID)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Failed to fetch references for profile: %s during unification with profile: %s",
+			newProfile.ProfileID, existingMasterProfile.ProfileID), log.Error(err))
+		return nil, fmt.Errorf("fetch references for master '%s': %w", newProfile.ProfileID, err)
+	}
+	newProfile.ProfileStatus.References = newRefs
 
 	// Merge profile data using schema rules
 	schemaRules, err := schemaService.GetEffectiveProfileSchemaAttributes(ctx, orgID)
@@ -387,6 +653,20 @@ func mergeMatchedProfiles(ctx context.Context, orgID string, existingMasterProfi
 	}
 
 	// ── Case: Both permanent with same userId OR both temporary ──
+	if !hasExistingChildren && len(newRefs) > 0 {
+		// Only the incoming profile is a master. It keeps its children and takes the existing
+		// profile as one more, rather than both moving under a new master.
+		return mergeSameKindProfiles(
+			ctx,
+			orgID,
+			newProfile,
+			existingMasterProfile,
+			newMasterProfile,
+			reason,
+			hasUserIDExisting,
+			true,
+		)
+	}
 	return mergeSameKindProfiles(
 		ctx,
 		orgID,
@@ -444,6 +724,10 @@ func mergePermanentAndTemporary(ctx context.Context, orgID string,
 
 		newMasterProfile.ProfileID = existingMasterProfile.ProfileID
 		newMasterProfile.UserID = existingMasterProfile.UserID
+
+		if err := moveChildren(ctx, newProfile, newMasterProfile); err != nil {
+			return nil, err
+		}
 
 		newChild := profileModel.Reference{
 			ProfileID: newProfile.ProfileID,
@@ -522,6 +806,10 @@ func mergeSameKindProfiles(ctx context.Context, orgID string,
 		newMasterProfile.ProfileID = existingMasterProfile.ProfileID
 		newMasterProfile.UserID = existingMasterProfile.UserID
 
+		if err := moveChildren(ctx, newProfile, newMasterProfile); err != nil {
+			return nil, err
+		}
+
 		newChild := profileModel.Reference{
 			ProfileID: newProfile.ProfileID,
 			Reason:    reason,
@@ -541,6 +829,10 @@ func mergeSameKindProfiles(ctx context.Context, orgID string,
 
 		newMasterProfile.ProfileID = existingMasterProfile.ProfileID
 		newMasterProfile.UserID = existingMasterProfile.UserID
+
+		if err := moveChildren(ctx, newProfile, newMasterProfile); err != nil {
+			return nil, err
+		}
 
 		newChild := profileModel.Reference{
 			ProfileID: newProfile.ProfileID,
@@ -577,8 +869,8 @@ func mergeSameKindProfiles(ctx context.Context, orgID string,
 			References:         []profileModel.Reference{childProfile1, childProfile2},
 		}
 
+		// The merge transaction rolls back a partly inserted master.
 		if err := profileStore.InsertProfile(ctx, orgID, newMasterProfile); err != nil {
-			_ = profileStore.DeleteProfile(ctx, newMasterProfile.ProfileID) // cleanup
 			logger.Error(fmt.Sprintf("Failed to insert new master profile while unifying %s and %s",
 				newProfile.ProfileID, existingMasterProfile.ProfileID), log.Error(err))
 			return nil, fmt.Errorf("insert new master for '%s' and '%s': %w",
@@ -598,6 +890,20 @@ func mergeSameKindProfiles(ctx context.Context, orgID string,
 		return nil, err
 	}
 	return &newMasterProfile, nil
+}
+
+// moveChildren re-parents the children of a profile that becomes a child itself to the master that
+// survives the merge, so that every child points at a reference profile.
+func moveChildren(ctx context.Context, demoted profileModel.Profile, master profileModel.Profile) error {
+	if demoted.ProfileStatus == nil || len(demoted.ProfileStatus.References) == 0 {
+		return nil
+	}
+	if err := profileStore.UpdateProfileReferences(ctx, master, demoted.ProfileStatus.References); err != nil {
+		log.GetLogger().Error(fmt.Sprintf("Failed to re-parent references from %s to %s",
+			demoted.ProfileID, master.ProfileID), log.Error(err))
+		return fmt.Errorf("re-parent children from '%s' to '%s': %w", demoted.ProfileID, master.ProfileID, err)
+	}
+	return nil
 }
 
 // persistMergedProfileData writes the merged application data, traits, and identity attributes

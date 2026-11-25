@@ -21,7 +21,10 @@ package managers
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -111,4 +114,38 @@ func TestWithoutASyncListenerEveryRouteIsOnTheMux(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, status(mux, method, "/t/carbon.super"+path), pattern)
 	}
 	assert.Equal(t, http.StatusUnauthorized, status(mux, http.MethodGet, tenantBase+"/profiles"))
+}
+
+// An identity server whose server_url still names the public port gets 404 on every sync. That is said once
+// in the log, with the sync port to point it at, and only for requests with the admin credentials.
+func TestSyncRequestOnThePublicPortIsLoggedOnce(t *testing.T) {
+	public, _ := splitMuxes(t)
+	logPath := filepath.Join(t.TempDir(), "app.log")
+	require.NoError(t, log.Configure(log.Options{Level: "WARN",
+		Output: log.OutputOptions{File: log.FileOutput(logPath)}}))
+	t.Cleanup(func() { _ = log.Init("ERROR") })
+	syncRequestOnPublicPort = sync.Once{}
+
+	send := func(basic bool) int {
+		request := httptest.NewRequest(http.MethodPost, tenantBase+"/profiles/sync", strings.NewReader("{}"))
+		if basic {
+			request.SetBasicAuth("admin", "secret")
+		}
+		response := httptest.NewRecorder()
+		public.ServeHTTP(response, request)
+		return response.Code
+	}
+	readLog := func() string {
+		content, err := os.ReadFile(logPath) // #nosec G304 -- the test reads a file in its temporary directory.
+		require.NoError(t, err)
+		return string(content)
+	}
+
+	assert.Equal(t, http.StatusNotFound, send(false))
+	assert.NotContains(t, readLog(), "sync request to the public port", "a request without the admin credentials")
+
+	assert.Equal(t, http.StatusNotFound, send(true))
+	assert.Equal(t, http.StatusNotFound, send(true))
+	assert.Equal(t, 1, strings.Count(readLog(), "sync request to the public port"))
+	assert.Contains(t, readLog(), ":8901")
 }

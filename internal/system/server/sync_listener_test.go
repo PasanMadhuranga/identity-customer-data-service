@@ -74,20 +74,30 @@ func separate(port int) config.SyncConfig {
 
 func TestValidateSync(t *testing.T) {
 	addr := config.AddrConfig{Host: "127.0.0.1", Port: 8900}
+	required := func(port int) config.SyncConfig {
+		return config.SyncConfig{Addr: config.AddrConfig{Port: port}, RequireClientCert: true}
+	}
+	ownKeyPair := func(port int) config.SyncConfig {
+		return config.SyncConfig{Addr: config.AddrConfig{Port: port}, ServerCert: "sync.crt", ServerKey: "sync.key"}
+	}
 	for name, tc := range map[string]struct {
 		sync config.SyncConfig
 		ok   bool
 	}{
-		"no sync listener": {ok: true},
-		"a sync listener":  {sync: separate(8901), ok: true},
-		"a sync listener requiring a certificate": {
-			sync: config.SyncConfig{Addr: config.AddrConfig{Port: 8901}, RequireClientCert: true}, ok: true,
-		},
+		"no sync listener":                           {ok: true},
+		"a sync listener":                            {sync: separate(8901), ok: true},
+		"a sync listener requiring a certificate":    {sync: required(8901), ok: true},
+		"a sync listener with a key pair of its own": {sync: ownKeyPair(8901), ok: true},
 		"a sync listener on another interface, same port": {
 			sync: config.SyncConfig{Addr: config.AddrConfig{Host: "10.0.0.5", Port: 8900}}, ok: true,
 		},
+		"sync.addr equal to addr, served on addr":        {sync: separate(8900), ok: true},
 		"a certificate required without a sync listener": {sync: config.SyncConfig{RequireClientCert: true}},
-		"the sync listener on the public address":        {sync: separate(8900)},
+		"a certificate required on addr":                 {sync: required(8900)},
+		"a key pair of its own on addr":                  {sync: ownKeyPair(8900)},
+		"a sync certificate without its key": {
+			sync: config.SyncConfig{Addr: config.AddrConfig{Port: 8901}, ServerCert: "sync.crt"},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := validateSync(config.Config{Addr: addr, Sync: tc.sync})
@@ -99,6 +109,19 @@ func TestValidateSync(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSyncKeyPair(t *testing.T) {
+	dir := t.TempDir()
+	cfg := config.Config{TLS: config.TLSConfig{CDSPublicCert: "server.crt", CDSPrivateKey: "server.key"}}
+	cert, key := syncKeyPair(cfg, dir)
+	assert.Equal(t, filepath.Join(dir, "server.crt"), cert, "tls.server_cert by default")
+	assert.Equal(t, filepath.Join(dir, "server.key"), key)
+
+	cfg.Sync.ServerCert, cfg.Sync.ServerKey = "sync.crt", "sync.key"
+	cert, key = syncKeyPair(cfg, dir)
+	assert.Equal(t, filepath.Join(dir, "sync.crt"), cert)
+	assert.Equal(t, filepath.Join(dir, "sync.key"), key)
 }
 
 func TestSyncTLSConfigWithoutRequireClientCertAsksForNoClientCertificate(t *testing.T) {
@@ -176,6 +199,7 @@ func TestSyncTLSConfigTrustsTheDefaultCertificateOnlyWhileEverythingIsDefault(t 
 	for name, tc := range map[string]struct {
 		clientTrustStore []byte
 		serverCert       []byte
+		syncCert         []byte
 		refused          bool
 	}{
 		"every default, as a first installation": {clientTrustStore: defaultPEM, serverCert: defaultPEM},
@@ -187,17 +211,25 @@ func TestSyncTLSConfigTrustsTheDefaultCertificateOnlyWhileEverythingIsDefault(t 
 		"the default while CDD presents its own certificate": {
 			clientTrustStore: defaultPEM, serverCert: ownPEM, refused: true,
 		},
+		"the default while the sync port presents a certificate of its own": {
+			clientTrustStore: defaultPEM, serverCert: defaultPEM, syncCert: ownPEM, refused: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			dir := t.TempDir()
 			require.NoError(t, os.WriteFile(filepath.Join(dir, "client_trust_store.pem"), tc.clientTrustStore, 0o600))
 			require.NoError(t, os.WriteFile(filepath.Join(dir, "server.crt"), tc.serverCert, 0o600))
-
-			_, err := syncTLSConfig(config.Config{
+			cfg := config.Config{
 				TLS: config.TLSConfig{CDSPublicCert: "server.crt"},
 				Sync: config.SyncConfig{Addr: config.AddrConfig{Port: 8901}, RequireClientCert: true,
 					ClientTrustStore: "client_trust_store.pem"},
-			}, dir)
+			}
+			if tc.syncCert != nil {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "sync.crt"), tc.syncCert, 0o600))
+				cfg.Sync.ServerCert, cfg.Sync.ServerKey = "sync.crt", "sync.key"
+			}
+
+			_, err := syncTLSConfig(cfg, dir)
 
 			if tc.refused {
 				assert.ErrorContains(t, err, "trusts the default certificate the pack ships with")

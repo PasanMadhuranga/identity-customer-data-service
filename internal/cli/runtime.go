@@ -97,7 +97,7 @@ func (c *runtimeConfig) serverCertificate(cdsHome string) string {
 // clientTrustStore is the path of the client certificates the sync port
 // accepts, or "" when it requires none.
 func (c *runtimeConfig) clientTrustStore(cdsHome string) string {
-	if c.Sync.Addr.Port == 0 || !c.Sync.RequireClientCert || c.Sync.ClientTrustStore == "" {
+	if !c.syncSeparate() || !c.Sync.RequireClientCert || c.Sync.ClientTrustStore == "" {
 		return ""
 	}
 	return filepath.Join(c.certDir(cdsHome), c.Sync.ClientTrustStore)
@@ -142,7 +142,14 @@ func (c *runtimeConfig) addressInUse() bool {
 // syncAddressInUse reports whether something is already listening where CDD
 // is configured to serve the sync endpoints on a port of their own.
 func (c *runtimeConfig) syncAddressInUse() bool {
-	return c.Sync.Addr.Port != 0 && listening(c.Sync.Addr.Host, c.Sync.Addr.Port)
+	return c.syncSeparate() && listening(c.Sync.Addr.Host, c.Sync.Addr.Port)
+}
+
+// syncSeparate reports whether the sync endpoints have a port of their own, as
+// the runtime decides it: sync.addr names a port, and an address other than
+// addr.
+func (c *runtimeConfig) syncSeparate() bool {
+	return c.Sync.Addr.Port != 0 && (c.Sync.Addr.Host != c.Addr.Host || c.Sync.Addr.Port != c.Addr.Port)
 }
 
 // syncAddress is where CDD is configured to serve the sync endpoints.

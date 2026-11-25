@@ -25,13 +25,25 @@ import (
 )
 
 func TestSyncListenerPlace(t *testing.T) {
-	assert.False(t, SyncConfig{}.Separate(), "no sync.addr serves the sync endpoints on addr")
-	assert.False(t, SyncConfig{Addr: AddrConfig{Host: "10.0.0.5"}}.Separate(), "a host without a port")
+	addr := AddrConfig{Host: "127.0.0.1", Port: 8900}
+	for name, tc := range map[string]struct {
+		sync     AddrConfig
+		separate bool
+	}{
+		"no sync.addr":                      {},
+		"a host without a port":             {sync: AddrConfig{Host: "10.0.0.5"}},
+		"the address of addr":               {sync: AddrConfig{Host: "127.0.0.1", Port: 8900}},
+		"the port of addr, on its host":     {sync: AddrConfig{Port: 8900}},
+		"a port of its own":                 {sync: AddrConfig{Port: 8901}, separate: true},
+		"the port of addr, on another host": {sync: AddrConfig{Host: "10.0.0.5", Port: 8900}, separate: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.separate, Config{Addr: addr, Sync: SyncConfig{Addr: tc.sync}}.SyncSeparate())
+		})
+	}
 
-	cfg := Config{Addr: AddrConfig{Host: "127.0.0.1", Port: 8900}, Sync: SyncConfig{Addr: AddrConfig{Port: 8901}}}
-	assert.True(t, cfg.Sync.Separate())
+	cfg := Config{Addr: addr, Sync: SyncConfig{Addr: AddrConfig{Port: 8901}}}
 	assert.Equal(t, "127.0.0.1:8901", cfg.SyncAddress(), "the host of addr")
-
 	cfg.Sync.Addr.Host = "::1"
 	assert.Equal(t, "[::1]:8901", cfg.SyncAddress())
 }

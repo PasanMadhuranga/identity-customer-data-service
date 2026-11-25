@@ -123,3 +123,20 @@ func TestClientTrustStoreOnlyWhereItIsRequired(t *testing.T) {
 		t.Errorf("client trust store at %s, want %s", got, want)
 	}
 }
+
+// A sync.addr equal to addr is no port of its own: the runtime serves the sync
+// endpoints on addr, so start checks no second port.
+func TestSyncAddressEqualToAddrIsNotASyncPort(t *testing.T) {
+	var config runtimeConfig
+	config.Addr.Host, config.Addr.Port = "127.0.0.1", 8900
+	config.Sync.Addr.Host, config.Sync.Addr.Port = "127.0.0.1", 8900
+	config.Sync.RequireClientCert = true
+	config.Sync.ClientTrustStore = "client_trust_store.pem"
+
+	if config.syncSeparate() {
+		t.Error("sync.addr equal to addr was taken for a port of its own")
+	}
+	if config.clientTrustStore(t.TempDir()) != "" {
+		t.Error("a client trust store was named without a sync port of its own")
+	}
+}

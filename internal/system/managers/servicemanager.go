@@ -20,11 +20,14 @@
 package managers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/wso2/identity-customer-data-service/internal/system/config"
 	"github.com/wso2/identity-customer-data-service/internal/system/constants"
+	"github.com/wso2/identity-customer-data-service/internal/system/log"
 	"github.com/wso2/identity-customer-data-service/internal/system/services"
 	"github.com/wso2/identity-customer-data-service/internal/system/utils"
 )
@@ -96,22 +99,42 @@ func (sm *ServiceManager) RegisterServices() error {
 	}
 
 	if sm.syncMux == nil {
-		utils.MountTenantDispatcher(sm.mux, tenantHandler(routesMux, func(string) bool { return true }))
+		utils.MountTenantDispatcher(sm.mux, tenantHandler(routesMux, func(*http.Request, string) bool { return true }))
 		return nil
 	}
 	sm.syncMux.Handle("/cds/", rootMux)
-	utils.MountTenantDispatcher(sm.mux, tenantHandler(routesMux, func(pattern string) bool {
-		return !syncRoutes[pattern]
+	utils.MountTenantDispatcher(sm.mux, tenantHandler(routesMux, func(r *http.Request, pattern string) bool {
+		if syncRoutes[pattern] {
+			warnSyncRequestOnPublicPort(r)
+			return false
+		}
+		return true
 	}))
-	utils.MountTenantDispatcher(sm.syncMux, tenantHandler(routesMux, func(pattern string) bool {
+	utils.MountTenantDispatcher(sm.syncMux, tenantHandler(routesMux, func(_ *http.Request, pattern string) bool {
 		return syncRoutes[pattern] || sharedRoutes[pattern]
 	}))
 	return nil
 }
 
-// tenantHandler serves the routes of routesMux whose pattern serves accepts, and a 404 for the others. A request
-// that matches no pattern is left to routesMux, which answers it with a 404 or a 405.
-func tenantHandler(routesMux *http.ServeMux, serves func(pattern string) bool) http.HandlerFunc {
+var syncRequestOnPublicPort sync.Once
+
+// warnSyncRequestOnPublicPort says, once, that the identity server sends its syncs to the public port: an
+// identity server whose server_url was not moved to the sync port. Only requests with the admin
+// credentials count, so that a scan of the public port does not raise it.
+func warnSyncRequestOnPublicPort(r *http.Request) {
+	if !strings.HasPrefix(r.Header.Get("Authorization"), "Basic ") {
+		return
+	}
+	syncRequestOnPublicPort.Do(func() {
+		log.GetLogger().Warn(fmt.Sprintf("The identity server sent a sync request to the public port, which no "+
+			"longer serves the sync endpoints. Point [customer_data_service] server_url of the identity server "+
+			"at the sync port, %s.", config.GetCDSRuntime().Config.SyncAddress()))
+	})
+}
+
+// tenantHandler serves the routes of routesMux whose request and pattern serves accepts, and a 404 for the
+// others. A request that matches no pattern is left to routesMux, which answers it with a 404 or a 405.
+func tenantHandler(routesMux *http.ServeMux, serves func(r *http.Request, pattern string) bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimSuffix(r.URL.Path, "/")
 		if path == "" {
@@ -119,7 +142,7 @@ func tenantHandler(routesMux *http.ServeMux, serves func(pattern string) bool) h
 		} else {
 			r.URL.Path = path
 		}
-		if _, pattern := routesMux.Handler(r); pattern != "" && !serves(pattern) {
+		if _, pattern := routesMux.Handler(r); pattern != "" && !serves(r, pattern) {
 			http.NotFound(w, r)
 			return
 		}

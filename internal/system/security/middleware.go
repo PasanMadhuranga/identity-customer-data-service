@@ -41,7 +41,7 @@ import (
 func AuthnWithAdminCredentials(r *http.Request) error {
 	authHeader := r.Header.Get("Authorization")
 	logger := log.GetLogger()
-	if config.GetCDSRuntime().Config.Sync.Separate() && !OnSyncListener(r) {
+	if config.GetCDSRuntime().Config.SyncSeparate() && !OnSyncListener(r) {
 		logger.Debug("Admin credentials on the public listener while the sync endpoints have their own")
 		return errors.NewClientError(errors.ErrorMessage{
 			Code:        errors.Unauthorized.Code,

@@ -390,8 +390,8 @@ func (c Config) UsesAppIDIdentifier() bool {
 // SyncConfig places the sync endpoints, the ones only the identity server calls, on a listener of
 // their own, which is never exposed with the public APIs.
 type SyncConfig struct {
-	// Addr is the address of the sync listener, on the host of Addr when it names none. Without a port
-	// the sync endpoints are served on Addr, beside the public APIs.
+	// Addr is the address of the sync listener, on the host of Addr when it names none. Without a port,
+	// or with the address of Addr, the sync endpoints are served on Addr, beside the public APIs.
 	Addr AddrConfig `yaml:"addr"`
 	// RequireClientCert makes the sync listener require, in the TLS handshake, a client certificate that
 	// ClientTrustStore verifies. It needs a sync listener of its own: the public listener never asks
@@ -400,20 +400,31 @@ type SyncConfig struct {
 	// ClientTrustStore holds the client certificates the sync listener accepts: the identity server's
 	// own, or a CA that issues only to it. Never the system CAs.
 	ClientTrustStore string `yaml:"client_trust_store"`
+	// ServerCert and ServerKey are the key pair the sync listener presents, for the internal name the
+	// identity server reaches it on. Unset, it presents tls.server_cert and tls.server_key.
+	ServerCert string `yaml:"server_cert"`
+	ServerKey  string `yaml:"server_key"`
 }
 
-// Separate reports whether the sync endpoints have a listener of their own.
-func (s SyncConfig) Separate() bool {
-	return s.Addr.Port != 0
+// SyncSeparate reports whether the sync endpoints have a listener of their own: sync.addr names a port,
+// and an address other than addr.
+func (c Config) SyncSeparate() bool {
+	if c.Sync.Addr.Port == 0 {
+		return false
+	}
+	return c.syncHost() != c.Addr.Host || c.Sync.Addr.Port != c.Addr.Port
 }
 
 // SyncAddress is the address of the sync listener: sync.addr, on the host of addr when it names none.
 func (c Config) SyncAddress() string {
-	host := c.Sync.Addr.Host
-	if host == "" {
-		host = c.Addr.Host
+	return net.JoinHostPort(c.syncHost(), strconv.Itoa(c.Sync.Addr.Port))
+}
+
+func (c Config) syncHost() string {
+	if c.Sync.Addr.Host == "" {
+		return c.Addr.Host
 	}
-	return net.JoinHostPort(host, strconv.Itoa(c.Sync.Addr.Port))
+	return c.Sync.Addr.Host
 }
 
 // TLSConfig holds the certificates of the server and whether mutual TLS is on.

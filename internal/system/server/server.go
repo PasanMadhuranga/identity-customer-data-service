@@ -178,7 +178,7 @@ func Run(cdsHome string) {
 	workers.StartTemporaryProfileCleanupWorker()
 
 	serverAddr := fmt.Sprintf("%s:%d", cdsConfig.Addr.Host, cdsConfig.Addr.Port)
-	publicMux, syncMux := initMultiplexers(cdsConfig.Sync.Separate())
+	publicMux, syncMux := initMultiplexers(cdsConfig.SyncSeparate())
 	mux := logStreams.wrap(newCORSMiddleware(publicMux))
 
 	logger := log.GetLogger()
@@ -224,13 +224,23 @@ func Run(cdsHome string) {
 
 	// The sync endpoints on a listener of their own, which only the identity server calls.
 	var syncServer *http.Server
-	if cdsConfig.Sync.Separate() {
+	syncCertPath, syncKeyPath := syncKeyPair(*cdsConfig, certDir)
+	if cdsConfig.SyncSeparate() {
 		syncTLS, err := syncTLSConfig(*cdsConfig, certDir)
 		if err != nil {
 			logger.Error("Invalid sync configuration.", log.Error(err))
 			os.Exit(1)
 		}
+		for _, file := range []string{syncCertPath, syncKeyPath} {
+			if _, err := os.Stat(file); err != nil {
+				logger.Error(fmt.Sprintf("Error accessing the key pair of the sync port at %s: %v", file, err))
+				os.Exit(1)
+			}
+		}
 		syncServer = newHTTPServer(cdsConfig.SyncAddress(), logStreams.wrap(security.SyncListener(syncMux)), syncTLS)
+	} else if cdsConfig.Sync.Addr.Port != 0 {
+		logger.Info(fmt.Sprintf("sync.addr is the address of addr, so the sync endpoints are served on %s, "+
+			"beside the public APIs.", serverAddr))
 	}
 
 	// Listen for OS shutdown signals
@@ -249,7 +259,7 @@ func Run(cdsHome string) {
 		go func() {
 			logger.Info(fmt.Sprintf("HTTPS sync server listening on %s, client certificate required: %t",
 				syncServer.Addr, cdsConfig.Sync.RequireClientCert))
-			if err := syncServer.ListenAndServeTLS(serverCertPath, serverKeyPath); err != nil &&
+			if err := syncServer.ListenAndServeTLS(syncCertPath, syncKeyPath); err != nil &&
 				err != http.ErrServerClosed {
 				logger.Error("Failed to start the HTTPS sync server.", log.Error(err))
 				os.Exit(1)

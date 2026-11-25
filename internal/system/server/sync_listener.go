@@ -57,7 +57,7 @@ func syncTLSConfig(cfg config.Config, certDir string) (*tls.Config, error) {
 	if !clientCAs.AppendCertsFromPEM(trustPEM) {
 		return nil, fmt.Errorf("no certificates in sync.client_trust_store: %s", trustPath)
 	}
-	serverCert := filepath.Join(certDir, cfg.TLS.CDSPublicCert)
+	serverCert, _ := syncKeyPair(cfg, certDir)
 	if err := checkDefaultCertificateAlone(trustPath, trustPEM, serverCert); err != nil {
 		return nil, err
 	}
@@ -67,25 +67,34 @@ func syncTLSConfig(cfg config.Config, certDir string) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-// validateSync checks the place of the sync listener: a client certificate is requested on a listener of
-// its own only, and that listener is not the public one.
+// validateSync checks the sync configuration: a client certificate is requested, and a key pair of its
+// own presented, on a sync listener of its own only. A sync.addr equal to addr is not one: the sync
+// endpoints are then served on addr, as without sync.addr.
 func validateSync(cfg config.Config) error {
-	if !cfg.Sync.Separate() {
-		if cfg.Sync.RequireClientCert {
-			return errors.New("sync.require_client_cert needs sync.addr: a client certificate is required on " +
-				"the sync port only, never on the port browsers and SDKs call")
-		}
+	if (cfg.Sync.ServerCert == "") != (cfg.Sync.ServerKey == "") {
+		return errors.New("sync.server_cert and sync.server_key must be set together")
+	}
+	if cfg.SyncSeparate() {
 		return nil
 	}
-	syncHost := cfg.Sync.Addr.Host
-	if syncHost == "" {
-		syncHost = cfg.Addr.Host
+	if cfg.Sync.RequireClientCert {
+		return errors.New("sync.require_client_cert needs a sync.addr of its own: a client certificate is " +
+			"required on the sync port only, never on the port browsers and SDKs call")
 	}
-	if syncHost == cfg.Addr.Host && cfg.Sync.Addr.Port == cfg.Addr.Port {
-		return fmt.Errorf("sync.addr is the address of addr, %s: give the sync endpoints a port of their own",
-			cfg.SyncAddress())
+	if cfg.Sync.ServerCert != "" {
+		return errors.New("sync.server_cert needs a sync.addr of its own: without one the sync endpoints are " +
+			"served on addr, with tls.server_cert")
 	}
 	return nil
+}
+
+// syncKeyPair is the key pair the sync listener presents: sync.server_cert and sync.server_key, or
+// tls.server_cert and tls.server_key when they are not set.
+func syncKeyPair(cfg config.Config, certDir string) (string, string) {
+	if cfg.Sync.ServerCert != "" {
+		return filepath.Join(certDir, cfg.Sync.ServerCert), filepath.Join(certDir, cfg.Sync.ServerKey)
+	}
+	return filepath.Join(certDir, cfg.TLS.CDSPublicCert), filepath.Join(certDir, cfg.TLS.CDSPrivateKey)
 }
 
 // checkDefaultCertificateAlone refuses a client trust store that still trusts the default certificate the

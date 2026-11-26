@@ -891,17 +891,23 @@ func isRetryableWriteError(err error) bool {
 // written to. It returns the profile as it was stored and the profile it wrote.
 func writeUnderLock(ctx context.Context, profileID string, orgID string, schema model.ProfileSchema,
 	build buildProfileRequest) (stored profileModel.Profile, written profileModel.Profile, err error) {
+	// This read only finds which profile to lock, and runs before the transaction. On MySQL, whose
+	// transactions are REPEATABLE READ, the first plain read of a transaction fixes the snapshot its
+	// later plain reads see. Read inside the transaction before the lock, it would hide a merge that
+	// commits while the write waits for the lock, and the write would put back the copy without it.
+	found, err := profileStore.GetProfileWithOptions(ctx, profileID, orgID,
+		profileStore.GetProfileOptions{IncludeApplicationData: false})
+	if err != nil {
+		return stored, written, err
+	}
+	if found == nil {
+		return stored, written, profileNotFoundError()
+	}
+	targetID := writeTargetID(found)
+
 	err = profileStore.RunInTransaction(ctx, func(txCtx context.Context) error {
-		// The first read only finds which profile to lock.
-		found, err := profileStore.GetProfileWithOptions(txCtx, profileID, orgID,
-			profileStore.GetProfileOptions{IncludeApplicationData: false})
-		if err != nil {
-			return err
-		}
-		if found == nil {
-			return profileNotFoundError()
-		}
-		targetID := writeTargetID(found)
+		// The lock is the first statement of the transaction, so every read after it sees what
+		// the merges that held the lock before it committed.
 		if err := lockWriteTarget(txCtx, orgID, found, targetID); err != nil {
 			return err
 		}

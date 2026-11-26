@@ -21,6 +21,7 @@ package authn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -37,6 +38,20 @@ import (
 
 var (
 	expectedAudience = "iam-cds"
+
+	// signingKeys holds the keys of the JWKS endpoints, so the signature of a JWT is checked
+	// without a call to the identity provider.
+	signingKeys = newJWKSCache()
+	// introspections holds active introspection results for a short time.
+	introspections = newIntrospectionCache()
+
+	// allowedSigningMethods are the asymmetric algorithms a JWT may be signed with. A token
+	// that is not signed, or signed with a shared secret, is refused before any key is read.
+	allowedSigningMethods = []string{
+		"RS256", "RS384", "RS512",
+		"PS256", "PS384", "PS512",
+		"ES256", "ES384", "ES512",
+	}
 )
 
 // ValidateAuthenticationAndReturnClaims validates Authorization: Bearer token from the HTTP request
@@ -44,21 +59,28 @@ func ValidateAuthenticationAndReturnClaims(token, orgHandle string) (map[string]
 	return ValidateTokenForOrg(token, orgHandle, orgHandle, "")
 }
 
-// ValidateTokenForOrg validates the token for the organization of the path. It introspects the token
-// at the primary organization primaryHandle. For a sub organization, the org_id claim must match
+// ValidateTokenForOrg validates the token for the organization of the path, on every request. When
+// the identity provider publishes its signing keys (idp.SigningKeyPublisher), the signature of a
+// JWT is checked with the cached keys of the primary organization primaryHandle. Then the token is
+// introspected at the primary organization; an active result is cached for a short time unless
+// auth_server.disable_introspection_cache is set. For a sub organization, the org_id claim must match
 // pathOrgID. For a primary organization, the org_handle claim must match the path handle.
 func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map[string]interface{}, error) {
 	logger := log.GetLogger()
 	cfg := config.GetCDSRuntime().Config
 	identityClient := client.NewIdentityClient(cfg)
 
+	introspectionTTL := constants.IntrospectionCacheTTL
+	if cfg.AuthServer.DisableIntrospectionCache {
+		introspectionTTL = 0
+	}
+
 	if IsJWT(token) {
 		logger.Debug(fmt.Sprintf("Token is identified as JWT. Validating JWT for organization: '%s'", orgHandle))
 
-		// Parse JWT to get claims (contains org information)
-		claims, err := ParseJWTClaims(token)
+		claims, err := jwtClaims(token, primaryHandle)
 		if err != nil {
-			logger.Debug(fmt.Sprintf("Failed to parse JWT claims for organization: '%s'", orgHandle),
+			logger.Debug(fmt.Sprintf("Failed to read a valid JWT for organization: '%s'", orgHandle),
 				log.Error(err))
 			return nil, unauthorizedError()
 		}
@@ -70,14 +92,15 @@ func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map
 		}
 
 		// Introspect to check if token is still active (not revoked)
-		introspectionClaims, err := introspect(identityClient, token, orgHandle, primaryHandle)
+		introspectionClaims, err := introspectCached(identityClient, token, orgHandle, primaryHandle,
+			introspectionTTL, expiryOf(claims))
 		if err != nil {
 			logger.Error(fmt.Sprintf("JWT token introspection failed for organization: '%s'", orgHandle),
 				log.Error(err))
 			return nil, unauthorizedError()
 		}
 
-		active, ok := introspectionClaims["active"].(bool)
+		active, ok := introspectionClaims[constants.ActiveClaim].(bool)
 		if !ok || !active {
 			logger.Debug("JWT token is not active according to introspection")
 			return nil, unauthorizedError()
@@ -91,7 +114,8 @@ func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map
 	logger.Debug(fmt.Sprintf("Token is identified as opaque. Validating opaque token for organization: '%s' "+
 		"using introspection", orgHandle))
 
-	introspectionClaims, err := introspect(identityClient, token, orgHandle, primaryHandle)
+	introspectionClaims, err := introspectCached(identityClient, token, orgHandle, primaryHandle,
+		introspectionTTL, time.Time{})
 	if err != nil {
 		logger.Error(fmt.Sprintf("Opaque token introspection failed for organization: '%s'", orgHandle),
 			log.Error(err))
@@ -136,6 +160,48 @@ func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map
 func IsJWT(tokenString string) bool {
 	_, _, err := jwt.NewParser().ParseUnverified(tokenString, jwt.MapClaims{})
 	return err == nil
+}
+
+// jwtClaims returns the claims of the JWT. When the identity provider publishes its signing keys,
+// the signature is checked first, so a forged token never reaches introspection. Otherwise the
+// claims are read without a check, and introspection alone decides whether the token is valid.
+func jwtClaims(token, primaryHandle string) (map[string]interface{}, error) {
+	publisher, ok := idp.GetAdapter().(idp.SigningKeyPublisher)
+	if !ok {
+		return ParseJWTClaims(token)
+	}
+	return verifyJWT(publisher, token, primaryHandle)
+}
+
+// verifyJWT checks the signature of the JWT with the key its kid names, from the JWKS endpoint of
+// the primary organization, and returns its claims. Only the signature is checked here.
+// validateClaims checks the claims.
+func verifyJWT(publisher idp.SigningKeyPublisher, token, primaryHandle string) (map[string]interface{}, error) {
+	endpoint, err := publisher.JWKSEndpoint(primaryHandle)
+	if err != nil {
+		return nil, err
+	}
+	claims := jwt.MapClaims{}
+	parser := jwt.NewParser(jwt.WithValidMethods(allowedSigningMethods), jwt.WithoutClaimsValidation())
+	_, err = parser.ParseWithClaims(token, claims, func(parsed *jwt.Token) (interface{}, error) {
+		kid, _ := parsed.Header["kid"].(string)
+		if kid == "" {
+			return nil, errors.New("the token header has no kid")
+		}
+		return signingKeys.key(endpoint, kid, parsed.Method.Alg(), publisher.FetchJWKS)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return claims, nil
+}
+
+// expiryOf returns the expiry of the token claims, or the zero time when they have none.
+func expiryOf(claims map[string]interface{}) time.Time {
+	if exp, ok := claims[constants.ExpiryClaim].(float64); ok {
+		return time.Unix(int64(exp), 0)
+	}
+	return time.Time{}
 }
 
 // ParseJWTClaims parses claims from a JWT without verifying the signature
@@ -186,6 +252,19 @@ func validateClaims(orgHandle, pathOrgID string, claims map[string]interface{}) 
 		return false
 	}
 
+	// A token is not used before its not-before time, allowing for clock skew.
+	if nbfRaw, ok := claims[constants.NotBeforeClaim]; ok {
+		nbfFloat, ok := nbfRaw.(float64)
+		if !ok {
+			logger.Debug("Token does not have a valid not-before time.", log.Any("nbf", nbfRaw))
+			return false
+		}
+		if time.Unix(int64(nbfFloat), 0).After(time.Now().Add(constants.JWTClockSkew)) {
+			logger.Debug("Token is not valid yet.", log.String("nbf", time.Unix(int64(nbfFloat), 0).String()))
+			return false
+		}
+	}
+
 	audRaw, ok := claims[constants.AudienceClaim]
 	if !ok {
 		logger.Debug("Token does not have an audience claim.")
@@ -226,6 +305,33 @@ func unauthorizedError() error {
 // as the authentication of the request does.
 func IntrospectToken(token, orgHandle, primaryHandle string) (map[string]interface{}, error) {
 	return introspect(client.NewIdentityClient(config.GetCDSRuntime().Config), token, orgHandle, primaryHandle)
+}
+
+// introspectCached introspects the token, or returns a cached active result for it. An active
+// result is cached for ttl, and never past tokenExpiry or the expiry the result names. A ttl of
+// zero introspects every time.
+func introspectCached(identityClient *client.IdentityClient, token, orgHandle, primaryHandle string,
+	ttl time.Duration, tokenExpiry time.Time) (map[string]interface{}, error) {
+	if ttl <= 0 {
+		return introspect(identityClient, token, orgHandle, primaryHandle)
+	}
+	key := introspectionCacheKey(token, orgHandle, primaryHandle)
+	if claims, ok := introspections.get(key); ok {
+		return claims, nil
+	}
+	claims, err := introspect(identityClient, token, orgHandle, primaryHandle)
+	if err != nil {
+		return nil, err
+	}
+	if active, _ := claims[constants.ActiveClaim].(bool); active {
+		expiry := tokenExpiry
+		if resultExpiry := expiryOf(claims); !resultExpiry.IsZero() &&
+			(expiry.IsZero() || resultExpiry.Before(expiry)) {
+			expiry = resultExpiry
+		}
+		introspections.put(key, claims, ttl, expiry)
+	}
+	return claims, nil
 }
 
 // introspect asks the identity provider whether the token is active. The adapter

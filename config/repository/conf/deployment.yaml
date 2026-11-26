@@ -91,6 +91,12 @@ auth_server:
   admin_username: "admin"
   admin_password: "${AUTH_SERVER_ADMIN_PASSWORD}"
   isSystemAppGrantEnabled: false
+  # Every request validates its token. With idp.type wso2is, the signature of a JWT is checked
+  # with the cached keys of the primary organization's JWKS endpoint, and only RS, PS and ES
+  # algorithms are accepted. An active introspection result is then reused for up to a minute,
+  # and never past the token's expiry, so a revoked token can be accepted for at most a minute.
+  # Set disable_introspection_cache to true to introspect every request instead.
+  # disable_introspection_cache: false
   required_scopes:
     profile:create:
       - "internal_cds_profile_create"

@@ -76,8 +76,7 @@ idp:
 
 # Organization management: the organization tree, sub organization paths, and sharing with child
 # organizations. On in this shipped configuration: every database script and the inbuilt database
-# create the organization tables. An existing PostgreSQL database needs
-# dbscripts/migrations/002-organization-management-postgres.sql first.
+# create the organization tables.
 organization_management:
   enabled: true
 

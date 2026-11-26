@@ -564,6 +564,10 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 // few kilobytes.
 const maxJWKSResponseBytes = 1 << 20
 
+// jwksFetchTimeout bounds a JWKS fetch. Requests that need the keys wait for the
+// fetch, so a slow identity server holds them for at most this long.
+var jwksFetchTimeout = constants.JWKSFetchTimeout
+
 // JWKSEndpoint returns the URL of the JWKS endpoint of the primary organization
 // primaryHandle, at path after /t/{primaryHandle}. It is on the host that
 // introspects the tokens of the organization.
@@ -579,7 +583,9 @@ func (c *IdentityClient) JWKSEndpoint(primaryHandle, path string) (string, error
 // FetchJWKS returns the JWKS document at endpoint, a URL that JWKSEndpoint
 // built.
 func (c *IdentityClient) FetchJWKS(endpoint string) ([]byte, error) {
-	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), jwksFetchTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}

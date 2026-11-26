@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -64,8 +65,6 @@ func ValidateAuthenticationAndReturnClaims(token, orgHandle string) (map[string]
 // pathOrgID. For a primary organization, the org_handle claim must match the path handle.
 func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map[string]interface{}, error) {
 	logger := log.GetLogger()
-	cfg := config.GetCDSRuntime().Config
-	identityClient := client.NewIdentityClient(cfg)
 
 	if IsJWT(token) {
 		logger.Debug(fmt.Sprintf("Token is identified as JWT. Validating JWT for organization: '%s'", orgHandle))
@@ -84,7 +83,7 @@ func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map
 		}
 
 		// Introspect to check if token is still active (not revoked)
-		introspectionClaims, err := introspect(identityClient, token, orgHandle, primaryHandle)
+		introspectionClaims, err := introspect(token, orgHandle, primaryHandle)
 		if err != nil {
 			logger.Error(fmt.Sprintf("JWT token introspection failed for organization: '%s'", orgHandle),
 				log.Error(err))
@@ -105,7 +104,7 @@ func ValidateTokenForOrg(token, orgHandle, primaryHandle, pathOrgID string) (map
 	logger.Debug(fmt.Sprintf("Token is identified as opaque. Validating opaque token for organization: '%s' "+
 		"using introspection", orgHandle))
 
-	introspectionClaims, err := introspect(identityClient, token, orgHandle, primaryHandle)
+	introspectionClaims, err := introspect(token, orgHandle, primaryHandle)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Opaque token introspection failed for organization: '%s'", orgHandle),
 			log.Error(err))
@@ -286,17 +285,35 @@ func unauthorizedError() error {
 // organization orgHandle, whose primary organization is primaryHandle, the same way
 // as the authentication of the request does.
 func IntrospectToken(token, orgHandle, primaryHandle string) (map[string]interface{}, error) {
-	return introspect(client.NewIdentityClient(config.GetCDSRuntime().Config), token, orgHandle, primaryHandle)
+	return introspect(token, orgHandle, primaryHandle)
 }
 
 // introspect asks the identity provider whether the token is active. The adapter
 // of the identity provider introspects it when it can, as with the service
 // credentials of the organization. Otherwise the configured introspection client
 // introspects it for the primary organization primaryHandle.
-func introspect(identityClient *client.IdentityClient, token, orgHandle,
-	primaryHandle string) (map[string]interface{}, error) {
+func introspect(token, orgHandle, primaryHandle string) (map[string]interface{}, error) {
 	if introspector, ok := idp.GetAdapter().(idp.TokenIntrospector); ok {
 		return introspector.IntrospectToken(context.Background(), token, orgHandle, primaryHandle)
 	}
-	return identityClient.IntrospectToken(token, primaryHandle)
+	return introspectionClient().IntrospectToken(token, primaryHandle)
+}
+
+// fallbackClient is the identity client that introspects tokens when the adapter of the identity
+// provider does not. It is built once for each runtime configuration, so a request does not build
+// an HTTP client and open a new connection.
+var fallbackClient struct {
+	mu      sync.Mutex
+	runtime *config.CDSRuntime
+	client  *client.IdentityClient
+}
+
+func introspectionClient() *client.IdentityClient {
+	fallbackClient.mu.Lock()
+	defer fallbackClient.mu.Unlock()
+	if current := config.GetCDSRuntime(); fallbackClient.client == nil || fallbackClient.runtime != current {
+		fallbackClient.client = client.NewIdentityClient(current.Config)
+		fallbackClient.runtime = current
+	}
+	return fallbackClient.client
 }

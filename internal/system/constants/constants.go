@@ -733,6 +733,8 @@ const (
 	// whose key ID is not in the cached keys triggers a fetch, so this bounds the fetches that
 	// such tokens can cause.
 	JWKSMinRefreshInterval = time.Minute
+	// JWKSFetchTimeout bounds one fetch of a JWKS endpoint.
+	JWKSFetchTimeout = 5 * time.Second
 	// JWTClockSkew is the clock difference allowed when the not-before time of a token is
 	// checked.
 	JWTClockSkew = 30 * time.Second

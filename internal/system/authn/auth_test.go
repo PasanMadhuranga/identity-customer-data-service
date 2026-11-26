@@ -290,3 +290,13 @@ func TestValidateTokenForOrg_introspectsAnOpaqueTokenOnEveryRequest(t *testing.T
 	assert.Equal(t, int32(2), stub.introspectionCalls.Load())
 	assert.Equal(t, int32(0), stub.jwksCalls.Load())
 }
+
+func TestIntrospectionClient_isBuiltOncePerConfiguration(t *testing.T) {
+	initRuntime(t)
+
+	first := introspectionClient()
+	assert.Same(t, first, introspectionClient(), "a request reuses the client")
+
+	config.OverrideCDSRuntime(config.Config{})
+	assert.NotSame(t, first, introspectionClient(), "a new configuration gets a new client")
+}

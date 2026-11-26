@@ -104,28 +104,15 @@ func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterParams := parseApplicationDataParams(r)
-	callerAppIdentifier, isSystemApp, err := resolveCaller(ctx, r, org.ID)
+	caller, err := resolveCallerApp(ctx, r, org.ID)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
-
-	profile.ApplicationData = profileService.FilterApplicationData(
-		profile.ApplicationData,
-		callerAppIdentifier,
-		isSystemApp,
-		filterParams,
-	)
-
-	if !isSystemApp {
-		consentIDs := parseCommaSeparatedOrRepeated(r.URL.Query()["consentCategoryId"])
-		filtered, filterErr := profileService.FilterProfileByConsent(ctx, *profile, profileID, org.ID, consentIDs)
-		if filterErr != nil {
-			utils.HandleError(w, filterErr)
-			return
-		}
-		profile = &filtered
+	profile, err = filterProfileForCaller(ctx, r, org.ID, caller, profile)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -568,10 +555,20 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	caller, err := resolveCallerApp(ctx, r, org.ID)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+	if err := checkApplicationDataWrite(caller, profile.ApplicationData); err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+
 	// Check if a valid cookie exists
 	profileCookie, err := r.Cookie(constants.ProfileCookie)
 	if err == nil && profileCookie.Value != "" {
-		if ph.handleExistingCookie(w, r, org.ID, profileCookie.Value) {
+		if ph.handleExistingCookie(w, r, org.ID, caller, profileCookie.Value) {
 			return
 		}
 	}
@@ -601,7 +598,7 @@ func (ph *ProfileHandler) InitProfile(w http.ResponseWriter, r *http.Request) {
 
 // Handles existing cookie logic, returns true if response was already written
 func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Request, orgID string,
-	cookieVal string) bool {
+	caller callerApp, cookieVal string) bool {
 	ctx := r.Context()
 
 	profilesProvider := provider.NewProfilesProvider()
@@ -617,6 +614,13 @@ func (ph *ProfileHandler) handleExistingCookie(w http.ResponseWriter, r *http.Re
 	// The request resolves to the profile of the active cookie.
 	audit.SetTargetID(ctx, cookieObj.ProfileID)
 	profileResponse, err := profilesService.GetProfile(ctx, cookieObj.ProfileID, orgID)
+	if err != nil {
+		utils.HandleError(w, err)
+		return true
+	}
+	// The profile of a cookie can be merged into a profile that holds the data of other
+	// applications, so the caller gets only what it may read, as with GetProfile.
+	profileResponse, err = filterProfileForCaller(ctx, r, orgID, caller, profileResponse)
 	if err != nil {
 		utils.HandleError(w, err)
 		return true
@@ -689,6 +693,16 @@ func (ph *ProfileHandler) UpdateProfile(writer http.ResponseWriter, request *htt
 		return
 	}
 
+	caller, err := resolveCallerApp(ctx, request, org.ID)
+	if err != nil {
+		utils.HandleError(writer, err)
+		return
+	}
+	if err := checkApplicationDataWrite(caller, profile.ApplicationData); err != nil {
+		utils.HandleError(writer, err)
+		return
+	}
+
 	profilesProvider := provider.NewProfilesProvider()
 	profilesService := profilesProvider.GetProfilesService()
 
@@ -708,6 +722,12 @@ func (ph *ProfileHandler) UpdateProfile(writer http.ResponseWriter, request *htt
 			Description: errMsg,
 		}, err)
 		utils.HandleError(writer, serverError)
+		return
+	}
+	profileResponse, err = filterProfileForCaller(ctx, request, org.ID, caller, profileResponse)
+	if err != nil {
+		utils.HandleError(writer, err)
+		return
 	}
 	utils.RespondJSON(writer, http.StatusOK, profileResponse, constants.ProfileResource)
 }
@@ -763,10 +783,29 @@ func (ph *ProfileHandler) PatchProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	caller, err := resolveCallerApp(ctx, r, org.ID)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+	// applyPatch merges only an application_data object, so only one can write the data of an
+	// application.
+	if appDataPatch, ok := patchData["application_data"].(map[string]interface{}); ok {
+		if err := checkApplicationDataWrite(caller, appDataPatch); err != nil {
+			utils.HandleError(w, err)
+			return
+		}
+	}
+
 	profilesProvider := provider.NewProfilesProvider()
 	profilesService := profilesProvider.GetProfilesService()
 	// The service reads the profile back after the update, so its answer is the response.
 	profileResponse, err := profilesService.PatchProfile(ctx, profileID, org.ID, patchData)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+	profileResponse, err = filterProfileForCaller(ctx, r, org.ID, caller, profileResponse)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
@@ -1528,6 +1567,68 @@ func resolveCaller(ctx context.Context, r *http.Request, orgID string) (string, 
 		callerAppIdentifier = resolved
 	}
 	return callerAppIdentifier, isCallerSystemApplication(ctx, orgID, callerAppIdentifier), nil
+}
+
+// callerApp is the application that makes a request, and whether it is a system application of
+// the organization.
+type callerApp struct {
+	appIdentifier string
+	isSystemApp   bool
+}
+
+// resolveCallerApp returns the application that makes the request. A handler resolves it once,
+// and uses it both to check what the request writes and to filter what the response returns.
+func resolveCallerApp(ctx context.Context, r *http.Request, orgID string) (callerApp, error) {
+	appIdentifier, isSystemApp, err := resolveCaller(ctx, r, orgID)
+	if err != nil {
+		return callerApp{}, err
+	}
+	return callerApp{appIdentifier: appIdentifier, isSystemApp: isSystemApp}, nil
+}
+
+// checkApplicationDataWrite refuses a write of the application data of another application. The
+// application data of a profile is keyed by application, and an application that is not a system
+// application writes only its own, as it reads only its own. A system application writes the data
+// of any application.
+func checkApplicationDataWrite(caller callerApp, appData map[string]interface{}) error {
+	if caller.isSystemApp {
+		return nil
+	}
+	for appID := range appData {
+		if caller.appIdentifier == "" || appID != caller.appIdentifier {
+			return errors2.NewClientError(errors2.ErrorMessage{
+				Code:    errors2.FORBIDDEN.Code,
+				Message: errors2.FORBIDDEN.Message,
+				Description: fmt.Sprintf("An application can write only its own application data, not the data "+
+					"of application: %s", appID),
+			}, http.StatusForbidden)
+		}
+	}
+	return nil
+}
+
+// filterProfileForCaller limits a profile to what the calling application may read. Every
+// response that carries a stored profile goes through it, so that no endpoint returns more than
+// GetProfile does. A profile that InitProfile has just created needs none: it holds only what the
+// caller sent.
+func filterProfileForCaller(ctx context.Context, r *http.Request, orgID string, caller callerApp,
+	profile *model.ProfileResponse) (*model.ProfileResponse, error) {
+	profile.ApplicationData = profileService.FilterApplicationData(
+		profile.ApplicationData,
+		caller.appIdentifier,
+		caller.isSystemApp,
+		parseApplicationDataParams(r),
+	)
+	if caller.isSystemApp {
+		return profile, nil
+	}
+
+	consentIDs := parseCommaSeparatedOrRepeated(r.URL.Query()["consentCategoryId"])
+	filtered, err := profileService.FilterProfileByConsent(ctx, *profile, profile.ProfileID, orgID, consentIDs)
+	if err != nil {
+		return nil, err
+	}
+	return &filtered, nil
 }
 
 func isCallerSystemApplication(ctx context.Context, orgID string, appID string) bool {

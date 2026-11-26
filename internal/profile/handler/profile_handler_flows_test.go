@@ -75,6 +75,7 @@ func (e *profileHandlerEnv) createCookie(t *testing.T, profileID string, active 
 
 func TestInitProfileReturnsTheProfileOfAnActiveCookie(t *testing.T) {
 	env := newProfileHandlerEnv(t)
+	env.markConsoleSystemApp(t)
 	existing := env.createProfile(t, "Colombo")
 	cookieID := env.createCookie(t, existing.ProfileID, true)
 

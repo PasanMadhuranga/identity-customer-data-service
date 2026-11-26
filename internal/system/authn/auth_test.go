@@ -136,7 +136,7 @@ func validate(token string) error {
 	return err
 }
 
-func TestValidateTokenForOrg_checksTheSignatureWithCachedKeysAndCachesIntrospection(t *testing.T) {
+func TestValidateTokenForOrg_checksTheSignatureWithCachedKeysAndIntrospectsEveryRequest(t *testing.T) {
 	stub := newStubIS(t, config.AuthServerConfig{})
 	token := sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, acmeClaims())
 
@@ -147,7 +147,7 @@ func TestValidateTokenForOrg_checksTheSignatureWithCachedKeysAndCachesIntrospect
 	}
 
 	assert.Equal(t, int32(1), stub.jwksCalls.Load(), "the keys are fetched once")
-	assert.Equal(t, int32(1), stub.introspectionCalls.Load(), "the active result is cached")
+	assert.Equal(t, int32(3), stub.introspectionCalls.Load(), "every request is introspected")
 	_, fetchedForAcme := stub.jwksPaths.Load("/t/acme/oauth2/jwks")
 	assert.True(t, fetchedForAcme, "the keys come from the JWKS endpoint of the primary organization")
 }
@@ -216,7 +216,7 @@ func TestValidateTokenForOrg_checksTheClaimsOnEveryRequest(t *testing.T) {
 	token := sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, acmeClaims())
 	require.NoError(t, validate(token))
 
-	// The cached introspection result does not let the token into another organization.
+	// The token does not get into another organization.
 	_, err := ValidateTokenForOrg(token, "other", "other", "")
 	assert.Error(t, err)
 
@@ -245,27 +245,15 @@ func TestValidateTokenForOrg_allowsClockSkewOnNotBefore(t *testing.T) {
 	assert.Error(t, validate(sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, beyondSkew)))
 }
 
-func TestValidateTokenForOrg_doesNotCacheAnInactiveResult(t *testing.T) {
+func TestValidateTokenForOrg_refusesARevokedTokenOnTheNextRequest(t *testing.T) {
 	stub := newStubIS(t, config.AuthServerConfig{})
 	token := sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, acmeClaims())
+	require.NoError(t, validate(token))
+
 	stub.revoke(token)
 
 	assert.Error(t, validate(token))
-	assert.Error(t, validate(token))
 	assert.Equal(t, int32(2), stub.introspectionCalls.Load())
-}
-
-func TestValidateTokenForOrg_introspectsEveryRequestWhenTheCacheIsOff(t *testing.T) {
-	stub := newStubIS(t, config.AuthServerConfig{DisableIntrospectionCache: true})
-	token := sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, acmeClaims())
-
-	require.NoError(t, validate(token))
-	require.NoError(t, validate(token))
-	assert.Equal(t, int32(2), stub.introspectionCalls.Load())
-
-	// A revoked token is refused on the next request.
-	stub.revoke(token)
-	assert.Error(t, validate(token))
 }
 
 // introspectingOnlyIDP is the adapter of an identity provider that introspects tokens but does not
@@ -294,11 +282,11 @@ func TestValidateTokenForOrg_reliesOnIntrospectionWhenTheIdentityProviderPublish
 	assert.Error(t, validate(sign(t, jwt.SigningMethodRS256, "any", newRSAKey(t), acmeClaims())))
 }
 
-func TestValidateTokenForOrg_cachesAnActiveOpaqueToken(t *testing.T) {
+func TestValidateTokenForOrg_introspectsAnOpaqueTokenOnEveryRequest(t *testing.T) {
 	stub := newStubIS(t, config.AuthServerConfig{})
 
 	require.NoError(t, validate("opaque-token"))
 	require.NoError(t, validate("opaque-token"))
-	assert.Equal(t, int32(1), stub.introspectionCalls.Load())
+	assert.Equal(t, int32(2), stub.introspectionCalls.Load())
 	assert.Equal(t, int32(0), stub.jwksCalls.Load())
 }

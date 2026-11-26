@@ -733,10 +733,6 @@ const (
 	// whose key ID is not in the cached keys triggers a fetch, so this bounds the fetches that
 	// such tokens can cause.
 	JWKSMinRefreshInterval = time.Minute
-	// IntrospectionCacheTTL is how long an active introspection result is used, unless
-	// auth_server.disable_introspection_cache is set. A revoked token can be accepted for at
-	// most this long.
-	IntrospectionCacheTTL = time.Minute
 	// JWTClockSkew is the clock difference allowed when the not-before time of a token is
 	// checked.
 	JWTClockSkew = 30 * time.Second

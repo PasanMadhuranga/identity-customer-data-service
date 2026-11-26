@@ -132,10 +132,6 @@ func Run(cdsHome string) {
 	}
 	log.GetLogger().Info(fmt.Sprintf("Shutdown grace period is %s", shutdownGrace))
 
-	if cdsConfig.AuthServer.DisableIntrospectionCache {
-		log.GetLogger().Info("The introspection cache is off. Every request introspects its token.")
-	}
-
 	// Initialize database. This creates and initializes the inbuilt database when
 	// one is configured, and must happen before the workers start since they
 	// query the database.

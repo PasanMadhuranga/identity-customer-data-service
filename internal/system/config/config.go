@@ -126,10 +126,6 @@ type AuthServerConfig struct {
 	AdminPassword             string              `yaml:"admin_password"`
 	RequiredScopes            map[string][]string `yaml:"required_scopes"`
 	IsSystemAppGrantEnabled   bool                `yaml:"isSystemAppGrantEnabled"`
-
-	// DisableIntrospectionCache introspects the token of every request. Otherwise an active
-	// introspection result is used for up to a minute, and never past the expiry of the token.
-	DisableIntrospectionCache bool `yaml:"disable_introspection_cache"`
 }
 
 // SQLiteConfig holds the settings for the inbuilt datasource. A numeric field

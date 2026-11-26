@@ -82,8 +82,8 @@ func newRSAKey(t *testing.T) *rsa.PrivateKey {
 	return key
 }
 
-// initRuntime installs an empty runtime configuration, which the caches read to know when to
-// drop what they hold.
+// initRuntime installs an empty runtime configuration, which the key cache reads to know when to
+// drop the keys it holds.
 func initRuntime(t *testing.T) {
 	t.Helper()
 	require.NoError(t, log.Init("ERROR"))

@@ -92,8 +92,6 @@ auth_server:
   admin_username: "admin"
   admin_password: "${AUTH_SERVER_ADMIN_PASSWORD}"
   isSystemAppGrantEnabled: false
-  # Set to true to introspect every request instead of reusing a result for up to a minute.
-  # disable_introspection_cache: false
   required_scopes:
     profile:create:
       - "internal_cds_profile_create"

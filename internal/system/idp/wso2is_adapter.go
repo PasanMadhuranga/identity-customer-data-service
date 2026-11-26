@@ -177,7 +177,11 @@ func toOrganization(org client.ISOrganization) Organization {
 // that introspects its tokens. A sub organization's tokens are signed with the keys of its
 // primary organization.
 func (a *WSO2ISAdapter) JWKSEndpoint(primaryHandle string) (string, error) {
-	return a.client.JWKSEndpoint(primaryHandle, constants.WSO2ISJWKSEndpoint)
+	path := config.GetCDSRuntime().Config.AuthServer.JWKSEndpoint
+	if path == "" {
+		path = constants.DefaultJWKSEndpoint
+	}
+	return a.client.JWKSEndpoint(primaryHandle, path)
 }
 
 // FetchJWKS returns the JWKS document at endpoint.

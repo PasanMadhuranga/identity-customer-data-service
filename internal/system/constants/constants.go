@@ -723,9 +723,9 @@ const DefaultShutdownGracePeriod = 25 * time.Second
 
 // Token validation. Every request validates its token.
 const (
-	// WSO2ISJWKSEndpoint is the path of the JWKS endpoint of a WSO2 IS tenant, after
-	// /t/{tenant}.
-	WSO2ISJWKSEndpoint = "/oauth2/jwks"
+	// DefaultJWKSEndpoint is the path of the JWKS endpoint, after /t/{tenant}, when
+	// auth_server.jwksEndpoint is not set.
+	DefaultJWKSEndpoint = "/oauth2/jwks"
 	// JWKSCacheTTL is how long the keys of a JWKS endpoint are used before they are fetched
 	// again.
 	JWKSCacheTTL = time.Hour

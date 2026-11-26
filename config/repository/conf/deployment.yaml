@@ -88,14 +88,11 @@ auth_server:
   cookieDomain: "localhost"
   introspectionEndpoint: "/oauth2/introspect"
   tokenEndpoint: "/oauth2/token"
+  jwksEndpoint: "/oauth2/jwks"
   admin_username: "admin"
   admin_password: "${AUTH_SERVER_ADMIN_PASSWORD}"
   isSystemAppGrantEnabled: false
-  # Every request validates its token. With idp.type wso2is, the signature of a JWT is checked
-  # with the cached keys of the primary organization's JWKS endpoint, and only RS, PS and ES
-  # algorithms are accepted. An active introspection result is then reused for up to a minute,
-  # and never past the token's expiry, so a revoked token can be accepted for at most a minute.
-  # Set disable_introspection_cache to true to introspect every request instead.
+  # Set to true to introspect every request instead of reusing a result for up to a minute.
   # disable_introspection_cache: false
   required_scopes:
     profile:create:

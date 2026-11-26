@@ -171,6 +171,14 @@ func TestValidateTokenForOrg_checksASubOrgTokenWithTheKeysOfTheRootOrg(t *testin
 	})
 }
 
+func TestValidateTokenForOrg_usesTheConfiguredJWKSEndpoint(t *testing.T) {
+	stub := newStubIS(t, config.AuthServerConfig{JWKSEndpoint: "/custom/oauth2/jwks"})
+
+	require.NoError(t, validate(sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, acmeClaims())))
+	_, fetched := stub.jwksPaths.Load("/t/acme/custom/oauth2/jwks")
+	assert.True(t, fetched)
+}
+
 func TestValidateTokenForOrg_acceptsAnECSignature(t *testing.T) {
 	stub := newStubIS(t, config.AuthServerConfig{})
 	require.NoError(t, validate(sign(t, jwt.SigningMethodES256, "ec-key", stub.ecKey, acmeClaims())))

@@ -60,7 +60,14 @@ type keySet struct {
 	// fetching is closed when the fetch in progress ends. It is nil when no fetch
 	// is in progress.
 	fetching chan struct{}
+	// lastUsed is when a request last asked for a key of the endpoint. The sweep
+	// removes a key set that nobody used for a while.
+	lastUsed time.Time
 }
+
+// initialJWKSSweepThreshold is the number of key sets at which the cache first
+// removes the key sets that nobody used for a while.
+const initialJWKSSweepThreshold = 1024
 
 // jwksCache holds the keys of each JWKS endpoint, so the signature of a token is
 // checked without a call to the identity server. The keys are fetched again when
@@ -68,9 +75,17 @@ type keySet struct {
 // have, at most once in the minimum refresh interval. Requests that need a fetch
 // at the same time wait for one fetch. When a fetch fails, the keys fetched last
 // are used.
+//
+// A request for any organization adds a key set, so a key set that nobody used
+// for a while is removed when the cache grows past a threshold, the same way as
+// cache.Cache does it.
 type jwksCache struct {
 	mu   sync.Mutex
 	sets map[string]*keySet
+	// sweepAt is the number of key sets that triggers a sweep when a key set is
+	// added. It rises with the cache, so a large set of key sets in use is not
+	// swept on every addition.
+	sweepAt int
 	// runtime is the configuration the keys were fetched under. The keys are
 	// dropped when it is replaced.
 	runtime    *config.CDSRuntime
@@ -82,6 +97,7 @@ type jwksCache struct {
 func newJWKSCache() *jwksCache {
 	return &jwksCache{
 		sets:       map[string]*keySet{},
+		sweepAt:    initialJWKSSweepThreshold,
 		ttl:        constants.JWKSCacheTTL,
 		minRefresh: constants.JWKSMinRefreshInterval,
 		now:        time.Now,
@@ -97,12 +113,17 @@ func (c *jwksCache) key(endpoint, kid, alg string, fetch func(endpoint string) (
 	for waited := false; ; waited = true {
 		c.mu.Lock()
 		c.dropIfConfigChanged()
+		now := c.now()
 		set, ok := c.sets[endpoint]
 		if !ok {
-			set = &keySet{}
+			// lastUsed is set first, so the sweep below keeps the new key set.
+			set = &keySet{lastUsed: now}
 			c.sets[endpoint] = set
+			if len(c.sets) >= c.sweepAt {
+				c.sweepUnusedLocked(now)
+			}
 		}
-		now := c.now()
+		set.lastUsed = now
 		found, hasKey := set.keys[kid]
 		fresh := !set.fetchedAt.IsZero() && now.Sub(set.fetchedAt) < ttl
 		if hasKey && fresh {
@@ -147,11 +168,35 @@ func (c *jwksCache) key(endpoint, kid, alg string, fetch func(endpoint string) (
 	}
 }
 
+// sweepUnusedLocked removes the key sets that nobody used for longer than the
+// TTL. A key set without keys, as for an organization whose keys could not be
+// fetched, only holds back the next fetch, so it is removed once nobody used it
+// for longer than the minimum refresh interval. A key set that is being fetched
+// stays. The caller holds c.mu.
+func (c *jwksCache) sweepUnusedLocked(now time.Time) {
+	for endpoint, set := range c.sets {
+		idleLimit := c.ttl
+		if len(set.keys) == 0 {
+			idleLimit = c.minRefresh
+		}
+		if set.fetching == nil && now.Sub(set.lastUsed) > idleLimit {
+			delete(c.sets, endpoint)
+		}
+	}
+
+	// If the sweep freed little, the key sets in use really are this many. Raise
+	// the threshold, so the next sweep does not run on every addition.
+	if next := len(c.sets) * 2; next > c.sweepAt {
+		c.sweepAt = next
+	}
+}
+
 // dropIfConfigChanged drops every key when the runtime configuration was
 // replaced since they were fetched. The caller holds c.mu.
 func (c *jwksCache) dropIfConfigChanged() {
 	if current := config.GetCDSRuntime(); current != c.runtime {
 		c.sets = map[string]*keySet{}
+		c.sweepAt = initialJWKSSweepThreshold
 		c.runtime = current
 	}
 }

@@ -26,6 +26,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -169,9 +170,12 @@ func (f *countingFetcher) set(body []byte, err error) {
 	f.body, f.err = body, err
 }
 
+// newTestCache returns a cache on the clock, bound to the current runtime configuration so that its
+// first lookup does not reset what a test sets.
 func newTestCache(clock *fakeClock) *jwksCache {
 	cache := newJWKSCache()
 	cache.now = clock.Now
+	cache.runtime = config.GetCDSRuntime()
 	return cache
 }
 
@@ -319,4 +323,72 @@ func TestJWKSCache_dropsTheKeysWhenTheConfigurationIsReplaced(t *testing.T) {
 	_, err = cache.key(testEndpoint, "k1", "RS256", fetcher.fetch)
 	require.NoError(t, err)
 	assert.Equal(t, int32(2), fetcher.count.Load())
+}
+
+func TestJWKSCache_sweepsKeySetsThatNobodyUsed(t *testing.T) {
+	initRuntime(t)
+	key := newRSAKey(t)
+	good := &countingFetcher{body: jwksDocument(t, rsaJWK(t, "k1", "", &key.PublicKey))}
+	failing := &countingFetcher{err: errors.New("no such organization")}
+	clock := &fakeClock{now: time.Unix(1_000_000, 0)}
+	cache := newTestCache(clock)
+	cache.sweepAt = 3
+
+	_, err := cache.key("https://is/t/acme/oauth2/jwks", "k1", "RS256", good.fetch)
+	require.NoError(t, err)
+	_, err = cache.key("https://is/t/unknown/oauth2/jwks", "k1", "RS256", failing.fetch)
+	require.ErrorIs(t, err, errUnknownKey)
+
+	// After the minimum refresh interval, the key set without keys is swept when a key set is
+	// added, and the one with keys stays until the TTL.
+	clock.Add(2 * time.Minute)
+	_, err = cache.key("https://is/t/other/oauth2/jwks", "k1", "RS256", good.fetch)
+	require.NoError(t, err)
+	assert.Contains(t, cache.sets, "https://is/t/acme/oauth2/jwks")
+	assert.NotContains(t, cache.sets, "https://is/t/unknown/oauth2/jwks")
+	assert.Contains(t, cache.sets, "https://is/t/other/oauth2/jwks", "the added key set is not swept")
+
+	// A key set in use stays: acme is used again, other is not.
+	clock.Add(30 * time.Minute)
+	_, err = cache.key("https://is/t/acme/oauth2/jwks", "k1", "RS256", good.fetch)
+	require.NoError(t, err)
+	clock.Add(31 * time.Minute)
+	// The first sweep left 2 key sets, so the threshold is now 4.
+	assert.Equal(t, 4, cache.sweepAt)
+	for _, org := range []string{"third", "fourth"} {
+		_, err = cache.key("https://is/t/"+org+"/oauth2/jwks", "k1", "RS256", good.fetch)
+		require.NoError(t, err)
+	}
+	assert.Contains(t, cache.sets, "https://is/t/acme/oauth2/jwks")
+	assert.NotContains(t, cache.sets, "https://is/t/other/oauth2/jwks", "unused for longer than the TTL")
+}
+
+func TestJWKSCache_raisesTheSweepThresholdWhenEveryKeySetIsInUse(t *testing.T) {
+	initRuntime(t)
+	key := newRSAKey(t)
+	fetcher := &countingFetcher{body: jwksDocument(t, rsaJWK(t, "k1", "", &key.PublicKey))}
+	cache := newTestCache(&fakeClock{now: time.Unix(1_000_000, 0)})
+	cache.sweepAt = 4
+
+	for i := 0; i < 4; i++ {
+		_, err := cache.key(fmt.Sprintf("https://is/t/org%d/oauth2/jwks", i), "k1", "RS256", fetcher.fetch)
+		require.NoError(t, err)
+	}
+	assert.Len(t, cache.sets, 4, "nothing is swept while every key set is in use")
+	assert.Equal(t, 8, cache.sweepAt)
+}
+
+func TestJWKSCache_staysBoundedUnderRequestsForUnknownOrganizations(t *testing.T) {
+	initRuntime(t)
+	failing := &countingFetcher{err: errors.New("no such organization")}
+	clock := &fakeClock{now: time.Unix(1_000_000, 0)}
+	cache := newTestCache(clock)
+
+	for i := 0; i < 10_000; i++ {
+		clock.Add(time.Second)
+		_, err := cache.key(fmt.Sprintf("https://is/t/random-%d/oauth2/jwks", i), "k1", "RS256", failing.fetch)
+		require.ErrorIs(t, err, errUnknownKey)
+	}
+	assert.LessOrEqual(t, len(cache.sets), initialJWKSSweepThreshold)
+	assert.Equal(t, initialJWKSSweepThreshold, cache.sweepAt)
 }

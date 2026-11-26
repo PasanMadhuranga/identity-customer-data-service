@@ -152,6 +152,25 @@ func TestValidateTokenForOrg_checksTheSignatureWithCachedKeysAndCachesIntrospect
 	assert.True(t, fetchedForAcme, "the keys come from the JWKS endpoint of the primary organization")
 }
 
+func TestValidateTokenForOrg_checksASubOrgTokenWithTheKeysOfTheRootOrg(t *testing.T) {
+	stub := newStubIS(t, config.AuthServerConfig{})
+	const subOrgID = "8f9e2c1a-0d4b-4c6e-9a7f-3b2d1e0c5a6b"
+	claims := acmeClaims()
+	delete(claims, constants.OrgHandleClaim)
+	claims[constants.OrgIDClaim] = subOrgID
+	token := sign(t, jwt.SigningMethodRS256, "rsa-key", stub.rsaKey, claims)
+
+	_, err := ValidateTokenForOrg(token, "region1", "acme", subOrgID)
+
+	require.NoError(t, err)
+	_, fetchedForRoot := stub.jwksPaths.Load("/t/acme/oauth2/jwks")
+	assert.True(t, fetchedForRoot, "a sub organization's token is checked with the keys of its root organization")
+	stub.jwksPaths.Range(func(path, _ interface{}) bool {
+		assert.Equal(t, "/t/acme/oauth2/jwks", path, "no JWKS endpoint of the sub organization is called")
+		return true
+	})
+}
+
 func TestValidateTokenForOrg_acceptsAnECSignature(t *testing.T) {
 	stub := newStubIS(t, config.AuthServerConfig{})
 	require.NoError(t, validate(sign(t, jwt.SigningMethodES256, "ec-key", stub.ecKey, acmeClaims())))

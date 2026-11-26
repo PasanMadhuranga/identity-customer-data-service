@@ -21,9 +21,7 @@ organization_management:
 
 The organization tables are part of every database script in
 `repository/dbscripts/` and of the inbuilt database, so a new database needs
-nothing else. An existing PostgreSQL database needs
-`dbscripts/migrations/002-organization-management-postgres.sql` before you
-turn it on.
+nothing else.
 
 ---
 

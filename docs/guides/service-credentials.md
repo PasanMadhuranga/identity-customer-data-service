@@ -121,9 +121,8 @@ idp:
 openssl rand -base64 32    # the value for SERVICE_CREDENTIALS_ENCRYPTION_KEY
 ```
 
-On PostgreSQL, run
-[`dbscripts/migrations/003-service-credentials-postgres.sql`](../../dbscripts/migrations/003-service-credentials-postgres.sql)
-first. SQLite creates the table at start.
+Every database script in `repository/dbscripts/` creates the
+`org_service_credentials` table. SQLite creates it at start.
 
 The key is the switch. Without it, the endpoint answers `400 CDS-16004`, the
 Identity Server sends no credentials, and CDD uses the configured pair for every
@@ -132,8 +131,7 @@ any of these is true:
 
 - The key is not usable.
 - The identity provider sends no credentials.
-- The `org_service_credentials` table cannot be read, as on PostgreSQL before the
-  migration.
+- The `org_service_credentials` table cannot be read.
 
 ---
 

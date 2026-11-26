@@ -11,9 +11,8 @@ below it.
 
 ## Switching it on
 
-Organization support is on in the shipped `repository/conf/deployment.yaml`
-and in the Helm chart. A `deployment.yaml` without the key keeps it off. The
-switch is:
+Organization support is on in the shipped `repository/conf/deployment.yaml`.
+A `deployment.yaml` without the key keeps it off. The switch is:
 
 ```yaml
 organization_management:

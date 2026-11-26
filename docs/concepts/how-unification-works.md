@@ -254,7 +254,7 @@ The same name evidence produced no action when the NICs contradicted, and an aut
 
 ## Switching tolerant matching on and off
 
-`identity_resolution.fuzzy_matching_enabled` is on in the shipped `deployment.yaml` and the Helm chart, and off when the key is absent, so a deployment that upgrades with its own configuration keeps matching as it did. It can be turned on or off on a running deployment. The schema is identical either way, so neither direction needs a migration — but the two are not symmetric.
+`identity_resolution.fuzzy_matching_enabled` is on in the shipped `deployment.yaml`, and off when the key is absent, so a deployment that upgrades with its own configuration keeps matching as it did. It can be turned on or off on a running deployment. The schema is identical either way, so neither direction needs a migration — but the two are not symmetric.
 
 **Off** is immediate. A rule stored as `fuzzy` is read as exact everywhere: the worker, the synchronous search, the index backfill, and the options endpoint stops offering the method. The stored value is untouched, so switching back on restores what the operator configured rather than requiring the rules to be written again. Two residues, neither harmful: phonetic and LSH keys already written stay until each profile is next re-indexed, where they gather candidates that then score exactly — comparisons, not wrong answers — and review tasks raised while it was on stay in the queue to be answered.
 

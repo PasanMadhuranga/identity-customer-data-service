@@ -326,6 +326,7 @@ func TestGetAllProfilesAppliesConsentForOtherCallers(t *testing.T) {
 
 func TestUpdateProfile(t *testing.T) {
 	env := newProfileHandlerEnv(t)
+	env.markConsoleSystemApp(t)
 	created := env.createProfile(t, "Colombo")
 
 	updated := env.call(t, env.h.UpdateProfile, http.MethodPut, env.auth.ValidToken, "",
@@ -351,6 +352,7 @@ func TestUpdateProfile(t *testing.T) {
 
 func TestPatchProfile(t *testing.T) {
 	env := newProfileHandlerEnv(t)
+	env.markConsoleSystemApp(t)
 	created, err := env.svc.CreateProfile(env.ctx, model.ProfileRequest{
 		Traits: map[string]interface{}{"city": "Colombo", "age": float64(30)}}, env.orgID)
 	require.NoError(t, err)

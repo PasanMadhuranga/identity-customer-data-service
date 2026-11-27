@@ -71,6 +71,8 @@ func newReviewEnv(t *testing.T) *reviewEnv {
 	env := &reviewEnv{ctx: context.Background(), db: testDB.DB, handle: handle, orgID: setup.TestOrgID(handle),
 		auth: auth, h: NewIdentityResolutionHandler()}
 	setup.TestOrg(t, handle)
+	_, err = env.db.Exec(`INSERT INTO cds_config (org_id, config, value) VALUES (?, 'cds_enabled', 'true')`, env.orgID)
+	require.NoError(t, err)
 	return env
 }
 

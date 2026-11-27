@@ -864,9 +864,20 @@ func (ph *ProfileHandler) LinkProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// When the user already has a profile, the anonymous identity attributes only fill those it has no value for.
+	identityAttributes := existingProfile.IdentityAttributes
+	userProfile, err := profilesService.FindProfileByUserID(ctx, userID, org.ID)
+	if err != nil && !utils.HasClientErrorCode(err, errors2.ProfileNotFound.Code) {
+		utils.HandleError(w, err)
+		return
+	}
+	if err == nil && userProfile != nil {
+		identityAttributes = profileService.WithoutAttributesOf(identityAttributes, userProfile.IdentityAttributes)
+	}
+
 	profileRequest := model.ProfileRequest{
 		UserID:             userID,
-		IdentityAttributes: existingProfile.IdentityAttributes,
+		IdentityAttributes: identityAttributes,
 		Traits:             existingProfile.Traits,
 		ApplicationData:    profileService.WideAppDataMap(existingProfile.ApplicationData),
 	}
@@ -1173,11 +1184,13 @@ func (ph *ProfileHandler) SyncProfile(writer http.ResponseWriter, request *http.
 						"Stitching temporary profile %s with the permanent profile %s",
 						anonymousProfile.ProfileID, existingUserProfile.ProfileID))
 
+					// The anonymous identity attributes only fill those the permanent profile has no value for.
 					profileRequest := model.ProfileRequest{
-						UserID:             profileSync.UserID,
-						IdentityAttributes: anonymousProfile.IdentityAttributes,
-						Traits:             anonymousProfile.Traits,
-						ApplicationData:    profileService.WideAppDataMap(anonymousProfile.ApplicationData),
+						UserID: profileSync.UserID,
+						IdentityAttributes: profileService.WithoutAttributesOf(anonymousProfile.IdentityAttributes,
+							existingUserProfile.IdentityAttributes),
+						Traits:          anonymousProfile.Traits,
+						ApplicationData: profileService.WideAppDataMap(anonymousProfile.ApplicationData),
 					}
 					audit.SetTargetID(ctx, auditTargetOf(anonymousProfile))
 					_, err = profilesService.UpdateProfile(ctx, anonymousProfile.ProfileID, org.ID, profileRequest)

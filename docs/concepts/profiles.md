@@ -10,7 +10,7 @@ A **profile** is the central entity in CDD. It represents a single person's coll
 |---|---|
 | `profile_id` | System-generated UUID. Immutable. |
 | `user_id` | The user's ID from Identity Server. Empty on anonymous profiles. Write-once once set. |
-| `identity_attributes` | Attributes sourced from the identity system (e.g. email, phone, name). Keyed by attribute name. |
+| `identity_attributes` | Attributes sourced from the identity system (e.g. email, phone, name). Keyed by attribute name. On a permanent profile the identity provider is the source of truth: clients cannot change them. |
 | `traits` | Behavioural or preference data (e.g. preferred language, segment tags). |
 | `application_data` | Per-application data, keyed by application identifier. |
 | `meta.created_at` | When the profile was created. Read-only. |
@@ -55,6 +55,7 @@ Profiles are either **temporary** (anonymous) or **permanent** (identified).
 - Has a `user_id` — set when the user logs in or is created in IS
 - Acts as the master record for that identity
 - May have one or more temporary profiles merged into it over time
+- The identity provider is the source of truth for its `identity_attributes`. A `PATCH` that changes them is rejected with `CDS-11018`. When an anonymous profile joins it, the anonymous identity attributes only fill those it has no value for.
 
 ---
 

@@ -1689,8 +1689,72 @@ func (ps *ProfilesService) PatchProfile(ctx context.Context,
 	profileID string, orgID string, patch map[string]interface{}) (*profileModel.ProfileResponse, error) {
 	return ps.writeProfile(ctx, profileID, orgID,
 		func(target *profileModel.Profile) (profileModel.ProfileRequest, error) {
+			if target.UserID != "" && patchesIdentityAttributes(patch) {
+				return profileModel.ProfileRequest{}, identityAttributesReadOnlyError()
+			}
 			return applyPatch(profileID, target, patch)
 		})
+}
+
+// patchesIdentityAttributes reports whether a patch changes identity attributes. An empty object changes nothing.
+func patchesIdentityAttributes(patch map[string]interface{}) bool {
+	value, ok := patch["identity_attributes"]
+	if !ok {
+		return false
+	}
+	attrs, isMap := value.(map[string]interface{})
+	return !isMap || len(attrs) > 0
+}
+
+// WithoutAttributesOf returns the attributes of an anonymous profile without those that a profile of the user
+// already has a value for, nested ones included. The identity provider is the source of truth for the identity
+// attributes of a profile linked to a user, so when an anonymous profile joins it, the anonymous values only fill
+// the attributes it has no value for.
+func WithoutAttributesOf(anonymous, linked map[string]interface{}) map[string]interface{} {
+	if anonymous == nil {
+		return nil
+	}
+	result := make(map[string]interface{}, len(anonymous))
+	for k, anonymousVal := range anonymous {
+		linkedVal, exists := linked[k]
+		if !exists || isEmptyAttributeValue(linkedVal) {
+			result[k] = anonymousVal
+			continue
+		}
+		anonymousMap, okA := anonymousVal.(map[string]interface{})
+		linkedMap, okL := linkedVal.(map[string]interface{})
+		if okA && okL {
+			if remaining := WithoutAttributesOf(anonymousMap, linkedMap); len(remaining) > 0 {
+				result[k] = remaining
+			}
+		}
+	}
+	return result
+}
+
+// isEmptyAttributeValue reports whether an attribute has no value.
+func isEmptyAttributeValue(v interface{}) bool {
+	switch val := v.(type) {
+	case nil:
+		return true
+	case string:
+		return strings.TrimSpace(val) == ""
+	case []interface{}:
+		return len(val) == 0
+	case map[string]interface{}:
+		return len(val) == 0
+	}
+	return false
+}
+
+// identityAttributesReadOnlyError is returned when a client changes the identity attributes of a profile linked
+// to a user. The identity provider is the source of truth for them, and sends them through the profile sync.
+func identityAttributesReadOnlyError() error {
+	return errors2.NewClientError(errors2.ErrorMessage{
+		Code:        errors2.IdentityAttributesReadOnly.Code,
+		Message:     errors2.IdentityAttributesReadOnly.Message,
+		Description: errors2.IdentityAttributesReadOnly.Description,
+	}, http.StatusBadRequest)
 }
 
 // applyPatch applies a patch to a copy of the profile it is written to, and returns the whole profile

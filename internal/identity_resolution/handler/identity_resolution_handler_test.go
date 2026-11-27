@@ -257,6 +257,22 @@ func TestResolveReviewTaskRefusals(t *testing.T) {
 	}
 }
 
+// TestResolveReviewTaskDecodeErrorNamesTheJSONType checks that a body of the wrong JSON type gets a
+// message that names the field and the JSON type.
+func TestResolveReviewTaskDecodeErrorNamesTheJSONType(t *testing.T) {
+	env := newReviewEnv(t)
+	recorder := env.call(t, env.h.ResolveReviewTask, http.MethodPost, env.auth.ValidToken, "",
+		`{"decision":5}`, taskID("task-1"))
+
+	require.Equal(t, http.StatusBadRequest, recorder.Code, recorder.Body.String())
+	var body map[string]string
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+	assert.Equal(t, "Invalid type for field 'decision'. Expected a string in review task resolve request body.",
+		body["description"])
+	assert.NotContains(t, recorder.Body.String(), "ReviewResolveRequest")
+	assert.NotContains(t, recorder.Body.String(), "Go struct")
+}
+
 func TestATaskOfAnotherOrganizationIsReportedAsNotFound(t *testing.T) {
 	env := newReviewEnv(t)
 	env.addProfile(t, "p-1")

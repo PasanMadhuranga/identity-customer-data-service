@@ -29,21 +29,27 @@ several tenants needs an application per tenant.
 **The Identity Server does.** When an organization enables CDD through the
 Identity Server (`PATCH /api/server/v1/configs/cds`), the CDD extension in the
 Identity Server creates a machine-to-machine application named
-`Customer Data Directory` for that organization, authorizes it for the management
+`Customer Data Service` for that organization, authorizes it for the management
 APIs CDD calls, and sends its credentials to CDD. Then it enables CDD for the
 organization. An organization that already has the application keeps it: its
 secret is renewed and sent when the organization turns CDD on from off.
 
 The application is the Identity Server's own. Reserve its name so that tenant
 administrators cannot change or delete it, and the Console does not list it.
+The name is `Customer Data Service`: the extension does not set up the
+application unless that name is reserved, so enabling CDD fails otherwise.
 Both lists apply to every tenant, and each replaces its default, so keep the
 default entries:
 
 ```toml
 [system_applications]
-read_only_apps = ["Console", "Customer Data Directory"]
-system_portals = ["Console", "My Account", "Customer Data Directory"]
+read_only_apps = ["Console", "Customer Data Service"]
+system_portals = ["Console", "My Account", "Customer Data Service"]
 ```
+
+An Identity Server that reserves the name itself when `[customer_data_service]`
+is enabled still takes these lists from `deployment.toml` when they are set
+there, so a list that leaves out `Customer Data Service` makes enabling fail.
 
 CDD never creates applications and never holds Identity Server administrator
 credentials. The extension already pushes profiles, claims and organizations to

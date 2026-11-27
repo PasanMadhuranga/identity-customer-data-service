@@ -560,6 +560,54 @@ func (c *IdentityClient) IntrospectToken(token, orgHandle string) (map[string]in
 		form)
 }
 
+// maxJWKSResponseBytes bounds the JWKS document that is read. A key set is a
+// few kilobytes.
+const maxJWKSResponseBytes = 1 << 20
+
+// jwksFetchTimeout bounds a JWKS fetch. Requests that need the keys wait for the
+// fetch, so a slow identity server holds them for at most this long.
+var jwksFetchTimeout = constants.JWKSFetchTimeout
+
+// JWKSEndpoint returns the URL of the JWKS endpoint of the primary organization
+// primaryHandle, at path after /t/{primaryHandle}. It is on the host that
+// introspects the tokens of the organization.
+func (c *IdentityClient) JWKSEndpoint(primaryHandle, path string) (string, error) {
+	authConfig := config.GetCDSRuntime().Config.AuthServer
+	host := c.BaseURL
+	if authConfig.IsSystemAppGrantEnabled {
+		host = authConfig.ADUISHostname
+	}
+	return orgEndpoint(host, primaryHandle, "/t/"+primaryHandle+path)
+}
+
+// FetchJWKS returns the JWKS document at endpoint, a URL that JWKSEndpoint
+// built.
+func (c *IdentityClient) FetchJWKS(endpoint string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), jwksFetchTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch the JWKS from %s: %w", endpoint, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("the JWKS endpoint %s returned status %d", endpoint, resp.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxJWKSResponseBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the JWKS from %s: %w", endpoint, err)
+	}
+	if len(body) > maxJWKSResponseBytes {
+		return nil, fmt.Errorf("the JWKS from %s is larger than %d bytes", endpoint, maxJWKSResponseBytes)
+	}
+	return body, nil
+}
+
 // IntrospectTokenAsOrg introspects the token at the introspection endpoint of
 // orgHandle, with the service credentials of that organization.
 //

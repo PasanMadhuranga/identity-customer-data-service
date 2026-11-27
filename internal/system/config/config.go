@@ -117,6 +117,7 @@ type AuthServerConfig struct {
 	CookieDomain              string              `yaml:"cookieDomain"`
 	IntrospectionEndPoint     string              `yaml:"introspectionEndpoint"`
 	TokenEndpoint             string              `yaml:"tokenEndpoint"`
+	JWKSEndpoint              string              `yaml:"jwksEndpoint"` // Default: /oauth2/jwks
 	ClientID                  string              `yaml:"client_id"`
 	ClientSecret              string              `yaml:"client_secret"`
 	IntrospectionClientID     string              `yaml:"introspection_client_id"`

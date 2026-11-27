@@ -87,6 +87,7 @@ auth_server:
   cookieDomain: "localhost"
   introspectionEndpoint: "/oauth2/introspect"
   tokenEndpoint: "/oauth2/token"
+  jwksEndpoint: "/oauth2/jwks"
   admin_username: "admin"
   admin_password: "${AUTH_SERVER_ADMIN_PASSWORD}"
   isSystemAppGrantEnabled: false

@@ -338,7 +338,11 @@ Treated the same as both-temporary — existing becomes master, new becomes chil
 
 ## Data merging
 
-After the master/child relationship is resolved, `MergeProfiles` is called. It walks each schema attribute for the org and applies the attribute's `merge_strategy`:
+After the master/child relationship is resolved, `MergeProfiles` is called. It walks each schema attribute for the org and applies the attribute's `merge_strategy`.
+
+Identity attributes are the exception when only one of the profiles is permanent. The identity provider is the source of truth for them, so the merged profile keeps every value the permanent profile has, whatever the strategy, and the temporary profile only fills the attributes the permanent one has no value for. When an anonymous profile is linked to a user who already has a profile, at login or through `/profiles/link`, the same applies: before the link, it drops the identity attributes the user's profile has a value for.
+
+The strategies:
 
 | Strategy | Behaviour |
 |---|---|

@@ -464,3 +464,72 @@ func TestSyncAuditRecordsAFailedProfileCreation(t *testing.T) {
 	outcome := record["outcome"].(map[string]any)
 	assert.Equal(t, "failed", outcome["result"])
 }
+
+// addPhoneAttribute adds a phone identity attribute, which the identity provider does not send.
+func (e *profileHandlerEnv) addPhoneAttribute(t *testing.T) {
+	t.Helper()
+	require.NoError(t, schemaStore.AddProfileSchemaAttributesForScope(context.Background(),
+		[]schemaModel.ProfileSchemaAttribute{{
+			AttributeID:   "attr-phone",
+			AttributeName: "identity_attributes.phone",
+			Scope:         constants.IdentityAttributes,
+			ValueType:     constants.StringDataType,
+			MergeStrategy: "overwrite",
+			Mutability:    constants.MutabilityReadWrite,
+		}}, constants.IdentityAttributes, e.orgID))
+}
+
+// createAnonymousWithIdentity creates an anonymous profile with identity attributes a client set.
+func (e *profileHandlerEnv) createAnonymousWithIdentity(t *testing.T) *model.ProfileResponse {
+	t.Helper()
+	created, err := e.svc.CreateProfile(e.ctx, model.ProfileRequest{
+		IdentityAttributes: map[string]interface{}{"email": "anon@b.c", "phone": "111"},
+		Traits:             map[string]interface{}{"city": "Colombo"},
+	}, e.orgID)
+	require.NoError(t, err)
+	return created
+}
+
+func TestAuthenticationSuccessKeepsOnlyTheAnonymousValuesTheUserProfileLacks(t *testing.T) {
+	env := newSyncEnv(t)
+	env.sync(t, adminAuthorization(), env.event(constants.AddUserEvent, "u-1", emailClaim("idp@b.c")))
+	require.NotNil(t, env.findUser(t, "u-1"))
+	env.addPhoneAttribute(t)
+	anonymous := env.createAnonymousWithIdentity(t)
+	cookieID := env.createCookie(t, anonymous.ProfileID, true)
+
+	recorder := env.sync(t, adminAuthorization(), env.event(constants.AuthenticationSuccess, "u-1",
+		map[string]interface{}{"profileCookie": cookieID}))
+
+	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+	stitched, err := env.svc.GetProfile(env.ctx, anonymous.ProfileID, env.orgID)
+	require.NoError(t, err)
+	assert.Equal(t, "u-1", stitched.UserID)
+	assert.Equal(t, map[string]interface{}{"phone": "111"}, stitched.IdentityAttributes,
+		"the email of the identity provider is not contested, the phone it lacks is kept")
+	assert.Equal(t, "Colombo", stitched.Traits["city"])
+}
+
+func TestLinkProfileKeepsOnlyTheAnonymousValuesTheUserProfileLacks(t *testing.T) {
+	env := newSyncEnv(t)
+	env.sync(t, adminAuthorization(), env.event(constants.AddUserEvent, "u-1", emailClaim("idp@b.c")))
+	env.addPhoneAttribute(t)
+	anonymous := env.createAnonymousWithIdentity(t)
+	alone := env.createAnonymousWithIdentity(t)
+	link := func(profileID, userID string) {
+		recorder := env.call(t, env.h.LinkProfile, http.MethodPost, env.auth.ValidToken, "",
+			`{"profile_id":"`+profileID+`","user_id":"`+userID+`"}`, nil)
+		require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+	}
+
+	link(anonymous.ProfileID, "u-1")
+	link(alone.ProfileID, "u-2")
+
+	stored, err := env.svc.GetProfile(env.ctx, anonymous.ProfileID, env.orgID)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{"phone": "111"}, stored.IdentityAttributes)
+	storedAlone, err := env.svc.GetProfile(env.ctx, alone.ProfileID, env.orgID)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{"email": "anon@b.c", "phone": "111"}, storedAlone.IdentityAttributes,
+		"a user with no profile has no values to keep, so the anonymous ones stay")
+}

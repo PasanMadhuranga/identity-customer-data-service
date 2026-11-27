@@ -38,7 +38,7 @@ Fired on every successful login.
 
 | Scenario | Action |
 |---|---|
-| Cookie present + anonymous profile + existing permanent profile (different) | Attaches `userId` to the anonymous profile and enqueues for unification. Worker merges anonymous into permanent via `system:user_id_match`. |
+| Cookie present + anonymous profile + existing permanent profile (different) | Attaches `userId` to the anonymous profile, drops the identity attributes the permanent profile has a value for, and enqueues for unification. Worker merges anonymous into permanent via `system:user_id_match`. |
 | Cookie present + anonymous profile + no permanent profile | Promotes the anonymous profile to permanent by attaching `userId` |
 | Cookie present + already the user's profile | No-op |
 | No cookie | No-op (logged) |
